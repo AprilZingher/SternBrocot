@@ -69,6 +69,7 @@ No `sorry`, no `native_decide`. Every result depends only on `propext`,
 | `SternBrocot/SignedOrder.lean` | the mirrored sign order; the full quotient |
 | `SternBrocot/ToReal.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut |
 | `SternBrocot/SignedToReal.lean` | `Φ : P(ω+1) → ℝ`, monotone and bijective |
+| `SternBrocot/Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
 | `SternBrocot/Field.lean` | `SBReal ≃o ℝ` and the field structure |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding |
 
