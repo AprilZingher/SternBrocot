@@ -6,4 +6,6 @@ import SternBrocot.Node
 import SternBrocot.Enumeration
 import SternBrocot.PathOrder
 import SternBrocot.Bridge
+import SternBrocot.Signed
+import SternBrocot.SignedOrder
 import SternBrocot.Examples
