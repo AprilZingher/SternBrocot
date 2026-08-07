@@ -44,6 +44,7 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`; monotone, bijective on the quotient | complete |
 | `SternBrocot/Induction.lean` | induction along the tree: `ℚ` yes, `ℝ` no | complete |
 | `SternBrocot/Field.lean` | **`SBReal ≃o ℝ`**; transported field structure | complete |
+| `SternBrocot/Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules | in progress |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
 No `sorry`, no `native_decide`. All results depend only on
@@ -166,12 +167,16 @@ Ordered as planned. Items 1a–1c are done.
    is a quadratic irrational. Periodicity of the `L`/`S` sequence is immediate
    in this encoding; the proof route is `SL₂(ℤ)` eigenvectors. Check current
    Mathlib first — `GenContFract` exists, this theorem did not as of writing.
-4. **`Gosper.lean`** — the `2×2×2` integer tensor, with absorb/emit as integer
-   matrix multiplications. The hand-derived rewrite rules become `#eval` test
-   cases against the tensor. Two of the sixteen original rules were wrong and
-   need the corrected forms:
-   - `Sa - Lb → a + 1/Sb` (not `1/Lb`)
-   - `La - Lb → -L((b-a)/S(SSb*a))` in the `a < b` branch (arguments swap)
+4. **`Gosper.lean`** 🔨 — the `2×2×2` tensor. ✅ the six step-correctness
+   theorems (absorb S/L on each input, emit S/L), the starting tensors for
+   `+ - × /`, and the hand-derived rules including both corrections, each with a
+   machine-checked refutation of the original at a specific point.
+   **Next: the corecursion.** Run the machine forever and prove it productive —
+   this is the part Lean 4 makes harder than Coq, and the reason it is a paper.
+   Note two findings from the rules: the guards in rules 7 and 8 do *not* affect
+   which equation is true (both branches are the same identity); they decide
+   which move the tree permits to be emitted. The undecidability lives in that
+   emit test, not in the algebra.
 5. **Intrinsic `+` and `×`** — prove the corecursive operations agree with the
    transported ones. Hard: Lean 4's productivity support is weaker than Coq's,
    which is precisely what makes it a CPP/ITP-shaped contribution.
