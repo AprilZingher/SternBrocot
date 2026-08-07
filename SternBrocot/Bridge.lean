@@ -34,6 +34,7 @@ and keeps the upstream files computable.
 -/
 
 open Set
+open scoped symmDiff
 
 namespace SternBrocot
 
@@ -177,5 +178,57 @@ theorem exists_canonical_path_of_finite {x : Set ℕ} (hx : x.Finite) :
   ext n
   rw [mem_toSet, mem_toSet]
   exact bool_iff_eq.2 (bit_eq_of_nodeValue_eq hv n)
+
+/-! ### Addition is not a Boolean translation
+
+`rigidity` says the only masks respecting the tail rule are `∅` and `ω`, giving
+the identity and reciprocal. Adding `b` would have to be one of those, so `b = 0`
+— but that argument routes through "addition is well defined on the reals".
+
+Here is the direct version, with no such step. Two concrete instances of "add
+one" would need two *different* masks, so no single mask implements it:
+
+* `1/2 + 1 = 3/2` is `{1} ↦ {0, 2}`, which needs `m = {0, 1, 2}`;
+* `2 + 1 = 3` is `{0, 1} ↦ {0, 1, 2}`, which needs `m = {2}`.
+
+They already disagree at coordinate `0`. -/
+
+theorem toSet_half : toSet [false, true] = ({1} : Set ℕ) := by
+  ext n; match n with | 0 => simp | 1 => simp | (k + 2) => simp
+
+theorem toSet_threeHalves : toSet [true, false, true] = ({0, 2} : Set ℕ) := by
+  ext n; match n with | 0 => simp | 1 => simp | 2 => simp | (k + 3) => simp
+
+theorem toSet_two : toSet [true, true] = ({0, 1} : Set ℕ) := by
+  ext n; match n with | 0 => simp | 1 => simp | (k + 2) => simp
+
+theorem toSet_three : toSet [true, true, true] = ({0, 1, 2} : Set ℕ) := by
+  ext n; match n with | 0 => simp | 1 => simp | 2 => simp | (k + 3) => simp
+
+/-- **Addition is not a Boolean operation on this encoding.** No mask `m`
+implements "add one", even just on the two nodes `1/2` and `2`.
+
+This is the concrete form of the no-go that `rigidity` explains structurally: the
+Boolean structure on `P(ω)` carries the `PGL₂` torsion elements — identity and
+reciprocal, plus negation once `ω` is adjoined — and nothing else. Reciprocal
+fell out as set complement precisely because it *is* one of them; addition never
+could. -/
+theorem addOne_not_symmDiff :
+    ¬ ∃ m : Set ℕ, ∀ bs cs : List Bool,
+        nodeValue cs = nodeValue bs + 1 → toSet bs ∆ m = toSet cs := by
+  rintro ⟨m, hm⟩
+  -- `1/2 + 1 = 3/2`
+  have h1 : toSet [false, true] ∆ m = toSet [true, false, true] :=
+    hm _ _ (by norm_num [nodeValue])
+  -- `2 + 1 = 3`
+  have h2 : toSet [true, true] ∆ m = toSet [true, true, true] :=
+    hm _ _ (by norm_num [nodeValue])
+  rw [toSet_half, toSet_threeHalves] at h1
+  rw [toSet_two, toSet_three] at h2
+  -- coordinate `0` alone already forces `0 ∈ m` and `0 ∉ m`
+  have e1 := Set.ext_iff.mp h1 0
+  have e2 := Set.ext_iff.mp h2 0
+  simp only [Set.mem_symmDiff, Set.mem_insert_iff, Set.mem_singleton_iff] at e1 e2
+  tauto
 
 end SternBrocot
