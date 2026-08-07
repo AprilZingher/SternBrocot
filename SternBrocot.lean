@@ -10,4 +10,5 @@ import SternBrocot.Signed
 import SternBrocot.SignedOrder
 import SternBrocot.Instances
 import SternBrocot.Phi
+import SternBrocot.SignedPhi
 import SternBrocot.Examples

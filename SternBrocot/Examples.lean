@@ -8,6 +8,7 @@ import SternBrocot.Enumeration
 import SternBrocot.PathOrder
 import SternBrocot.Bridge
 import SternBrocot.Phi
+import SternBrocot.SignedPhi
 
 /-!
 # Sanity checks
@@ -304,5 +305,28 @@ example : phi0 (∅ : Set ℕ) = 0 := phi0_empty
 since `Φ₀` is constant on tail classes. -/
 example : phi0 ({0, 1} : Set ℕ) = phi0 {n : ℕ | n ≠ 1} :=
   phi0_of_tailPair two_tailPair
+
+/-! ### The signed map: negatives, end to end
+
+`S (S ∅)` is the von Neumann `2`. Lifted into `P(ω+1)` it is `+2`; its
+complement is `-2`. Both zeros land on `0` with no special casing. -/
+
+/-- The canonical path for `2`, as a subset of `ω`. -/
+theorem toSet_two_eq : toSet [true, true] = S (S ∅) := by
+  rw [two_eq_pair]; exact toSet_two
+
+example : phi (lift (S (S ∅))) = 2 := by
+  rw [phi_lift, ← toSet_two_eq, phi0_toSet]; norm_num [nodeValue]
+
+/-- **Negation, end to end.** The complement of the lifted von Neumann `2` is the
+real number `-2`. -/
+example : phi (neg (lift (S (S ∅)))) = -2 := by
+  rw [phi_neg, phi_lift, ← toSet_two_eq, phi0_toSet]; norm_num [nodeValue]
+
+/-- `+0` and `-0` both land on `0` — the zero adjacency is invisible to `Φ`. -/
+example : phi (∅ : Signed) = 0 ∧ phi (univ : Signed) = 0 := ⟨phi_empty, phi_univ⟩
+
+/-- Negation is complement, and it is an involution on values. -/
+example (x : Signed) : phi (neg (neg x)) = phi x := by simp
 
 end SternBrocot

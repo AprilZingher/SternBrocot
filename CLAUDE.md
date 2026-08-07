@@ -40,7 +40,8 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/Bridge.lean` | `toSet`: paths ↔ finite subsets of `ω`; the orders agree | complete |
 | `SternBrocot/Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** | complete |
 | `SternBrocot/SignedOrder.lean` | mirrored sign order; full quotient = adjacencies | complete |
-| `SternBrocot/Phi.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut; correct on nodes | in progress |
+| `SternBrocot/Phi.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut; correct on nodes | complete |
+| `SternBrocot/SignedPhi.lean` | `Φ : P(ω+1) → ℝ`, mirrored across the sign | in progress |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
 No `sorry`, no `native_decide`. All results depend only on
@@ -121,8 +122,14 @@ Ordered as planned. Items 1a–1c are done.
      `seqv_equivalence` for the full quotient `SEqv = STailEqv ∪ ZeroDegen`.
    - ⬜ extend to all of `P(ω)/∼` by `Φ x = sup {ι q | q < x}`, using
      completeness on both sides;
-   - ⬜ splice in the sign coordinate on `P(ω + 1)`, with the `{ω}` degeneracy
-     at zero, and drop the class of `ω` so reciprocal goes partial at `0`.
+   - ✅ the sign coordinate: `magnitude` (stored bit xor sign), `phi`, and
+     `phi_neg : Φ(-x) = -Φ(x)`. `magnitude_neg` is a rewrite, not a case split —
+     the mirrored convention's payoff. Both zeros land on `0` (`phi_empty`,
+     `phi_univ`), so `-0 = 0` needs no special casing. `phi_of_seqv` descends it
+     to the full quotient.
+   - 🔨 **next**: `Φ` monotone for `<ₛ`, then bijective onto `ℝ` (mirror the
+     `Φ₀` surjectivity/injectivity arguments across the sign), excluding the two
+     infinities via `IsFinite`.
    Transport the field structure across `Φ`; the axioms then come for free.
 
    **Do not substitute the binary-expansion map for `Φ`.** Reading `x` as
