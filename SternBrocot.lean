@@ -8,7 +8,6 @@ import SternBrocot.PathOrder
 import SternBrocot.Bridge
 import SternBrocot.Signed
 import SternBrocot.SignedOrder
-import SternBrocot.Instances
 import SternBrocot.ToReal
 import SternBrocot.SignedToReal
 import SternBrocot.Field

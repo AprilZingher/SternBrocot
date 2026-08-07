@@ -3,6 +3,8 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import SternBrocot.Tail
+import Mathlib.Order.PiLex
+import Mathlib.Order.PropInstances
 import Mathlib.Data.Nat.Find
 import Mathlib.Order.Interval.Set.Basic
 
@@ -237,6 +239,76 @@ theorem isAdjacent_of_tailEqv {a b : Set ℕ} (h : TailEqv a b) (hne : a ≠ b) 
   · exact absurd rfl hne
   · exact Or.inl (isAdjacent_of_tailPair h)
   · exact Or.inr (isAdjacent_of_tailPair h)
+
+/-! ### The non-strict order -/
+
+/-- `x ≤ y` in the lex order. -/
+def LexLe (x y : Set ℕ) : Prop := ¬ (y <ₗ x)
+
+@[inherit_doc] scoped infix:50 " ≤ₗ " => LexLe
+
+theorem lexLe_iff (x y : Set ℕ) : x ≤ₗ y ↔ x = y ∨ x <ₗ y := by
+  constructor
+  · intro h
+    rcases lexLt_trichotomy x y with hlt | heq | hgt
+    · exact Or.inr hlt
+    · exact Or.inl heq
+    · exact absurd hgt h
+  · rintro (rfl | h)
+    · exact lexLt_irrefl x
+    · exact lexLt_asymm h
+
+theorem lexLe_refl (x : Set ℕ) : x ≤ₗ x := lexLt_irrefl x
+
+theorem lexLe_of_lexLt {x y : Set ℕ} (h : x <ₗ y) : x ≤ₗ y := lexLt_asymm h
+
+theorem lexLe_trans {x y z : Set ℕ} (hxy : x ≤ₗ y) (hyz : y ≤ₗ z) : x ≤ₗ z := by
+  rw [lexLe_iff] at hxy hyz ⊢
+  rcases hxy with rfl | hxy
+  · exact hyz
+  rcases hyz with rfl | hyz
+  · exact Or.inr hxy
+  · exact Or.inr (lexLt_trans hxy hyz)
+
+/-- `∅` is the least element: it is the point `0`. -/
+theorem empty_lexLe (x : Set ℕ) : (∅ : Set ℕ) ≤ₗ x := by
+  rintro ⟨n, -, -, hmem⟩
+  exact hmem
+
+/-- `univ` is the greatest element: it is the point `∞`, which is `recip ∅`. -/
+theorem lexLe_univ (x : Set ℕ) : x ≤ₗ (univ : Set ℕ) := by
+  rintro ⟨n, -, hnot, -⟩
+  exact hnot (mem_univ n)
+
+theorem lexLt_univ_of_ne {x : Set ℕ} (h : x ≠ univ) : x <ₗ univ := by
+  rcases lexLt_trichotomy x univ with h1 | h1 | h1
+  · exact h1
+  · exact absurd h1 h
+  · exact absurd h1 (lexLe_univ x)
+
+/-! ### This is Mathlib's lexicographic order
+
+Recorded so the development is on the record as using the standard order rather
+than a bespoke one — the first thing a reader should be able to check. Mathlib's
+instance fires on `Lex (ℕ → Prop)` but not on `Lex (Set ℕ)`, since instance
+search will not unfold `Set`, which is why the order is carried here as a bare
+relation instead of an instance. -/
+
+/-- **The lex order here is Mathlib's `Pi.Lex` order.** In `Prop`, `p < q` means
+`¬p ∧ q`, which is exactly "the branch point is absent from `x` and present in
+`y`". -/
+theorem lexLt_iff_piLex (x y : Set ℕ) :
+    (toLex (fun n => n ∈ x) < toLex (fun n => n ∈ y)) ↔ (x <ₗ y) := by
+  constructor
+  · rintro ⟨n, hagree, hlt⟩
+    have hnx : ¬ (toLex (fun n => n ∈ x) n) := fun hc => (lt_iff_le_not_ge.1 hlt).2 (fun _ => hc)
+    have hny : toLex (fun n => n ∈ y) n := by
+      by_contra hc
+      exact (lt_iff_le_not_ge.1 hlt).2 (fun h => absurd h hc)
+    exact ⟨n, fun k hk => iff_of_eq (hagree k hk), hnx, hny⟩
+  · rintro ⟨n, hagree, hnx, hny⟩
+    exact ⟨n, fun k hk => propext (hagree k hk),
+      lt_iff_le_not_ge.2 ⟨fun h => absurd h hnx, fun h => hnx (h hny)⟩⟩
 
 /-! ### Complement reverses the order
 

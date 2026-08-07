@@ -28,54 +28,15 @@ adjacent pair, which is exactly a tail pair, which the quotient collapses.
 * `SternBrocot.isLexLUB_lexSup` — every `S : Set (Set ℕ)` has `lexSup S` as its
   least upper bound.
 * `SternBrocot.exists_between_of_not_tailEqv` — density of the quotient.
-* `SternBrocot.empty_lexLe`, `SternBrocot.lexLe_univ` — `∅` and `univ` are the
-  endpoints, i.e. `0` and `∞`.
+
+The non-strict order `≤ₗ` and the endpoint facts (`empty_lexLe`, `lexLe_univ`)
+live in `Order.lean`, with the rest of the order.
 -/
 
 open Set
 open scoped symmDiff
 
 namespace SternBrocot
-
-/-! ### The non-strict order -/
-
-/-- `x ≤ y` in the lex order. -/
-def LexLe (x y : Set ℕ) : Prop := ¬ (y <ₗ x)
-
-@[inherit_doc] scoped infix:50 " ≤ₗ " => LexLe
-
-theorem lexLe_iff (x y : Set ℕ) : x ≤ₗ y ↔ x = y ∨ x <ₗ y := by
-  constructor
-  · intro h
-    rcases lexLt_trichotomy x y with hlt | heq | hgt
-    · exact Or.inr hlt
-    · exact Or.inl heq
-    · exact absurd hgt h
-  · rintro (rfl | h)
-    · exact lexLt_irrefl x
-    · exact lexLt_asymm h
-
-theorem lexLe_refl (x : Set ℕ) : x ≤ₗ x := lexLt_irrefl x
-
-theorem lexLe_of_lexLt {x y : Set ℕ} (h : x <ₗ y) : x ≤ₗ y := lexLt_asymm h
-
-theorem lexLe_trans {x y z : Set ℕ} (hxy : x ≤ₗ y) (hyz : y ≤ₗ z) : x ≤ₗ z := by
-  rw [lexLe_iff] at hxy hyz ⊢
-  rcases hxy with rfl | hxy
-  · exact hyz
-  rcases hyz with rfl | hyz
-  · exact Or.inr hxy
-  · exact Or.inr (lexLt_trans hxy hyz)
-
-/-- `∅` is the least element: it is the point `0`. -/
-theorem empty_lexLe (x : Set ℕ) : (∅ : Set ℕ) ≤ₗ x := by
-  rintro ⟨n, -, -, hmem⟩
-  exact hmem
-
-/-- `univ` is the greatest element: it is the point `∞`, which is `recip ∅`. -/
-theorem lexLe_univ (x : Set ℕ) : x ≤ₗ (univ : Set ℕ) := by
-  rintro ⟨n, -, hnot, -⟩
-  exact hnot (mem_univ n)
 
 /-! ### The bitwise supremum
 

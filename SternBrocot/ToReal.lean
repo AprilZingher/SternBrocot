@@ -212,12 +212,6 @@ Given `r ≥ 0`, cut `P(ω)` at `r`: take the lex supremum of the nodes whose va
 is below `r`. Completeness upstairs (`isLexLUB_lexSup`) supplies the point, and
 density of `ℚ` pins its image to `r` exactly. -/
 
-theorem lexLt_univ_of_ne {x : Set ℕ} (h : x ≠ univ) : x <ₗ univ := by
-  rcases lexLt_trichotomy x univ with h1 | h1 | h1
-  · exact h1
-  · exact absurd h1 h
-  · exact absurd h1 (lexLe_univ x)
-
 /-- The nodes whose value lies strictly below `r`. -/
 def nodesBelow (r : ℝ) : Set (Set ℕ) := {z | ∃ bs, z = toSet bs ∧ (nodeValue bs : ℝ) < r}
 

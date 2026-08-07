@@ -128,24 +128,18 @@ collapses an adjacent pair, exactly as the tail rule does — so the quotient
 identifies adjacencies and nothing else. -/
 theorem nothing_between_zeros (z : Signed) :
     ¬ ((univ : Signed) <ₛ z ∧ z <ₛ (∅ : Signed)) := by
-  have hbot : ∀ y : Set ℕ, ¬ (y <ₗ (∅ : Set ℕ)) := by
-    rintro y ⟨n, -, -, hmem⟩
-    exact hmem
-  have htop : ∀ y : Set ℕ, ¬ ((univ : Set ℕ) <ₗ y) := by
-    rintro y ⟨n, -, hnot, -⟩
-    exact hnot (mem_univ n)
   rintro ⟨h1, h2⟩
   by_cases hz : none ∈ z
   · -- `z` negative: `-0 < z` forces `univ <ₗ finPart z`, but `univ` is the top
     rcases h1 with ⟨-, hc⟩ | ⟨-, hf⟩
     · exact hc hz
     · rw [finPart_univ] at hf
-      exact htop _ hf
+      exact lexLe_univ _ hf
   · -- `z` positive: `z < +0` forces `finPart z <ₗ ∅`, but `∅` is the bottom
     rcases h2 with ⟨hc, -⟩ | ⟨-, hf⟩
     · exact hz hc
     · rw [finPart_empty] at hf
-      exact hbot _ hf
+      exact empty_lexLe _ hf
 
 /-! ### The full quotient: adjacencies, uniformly -/
 
