@@ -40,6 +40,7 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/Bridge.lean` | `toSet`: paths ↔ finite subsets of `ω`; the orders agree | complete |
 | `SternBrocot/Signed.lean` | `P(ω+1)`; negation; Klein four-group; **signed rigidity** | complete |
 | `SternBrocot/SignedOrder.lean` | sign-first order; negation antitone; full quotient | complete |
+| `SternBrocot/Phi.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut; correct on nodes | in progress |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
 No `sorry`, no `native_decide`. All results depend only on
@@ -98,12 +99,16 @@ Ordered as planned. Items 1a–1c are done.
      on the nose. No `Classical` was needed after all — the `Set ℕ → List Bool`
      direction is stated as existence (`exists_path_of_subset_Iio`) rather than
      built as a function, so the case split lives in a proof.
-   - 🔨 **next: `Φ x = sSup {nodeValue bs | toSet bs <ₗ x}`.** All the inputs are
-     now in place. Order of business: (a) `Φ` is monotone, immediate from
-     `lexLt_toSet_iff`; (b) `Φ` is constant on tail classes — needs that a tail
-     pair has no node strictly between it, which is `tailPair_iff_isAdjacent`;
-     (c) surjectivity onto `ℝ≥0`, from density plus completeness of `ℝ`;
-     (d) injectivity on the quotient, from density of the nodes.
+   - ✅ (a) `phi0` defined and monotone (`phi0_mono`); (b) constant on tail
+     classes (`phi0_of_tailEqv`); and `phi0_toSet` — it reproduces `nodeValue`
+     on the nodes, which is what pins it down as *the* Stern–Brocot map.
+   - 🔨 **next: (c) surjectivity onto `ℝ≥0` and (d) injectivity on the
+     quotient.** For (c): given `r ≥ 0`, take `x = {n | ...}` cut out by the
+     nodes below `r`; concretely, `x` should be the sup in `P(ω)` of
+     `{toSet bs | nodeValue bs < r}`, which `isLexLUB_lexSup` supplies. For (d):
+     if `¬ TailEqv x y` and `x <ₗ y`, density (`exists_between_of_not_tailEqv`)
+     gives a point between, and then a *node* between, so the cuts differ.
+     Watch: (d) needs **two** nodes between, or one node plus strictness.
      **Codomain settled: `Φ₀` targets `ℝ≥0` and is scaffolding.** The final map
      is signed, `Φ : Signed/SEqv ≃o ℝ`, obtained by mirroring `Φ₀` across the
      sign coordinate. `Φ₀` is unsigned only because the sup formula runs on the
@@ -143,6 +148,16 @@ Ordered as planned. Items 1a–1c are done.
 5. **Intrinsic `+` and `×`** — prove the corecursive operations agree with the
    transported ones. Hard: Lean 4's productivity support is weaker than Coq's,
    which is precisely what makes it a CPP/ITP-shaped contribution.
+
+## Watch out in `Phi.lean`
+
+- `below a ⊆ below b` for a tail pair `(a, b)` is **not** immediate — it fails if
+  `b` is itself a node. It holds because the *right* element of a tail pair is
+  cofinite, hence infinite, hence never a node. That step is load-bearing; I got
+  it wrong first time.
+- `phi0` is junk at `univ` (`Real.sSup` of an unbounded set is `0`), so every
+  lemma about it carries an `x ≠ univ` hypothesis. `toSet_ne_univ` discharges it
+  for nodes.
 
 ## Conventions
 

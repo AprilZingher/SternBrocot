@@ -7,6 +7,7 @@ import SternBrocot.Node
 import SternBrocot.Enumeration
 import SternBrocot.PathOrder
 import SternBrocot.Bridge
+import SternBrocot.Phi
 
 /-!
 # Sanity checks
@@ -265,5 +266,43 @@ example (bs : List Bool) : (toSet bs).Finite := toSet_finite bs
 
 example : ∃ bs, Canonical bs ∧ toSet bs = ({0, 1} : Set ℕ) :=
   exists_canonical_path_of_finite (Set.toFinite _)
+
+/-! ### `Φ₀` lands on the right real numbers
+
+The cut construction reproduces the tree, and the tree reproduces the encoding.
+The last of these is the end-to-end statement of the whole development so far:
+the von Neumann `2`, built from `∅` by the successor `S`, is sent by `Φ₀` to the
+real number `2`. -/
+
+example : phi0 (toSet [true]) = 1 := by
+  rw [phi0_toSet]; norm_num [nodeValue]
+
+example : phi0 (toSet [false, true]) = 1 / 2 := by
+  rw [phi0_toSet]; norm_num [nodeValue]
+
+example : phi0 (toSet path22over7) = 22 / 7 := by
+  rw [phi0_toSet]; norm_num [path22over7, nodeValue]
+
+/-- **The end-to-end check.** `S (S ∅)` is the von Neumann `2` as a subset of `ω`,
+built with the successor from `Basic.lean`. `Φ₀` sends it to `(2 : ℝ)`. -/
+example : phi0 (S (S ∅)) = 2 := by
+  have h : toSet [true, true] = S (S ∅) := by
+    rw [two_eq_pair]
+    ext n
+    match n with
+    | 0 => simp
+    | 1 => simp
+    | (k + 2) => simp
+  rw [← h, phi0_toSet]
+  norm_num [nodeValue]
+
+/-- `Φ₀` sends `0` to `0`, with no special-casing needed: nothing lies below `∅`,
+and `sSup ∅ = 0`. -/
+example : phi0 (∅ : Set ℕ) = 0 := phi0_empty
+
+/-- The two representations of `2` — `{0,1}` and `ω \ {1}` — have the same image,
+since `Φ₀` is constant on tail classes. -/
+example : phi0 ({0, 1} : Set ℕ) = phi0 {n : ℕ | n ≠ 1} :=
+  phi0_of_tailPair two_tailPair
 
 end SternBrocot
