@@ -162,6 +162,27 @@ theorem not_tailPair_empty_left {y : Set ℕ} : ¬ TailPair (∅ : Set ℕ) y :=
   rintro ⟨n, h⟩
   exact h.mem_left
 
+/-- `univ` is in no tail pair either: it has nothing above any branch point to be
+missing, and it is not bounded. Together with `not_tailPair_empty_*` this is what
+makes the zero identification safe to adjoin — the pair `(univ, ∅)` cannot chain
+with a tail pair, so equivalence classes stay at size at most two. -/
+theorem not_tailPair_univ_left {y : Set ℕ} : ¬ TailPair (univ : Set ℕ) y := by
+  rintro ⟨n, h⟩
+  exact h.left_top (n + 1) (Nat.lt_succ_self n) (mem_univ _)
+
+theorem not_tailPair_univ_right {y : Set ℕ} : ¬ TailPair y (univ : Set ℕ) := by
+  rintro ⟨n, h⟩
+  exact h.notMem_right (mem_univ n)
+
+/-- **The zero pair chains with nothing.** Neither endpoint of `(univ, ∅)` sits in
+a tail pair, so adjoining that single identification leaves every class with at
+most two elements — the same structure the tail rule alone has. -/
+theorem zeroPair_isolated :
+    (∀ y : Set ℕ, ¬ TailPair (univ : Set ℕ) y) ∧ (∀ y : Set ℕ, ¬ TailPair y (univ : Set ℕ)) ∧
+    (∀ y : Set ℕ, ¬ TailPair (∅ : Set ℕ) y) ∧ (∀ y : Set ℕ, ¬ TailPair y (∅ : Set ℕ)) :=
+  ⟨fun _ => not_tailPair_univ_left, fun _ => not_tailPair_univ_right,
+   fun _ => not_tailPair_empty_left, fun _ => not_tailPair_empty_right⟩
+
 /-- `∅` and `{ω}` belong to no tail pair, so the tail relation and the zero
 degeneracy never interact. -/
 theorem not_stailPair_of_finPart_empty {a b : Signed} (h : finPart a = ∅) :
