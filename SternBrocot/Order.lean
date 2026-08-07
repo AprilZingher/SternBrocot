@@ -238,4 +238,31 @@ theorem isAdjacent_of_tailEqv {a b : Set ℕ} (h : TailEqv a b) (hne : a ≠ b) 
   · exact Or.inl (isAdjacent_of_tailPair h)
   · exact Or.inr (isAdjacent_of_tailPair h)
 
+/-! ### Complement reverses the order
+
+The fact underlying the mirrored sign convention: negating by complementing every
+bit turns the lex order upside down. With a mirrored negative branch this is what
+makes same-sign comparison forward lex on *both* sides, with no reversal case. -/
+
+/-- **Complement is order-reversing for the lex order.** -/
+theorem compl_lexLt_compl {x y : Set ℕ} : xᶜ <ₗ yᶜ ↔ y <ₗ x := by
+  constructor
+  · rintro ⟨n, hagree, hnx, hny⟩
+    refine ⟨n, fun k hk => ?_, ?_, ?_⟩
+    · have := hagree k hk
+      simp only [Set.mem_compl_iff] at this
+      exact (not_iff_not.1 this).symm
+    · exact fun hc => hny hc
+    · exact not_not.1 hnx
+  · rintro ⟨n, hagree, hny, hnx⟩
+    refine ⟨n, fun k hk => ?_, ?_, ?_⟩
+    · simp only [Set.mem_compl_iff]
+      exact not_iff_not.2 (hagree k hk).symm
+    · exact fun hc => hc hnx
+    · exact hny
+
+/-- Restated: complement is an order isomorphism onto the reversed order. -/
+theorem lexLt_compl_iff {x y : Set ℕ} : x <ₗ y ↔ yᶜ <ₗ xᶜ := by
+  rw [compl_lexLt_compl]
+
 end SternBrocot
