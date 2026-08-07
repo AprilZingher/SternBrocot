@@ -41,7 +41,7 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** | complete |
 | `SternBrocot/SignedOrder.lean` | mirrored sign order; full quotient = adjacencies | complete |
 | `SternBrocot/ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0` as a Dedekind cut | complete |
-| `SternBrocot/SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`, mirrored across the sign | in progress |
+| `SternBrocot/SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`; monotone, bijective on the quotient | complete |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
 No `sorry`, no `native_decide`. All results depend only on
@@ -127,9 +127,15 @@ Ordered as planned. Items 1a–1c are done.
      the mirrored convention's payoff. Both zeros land on `0` (`toReal_empty`,
      `toReal_univ`), so `-0 = 0` needs no special casing. `toReal_of_seqv` descends it
      to the full quotient.
-   - 🔨 **next**: `Φ` monotone for `<ₛ`, then bijective onto `ℝ` (mirror the
-     `Φ₀` surjectivity/injectivity arguments across the sign), excluding the two
-     infinities via `IsFinite`.
+   - ✅ `Φ` monotone (`toReal_mono`), surjective onto **all of `ℝ`**
+     (`exists_toReal_eq`) and injective on the quotient (`toReal_injective`).
+     The mixed-sign case of injectivity is exactly the two zeros: equal values
+     across the sign boundary squeeze both to `0`, forcing `x = univ` and
+     `y = ∅`, which is the `ZeroDegen` pair. So the zero adjacency is not an
+     extra hypothesis anywhere — it *falls out* of injectivity.
+   - 🔨 **next**: package as a bundled `OrderIso` on the quotient type, then
+     transport the field structure. After that, Gosper — specified against
+     `toReal₀_toSet`.
    Transport the field structure across `Φ`; the axioms then come for free.
 
    **Do not substitute the binary-expansion map for `Φ`.** Reading `x` as

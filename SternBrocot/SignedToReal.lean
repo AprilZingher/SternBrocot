@@ -158,4 +158,116 @@ theorem toReal_of_seqv {a b : Signed} (h : SEqv a b) : toReal a = toReal b := by
   · rw [toReal_empty, toReal_univ]
   · rw [toReal_univ, toReal_empty]
 
+/-! ### Monotone
+
+Two cases, matching `SLexLt`. Across the sign boundary the comparison is
+`≤ 0 ≤`; within a sign it is `toReal₀_mono`, on the complemented paths when
+negative — where `compl_lexLt_compl` supplies the reversal that the extra minus
+sign then undoes. -/
+
+theorem toReal_mono {x y : Signed} (h : x <ₛ y) (hx : IsFinite x) (hy : IsFinite y) :
+    toReal x ≤ toReal y := by
+  rcases h with ⟨hxs, hys⟩ | ⟨hs, hf⟩
+  · exact le_trans (toReal_nonpos_of_neg hxs) (toReal_nonneg_of_pos hys)
+  · by_cases hxn : none ∈ x
+    · have hyn : none ∈ y := hs.1 hxn
+      rw [toReal_of_neg hxn, toReal_of_neg hyn, neg_le_neg_iff,
+        magnitude_of_neg hxn, magnitude_of_neg hyn]
+      refine toReal₀_mono (compl_lexLt_compl.2 hf) ?_
+      rwa [IsFinite, magnitude_of_neg hxn] at hx
+    · have hyn : none ∉ y := fun hc => hxn (hs.2 hc)
+      rw [toReal_of_pos hxn, toReal_of_pos hyn, magnitude_of_pos hxn, magnitude_of_pos hyn]
+      refine toReal₀_mono hf ?_
+      rwa [IsFinite, magnitude_of_pos hyn] at hy
+
+/-! ### Surjectivity onto all of `ℝ`
+
+Nonnegative reals come from `exists_toReal₀_eq` on the positive branch; negative
+ones are the negation of the corresponding positive point. -/
+
+/-- **Surjectivity.** Every real is the value of a finite point of `P(ω+1)`. -/
+theorem exists_toReal_eq (r : ℝ) : ∃ x : Signed, IsFinite x ∧ toReal x = r := by
+  rcases le_or_gt 0 r with hr | hr
+  · obtain ⟨y, hy, hv⟩ := exists_toReal₀_eq hr
+    exact ⟨lift y, isFinite_lift hy, by rw [toReal_lift, hv]⟩
+  · obtain ⟨y, hy, hv⟩ := exists_toReal₀_eq (by linarith : (0 : ℝ) ≤ -r)
+    refine ⟨neg (lift y), by simpa using isFinite_lift hy, ?_⟩
+    rw [toReal_neg, toReal_lift, hv, _root_.neg_neg]
+
+/-! ### Injectivity on the quotient -/
+
+theorem eq_empty_of_tailEqv_empty {x : Set ℕ} (h : TailEqv x ∅) : x = ∅ := by
+  rcases h with rfl | hp | hp
+  · rfl
+  · exact absurd hp not_tailPair_empty_right
+  · exact absurd hp not_tailPair_empty_left
+
+theorem toReal₀_eq_zero {x : Set ℕ} (hx : x ≠ univ) (h : toReal₀ x = 0) : x = ∅ :=
+  eq_empty_of_tailEqv_empty
+    (toReal₀_injective hx Set.empty_ne_univ (by rw [h, toReal₀_empty]))
+
+/-- Complementing both sides of a tail pair gives a tail pair the other way
+round, so tail-equivalence survives the mirror. -/
+theorem tailPair_of_compl {a b : Set ℕ} (h : TailPair aᶜ bᶜ) : TailPair b a := by
+  obtain ⟨n, hn⟩ := h
+  refine ⟨n, ?_⟩
+  have hc := hn.compl
+  rwa [compl_compl, compl_compl] at hc
+
+/-- **Injectivity.** Points with the same value are identified by the full
+quotient — including the two zeros, which is the mixed-sign case. -/
+theorem toReal_injective {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
+    (h : toReal x = toReal y) : SEqv x y := by
+  by_cases hxn : none ∈ x <;> by_cases hyn : none ∈ y
+  · -- both negative: compare the complemented paths
+    rw [toReal_of_neg hxn, toReal_of_neg hyn, neg_inj,
+      magnitude_of_neg hxn, magnitude_of_neg hyn] at h
+    have ht := toReal₀_injective (by rwa [IsFinite, magnitude_of_neg hxn] at hx)
+      (by rwa [IsFinite, magnitude_of_neg hyn] at hy) h
+    rcases ht with heq | hp | hp
+    · exact Or.inl (Or.inl (signed_ext (compl_injective heq) (by simp [hxn, hyn])))
+    · exact Or.inl (Or.inr (Or.inr ⟨by simp [hxn, hyn], tailPair_of_compl hp⟩))
+    · exact Or.inl (Or.inr (Or.inl ⟨by simp [hxn, hyn], tailPair_of_compl hp⟩))
+  · -- `x` negative, `y` positive: both values are squeezed to `0`
+    have hx0 : toReal x = 0 := by
+      have h1 := toReal_nonpos_of_neg hxn
+      have h2 := toReal_nonneg_of_pos hyn
+      linarith
+    have hy0 : toReal y = 0 := by rw [← h]; exact hx0
+    have hxu : x = univ := by
+      rw [toReal_of_neg hxn, neg_eq_zero, magnitude_of_neg hxn] at hx0
+      have := toReal₀_eq_zero (by rwa [IsFinite, magnitude_of_neg hxn] at hx) hx0
+      exact signed_ext (by rw [finPart_univ, ← compl_compl (finPart x), this, compl_empty])
+        (by simp [hxn])
+    have hye : y = ∅ := by
+      rw [toReal_of_pos hyn, magnitude_of_pos hyn] at hy0
+      have := toReal₀_eq_zero (by rwa [IsFinite, magnitude_of_pos hyn] at hy) hy0
+      exact signed_ext (by rw [finPart_empty, this]) (by simp [hyn])
+    exact Or.inr (Or.inr ⟨hxu, hye⟩)
+  · -- mirror image of the previous case
+    have hy0 : toReal y = 0 := by
+      have h1 := toReal_nonpos_of_neg hyn
+      have h2 := toReal_nonneg_of_pos hxn
+      linarith
+    have hx0 : toReal x = 0 := by rw [h]; exact hy0
+    have hyu : y = univ := by
+      rw [toReal_of_neg hyn, neg_eq_zero, magnitude_of_neg hyn] at hy0
+      have := toReal₀_eq_zero (by rwa [IsFinite, magnitude_of_neg hyn] at hy) hy0
+      exact signed_ext (by rw [finPart_univ, ← compl_compl (finPart y), this, compl_empty])
+        (by simp [hyn])
+    have hxe : x = ∅ := by
+      rw [toReal_of_pos hxn, magnitude_of_pos hxn] at hx0
+      have := toReal₀_eq_zero (by rwa [IsFinite, magnitude_of_pos hxn] at hx) hx0
+      exact signed_ext (by rw [finPart_empty, this]) (by simp [hxn])
+    exact Or.inr (Or.inl ⟨hxe, hyu⟩)
+  · -- both positive: straight from the unsigned case
+    rw [toReal_of_pos hxn, toReal_of_pos hyn,
+      magnitude_of_pos hxn, magnitude_of_pos hyn] at h
+    have ht := toReal₀_injective (by rwa [IsFinite, magnitude_of_pos hxn] at hx)
+      (by rwa [IsFinite, magnitude_of_pos hyn] at hy) h
+    rcases ht with heq | hp | hp
+    · exact Or.inl (Or.inl (signed_ext heq (by simp [hxn, hyn])))
+    · exact Or.inl (Or.inr (Or.inl ⟨by simp [hxn, hyn], hp⟩))
+    · exact Or.inl (Or.inr (Or.inr ⟨by simp [hxn, hyn], hp⟩))
+
 end SternBrocot
