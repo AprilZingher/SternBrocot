@@ -38,8 +38,17 @@ The tail rule is the only redundancy in the encoding.
   (`pathLt_iff_lexLt`). Canonical paths biject with the finite subsets of `ω`,
   and the lex order on the carrier is exactly the order of the values.
 
-Together these give the countable dense subset needed to build
-`Φ : P(ω)/∼ ≃o ℝ`, which is the current work in progress.
+- **The construction** (`orderIsoReal : SBReal ≃o ℝ`). The finite points of
+  `P(ω+1)`, modulo the quotient that collapses adjacent pairs, are *order
+  isomorphic to the real line*. Negation is set complement; reciprocal is
+  complement of the finite coordinates. `SBReal` carries a `Field` instance, so
+  `ring` works on it.
+
+The order is intrinsic — built here from the lex order and a bitwise supremum.
+The field operations are transported across the isomorphism, which is the honest
+status of the current state: this shows the carrier *faithfully represents* `ℝ`.
+Making `+` and `×` intrinsic — Gosper's algorithm on the bit streams, proved
+correct against `toReal₀_toSet` — is the work in progress.
 
 No `sorry`, no `native_decide`. Every result depends only on `propext`,
 `Classical.choice`, and `Quot.sound`.
@@ -56,6 +65,11 @@ No `sorry`, no `native_decide`. Every result depends only on `propext`,
 | `SternBrocot/Enumeration.lean` | the tree enumerates `ℚ≥0` exactly once |
 | `SternBrocot/PathOrder.lean` | `nodeValue` is an order embedding |
 | `SternBrocot/Bridge.lean` | paths ↔ finite subsets of `ω` |
+| `SternBrocot/Signed.lean` | `P(ω+1)`, negation as complement, signed rigidity |
+| `SternBrocot/SignedOrder.lean` | the mirrored sign order; the full quotient |
+| `SternBrocot/ToReal.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut |
+| `SternBrocot/SignedToReal.lean` | `Φ : P(ω+1) → ℝ`, monotone and bijective |
+| `SternBrocot/Field.lean` | `SBReal ≃o ℝ` and the field structure |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding |
 
 `Examples.lean` is worth reading first if you want to know what is actually being
