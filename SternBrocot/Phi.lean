@@ -291,4 +291,89 @@ theorem exists_phi0_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ �
       exact_mod_cast h1.le
     exact absurd (le_csSup (bddAbove_below hxne) (hlow q hq0 hq2)) (not_le.2 hq1)
 
+/-! ### Injectivity on the quotient
+
+`Φ₀` separates points that the tail rule does not identify. The work is finding
+*two* nodes strictly between them: one bounds `Φ₀ x` from above, the second makes
+the comparison with `Φ₀ y` strict. -/
+
+/-- Truncating `y` at the first place it exceeds `x` gives a node above `x` and
+no higher than `y`. -/
+theorem exists_node_ge {x y : Set ℕ} (h : x <ₗ y) : ∃ p, x <ₗ toSet p ∧ toSet p ≤ₗ y := by
+  obtain ⟨n, hagree, hnx, hny⟩ := h
+  have hfin : ((x ∩ Iio n) ∪ {n}).Finite := by
+    apply Set.Finite.subset (Set.finite_lt_nat (n + 1))
+    rintro k (⟨-, hk⟩ | hk)
+    · exact Nat.lt_succ_of_lt (mem_Iio.1 hk)
+    · rw [mem_singleton_iff] at hk
+      exact hk ▸ Nat.lt_succ_self n
+  obtain ⟨p, hp⟩ := exists_path_of_finite hfin
+  refine ⟨p, ⟨n, fun k hk => ?_, hnx, ?_⟩, ?_⟩
+  · rw [hp]
+    simp only [Set.mem_union, Set.mem_inter_iff, mem_Iio, mem_singleton_iff]
+    exact ⟨fun hkx => Or.inl ⟨hkx, hk⟩, by
+      rintro (⟨hkx, -⟩ | rfl)
+      · exact hkx
+      · exact absurd hk (lt_irrefl k)⟩
+  · rw [hp]; exact Or.inr rfl
+  · -- nothing in the truncation can push it past `y`
+    rintro ⟨m, hagree', hmy, hmp⟩
+    rw [hp] at hmp
+    rcases hmp with ⟨hmx, hmlt⟩ | hmn
+    · exact hmy ((hagree m (mem_Iio.1 hmlt)).1 hmx)
+    · rw [mem_singleton_iff] at hmn
+      exact hmy (hmn ▸ hny)
+
+/-- A node is finite, but the lower side of a tail pair is cofinite, so a node is
+never tail-equivalent to something strictly above it. -/
+theorem not_tailEqv_node {p : List Bool} {y : Set ℕ} (h : toSet p <ₗ y) :
+    ¬ TailEqv (toSet p) y := by
+  rintro (rfl | hpair | hpair)
+  · exact lexLt_irrefl _ h
+  · exact lexLt_asymm h (lexLt_of_tailPair hpair)
+  · -- `TailPair y (toSet p)` makes `toSet p` the cofinite side, yet it is finite
+    obtain ⟨n, hn⟩ := hpair
+    obtain ⟨N, hN⟩ := (toSet_finite p).bddAbove
+    have hmem : max n N + 1 ∈ toSet p := hn.right_tail _ (by omega)
+    have := hN hmem
+    omega
+
+/-- **A node lies strictly between any two tail-inequivalent points.** -/
+theorem exists_node_between_points {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y) :
+    ∃ p, x <ₗ toSet p ∧ toSet p <ₗ y := by
+  obtain ⟨z, hxz, hzy⟩ := exists_between_of_not_tailEqv hlt hne
+  obtain ⟨p, hp1, hp2⟩ := exists_node_ge hxz
+  refine ⟨p, hp1, ?_⟩
+  rcases (lexLe_iff (toSet p) z).1 hp2 with rfl | hlt'
+  · exact hzy
+  · exact lexLt_trans hlt' hzy
+
+/-- **Strict monotonicity modulo the tail rule.** -/
+theorem phi0_lt_of_not_tailEqv {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y)
+    (hy : y ≠ univ) : phi0 x < phi0 y := by
+  obtain ⟨p, hp1, hp2⟩ := exists_node_between_points hlt hne
+  -- a second node, strictly above the first, still below `y`
+  obtain ⟨q, hq1, hq2⟩ := exists_node_between_points hp2 (not_tailEqv_node hp2)
+  have hxp : phi0 x ≤ (nodeValue p : ℝ) := by
+    rcases Set.eq_empty_or_nonempty (below x) with hemp | hnem
+    · rw [phi0, hemp, Real.sSup_empty]
+      exact_mod_cast nodeValue_nonneg p
+    · refine csSup_le hnem ?_
+      rintro s ⟨bs, hbs, rfl⟩
+      exact_mod_cast ((lexLt_toSet_iff bs p).1 (lexLt_trans hbs hp1)).le
+  have hpq : (nodeValue p : ℝ) < (nodeValue q : ℝ) := by
+    exact_mod_cast (lexLt_toSet_iff p q).1 hq1
+  have hqy : (nodeValue q : ℝ) ≤ phi0 y := le_csSup (bddAbove_below hy) ⟨q, hq2, rfl⟩
+  linarith
+
+/-- **`Φ₀` is injective on the tail quotient.** Distinct classes have distinct
+images, so together with `exists_phi0_eq` it is a bijection onto `ℝ≥0`. -/
+theorem phi0_injective {x y : Set ℕ} (hx : x ≠ univ) (hy : y ≠ univ)
+    (h : phi0 x = phi0 y) : TailEqv x y := by
+  by_contra hne
+  rcases lexLt_trichotomy x y with hlt | rfl | hgt
+  · exact absurd h (ne_of_lt (phi0_lt_of_not_tailEqv hlt hne hy))
+  · exact hne (TailEqv.refl x)
+  · exact absurd h.symm (ne_of_lt (phi0_lt_of_not_tailEqv hgt (fun hc => hne hc.symm) hx))
+
 end SternBrocot
