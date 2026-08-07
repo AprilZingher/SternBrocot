@@ -204,4 +204,91 @@ theorem phi0_of_tailEqv {a b : Set ℕ} (h : TailEqv a b) : phi0 a = phi0 b := b
   · exact phi0_of_tailPair h
   · exact (phi0_of_tailPair h).symm
 
+
+
+/-! ### Surjectivity onto `ℝ≥0`
+
+Given `r ≥ 0`, cut `P(ω)` at `r`: take the lex supremum of the nodes whose value
+is below `r`. Completeness upstairs (`isLexLUB_lexSup`) supplies the point, and
+density of `ℚ` pins its image to `r` exactly. -/
+
+theorem lexLt_univ_of_ne {x : Set ℕ} (h : x ≠ univ) : x <ₗ univ := by
+  rcases lexLt_trichotomy x univ with h1 | h1 | h1
+  · exact h1
+  · exact absurd h1 h
+  · exact absurd h1 (lexLe_univ x)
+
+/-- The nodes whose value lies strictly below `r`. -/
+def nodesBelow (r : ℝ) : Set (Set ℕ) := {z | ∃ bs, z = toSet bs ∧ (nodeValue bs : ℝ) < r}
+
+/-- **Surjectivity.** Every nonnegative real is the image of a point of `P(ω)`
+other than `∞`. -/
+theorem exists_phi0_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ ∧ phi0 x = r := by
+  classical
+  -- A node strictly above `r`, to bound the cut.
+  obtain ⟨Q, hQ⟩ := exists_rat_gt r
+  have hQ0 : (0 : ℚ) ≤ Q := by
+    have h1 : (0 : ℝ) < (Q : ℝ) := lt_of_le_of_lt hr hQ
+    exact_mod_cast h1.le
+  obtain ⟨p, -, hpv⟩ := exists_canonical_of_nonneg hQ0
+  have hub : ∀ z ∈ nodesBelow r, z ≤ₗ toSet p := by
+    rintro z ⟨bs, rfl, hv⟩
+    refine lexLe_of_lexLt ((lexLt_toSet_iff bs p).2 ?_)
+    rw [hpv]
+    exact_mod_cast lt_trans hv hQ
+  have hxle : lexSup (nodesBelow r) ≤ₗ toSet p := lexSup_least _ _ hub
+  have hxne : lexSup (nodesBelow r) ≠ univ := by
+    intro hc
+    rw [hc] at hxle
+    exact hxle (lexLt_univ_of_ne (toSet_ne_univ p))
+  refine ⟨lexSup (nodesBelow r), hxne, ?_⟩
+  -- Nothing below the cut reaches `r`: a node at or above `r` bounds the cut.
+  have hbelow_lt : ∀ s ∈ below (lexSup (nodesBelow r)), s < r := by
+    rintro s ⟨bs, hbs, rfl⟩
+    by_contra hc
+    rw [not_lt] at hc
+    refine (lexSup_least (nodesBelow r) (toSet bs) ?_) hbs
+    rintro z ⟨cs, rfl, hv⟩
+    refine lexLe_of_lexLt ((lexLt_toSet_iff cs bs).2 ?_)
+    exact_mod_cast lt_of_lt_of_le hv hc
+  -- Every rational in `[0, r)` is realised strictly below the cut.
+  have hlow : ∀ q : ℚ, 0 ≤ q → (q : ℝ) < r → ((q : ℚ) : ℝ) ∈ below (lexSup (nodesBelow r)) := by
+    intro q hq0 hqr
+    obtain ⟨bs, -, hv⟩ := exists_canonical_of_nonneg hq0
+    -- a second node between `q` and `r` supplies the strictness
+    obtain ⟨q', hq1, hq2⟩ := exists_rat_btwn hqr
+    have hq'0 : (0 : ℚ) ≤ q' := le_trans hq0 (by exact_mod_cast hq1.le)
+    obtain ⟨cs, -, hv'⟩ := exists_canonical_of_nonneg hq'0
+    have hmem : toSet cs ∈ nodesBelow r := ⟨cs, rfl, by rw [hv']; exact hq2⟩
+    have h1 : toSet bs <ₗ toSet cs :=
+      (lexLt_toSet_iff bs cs).2 (by rw [hv, hv']; exact_mod_cast hq1)
+    refine ⟨bs, ?_, by rw [hv]⟩
+    rcases (lexLe_iff (toSet cs) _).1 (lexSup_upperBound _ _ hmem) with heq | hlt
+    · rw [← heq]; exact h1
+    · exact lexLt_trans h1 hlt
+  rcases eq_or_lt_of_le hr with hzero | hpos
+  · -- `r = 0`: the cut is empty and `lexSup ∅ = ∅`
+    have hSempty : nodesBelow r = ∅ := by
+      ext z
+      simp only [Set.mem_empty_iff_false, iff_false]
+      rintro ⟨bs, rfl, hv⟩
+      rw [← hzero] at hv
+      exact absurd hv (not_lt.2 (by exact_mod_cast nodeValue_nonneg bs))
+    have : lexSup (nodesBelow r) = ∅ :=
+      (eq_lexSup_of_isLexLUB (S := nodesBelow r) (u := ∅)
+        ⟨by rw [hSempty]; rintro x ⟨⟩, fun v _ => empty_lexLe v⟩).symm
+    rw [this, phi0_empty, ← hzero]
+  · -- `r > 0`: bounded above by `r`, and the rationals below `r` are cofinal
+    have hne : (below (lexSup (nodesBelow r))).Nonempty := by
+      refine ⟨((0 : ℚ) : ℝ), hlow 0 le_rfl ?_⟩
+      exact_mod_cast hpos
+    refine le_antisymm (csSup_le hne fun s hs => (hbelow_lt s hs).le) ?_
+    by_contra hcon
+    rw [not_le] at hcon
+    obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn hcon
+    have hq0 : (0 : ℚ) ≤ q := by
+      have h1 : (0 : ℝ) < (q : ℝ) := lt_of_le_of_lt (phi0_nonneg _) hq1
+      exact_mod_cast h1.le
+    exact absurd (le_csSup (bddAbove_below hxne) (hlow q hq0 hq2)) (not_le.2 hq1)
+
 end SternBrocot
