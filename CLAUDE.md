@@ -40,8 +40,8 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/Bridge.lean` | `toSet`: paths ↔ finite subsets of `ω`; the orders agree | complete |
 | `SternBrocot/Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** | complete |
 | `SternBrocot/SignedOrder.lean` | mirrored sign order; full quotient = adjacencies | complete |
-| `SternBrocot/Phi.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut; correct on nodes | complete |
-| `SternBrocot/SignedPhi.lean` | `Φ : P(ω+1) → ℝ`, mirrored across the sign | in progress |
+| `SternBrocot/ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0` as a Dedekind cut | complete |
+| `SternBrocot/SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`, mirrored across the sign | in progress |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
 No `sorry`, no `native_decide`. All results depend only on
@@ -100,8 +100,8 @@ Ordered as planned. Items 1a–1c are done.
      on the nose. No `Classical` was needed after all — the `Set ℕ → List Bool`
      direction is stated as existence (`exists_path_of_subset_Iio`) rather than
      built as a function, so the case split lives in a proof.
-   - ✅ (a) `phi0` defined and monotone (`phi0_mono`); (b) constant on tail
-     classes (`phi0_of_tailEqv`); and `phi0_toSet` — it reproduces `nodeValue`
+   - ✅ (a) `toReal₀` defined and monotone (`toReal₀_mono`); (b) constant on tail
+     classes (`toReal₀_of_tailEqv`); and `toReal₀_toSet` — it reproduces `nodeValue`
      on the nodes, which is what pins it down as *the* Stern–Brocot map.
    - 🔨 **next: (c) surjectivity onto `ℝ≥0` and (d) injectivity on the
      quotient.** For (c): given `r ≥ 0`, take `x = {n | ...}` cut out by the
@@ -122,10 +122,10 @@ Ordered as planned. Items 1a–1c are done.
      `seqv_equivalence` for the full quotient `SEqv = STailEqv ∪ ZeroDegen`.
    - ⬜ extend to all of `P(ω)/∼` by `Φ x = sup {ι q | q < x}`, using
      completeness on both sides;
-   - ✅ the sign coordinate: `magnitude` (stored bit xor sign), `phi`, and
-     `phi_neg : Φ(-x) = -Φ(x)`. `magnitude_neg` is a rewrite, not a case split —
-     the mirrored convention's payoff. Both zeros land on `0` (`phi_empty`,
-     `phi_univ`), so `-0 = 0` needs no special casing. `phi_of_seqv` descends it
+   - ✅ the sign coordinate: `magnitude` (stored bit xor sign), `toReal`, and
+     `toReal_neg : Φ(-x) = -Φ(x)`. `magnitude_neg` is a rewrite, not a case split —
+     the mirrored convention's payoff. Both zeros land on `0` (`toReal_empty`,
+     `toReal_univ`), so `-0 = 0` needs no special casing. `toReal_of_seqv` descends it
      to the full quotient.
    - 🔨 **next**: `Φ` monotone for `<ₛ`, then bijective onto `ℝ` (mirror the
      `Φ₀` surjectivity/injectivity arguments across the sign), excluding the two
@@ -162,7 +162,7 @@ Ordered as planned. Items 1a–1c are done.
   `b` is itself a node. It holds because the *right* element of a tail pair is
   cofinite, hence infinite, hence never a node. That step is load-bearing; I got
   it wrong first time.
-- `phi0` is junk at `univ` (`Real.sSup` of an unbounded set is `0`), so every
+- `toReal₀` is junk at `univ` (`Real.sSup` of an unbounded set is `0`), so every
   lemma about it carries an `x ≠ univ` hypothesis. `toSet_ne_univ` discharges it
   for nodes.
 

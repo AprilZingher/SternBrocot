@@ -7,8 +7,8 @@ import SternBrocot.Node
 import SternBrocot.Enumeration
 import SternBrocot.PathOrder
 import SternBrocot.Bridge
-import SternBrocot.Phi
-import SternBrocot.SignedPhi
+import SternBrocot.ToReal
+import SternBrocot.SignedToReal
 
 /-!
 # Sanity checks
@@ -275,18 +275,18 @@ The last of these is the end-to-end statement of the whole development so far:
 the von Neumann `2`, built from `∅` by the successor `S`, is sent by `Φ₀` to the
 real number `2`. -/
 
-example : phi0 (toSet [true]) = 1 := by
-  rw [phi0_toSet]; norm_num [nodeValue]
+example : toReal₀ (toSet [true]) = 1 := by
+  rw [toReal₀_toSet]; norm_num [nodeValue]
 
-example : phi0 (toSet [false, true]) = 1 / 2 := by
-  rw [phi0_toSet]; norm_num [nodeValue]
+example : toReal₀ (toSet [false, true]) = 1 / 2 := by
+  rw [toReal₀_toSet]; norm_num [nodeValue]
 
-example : phi0 (toSet path22over7) = 22 / 7 := by
-  rw [phi0_toSet]; norm_num [path22over7, nodeValue]
+example : toReal₀ (toSet path22over7) = 22 / 7 := by
+  rw [toReal₀_toSet]; norm_num [path22over7, nodeValue]
 
 /-- **The end-to-end check.** `S (S ∅)` is the von Neumann `2` as a subset of `ω`,
 built with the successor from `Basic.lean`. `Φ₀` sends it to `(2 : ℝ)`. -/
-example : phi0 (S (S ∅)) = 2 := by
+example : toReal₀ (S (S ∅)) = 2 := by
   have h : toSet [true, true] = S (S ∅) := by
     rw [two_eq_pair]
     ext n
@@ -294,17 +294,17 @@ example : phi0 (S (S ∅)) = 2 := by
     | 0 => simp
     | 1 => simp
     | (k + 2) => simp
-  rw [← h, phi0_toSet]
+  rw [← h, toReal₀_toSet]
   norm_num [nodeValue]
 
 /-- `Φ₀` sends `0` to `0`, with no special-casing needed: nothing lies below `∅`,
 and `sSup ∅ = 0`. -/
-example : phi0 (∅ : Set ℕ) = 0 := phi0_empty
+example : toReal₀ (∅ : Set ℕ) = 0 := toReal₀_empty
 
 /-- The two representations of `2` — `{0,1}` and `ω \ {1}` — have the same image,
 since `Φ₀` is constant on tail classes. -/
-example : phi0 ({0, 1} : Set ℕ) = phi0 {n : ℕ | n ≠ 1} :=
-  phi0_of_tailPair two_tailPair
+example : toReal₀ ({0, 1} : Set ℕ) = toReal₀ {n : ℕ | n ≠ 1} :=
+  toReal₀_of_tailPair two_tailPair
 
 /-! ### The signed map: negatives, end to end
 
@@ -315,18 +315,49 @@ complement is `-2`. Both zeros land on `0` with no special casing. -/
 theorem toSet_two_eq : toSet [true, true] = S (S ∅) := by
   rw [two_eq_pair]; exact toSet_two
 
-example : phi (lift (S (S ∅))) = 2 := by
-  rw [phi_lift, ← toSet_two_eq, phi0_toSet]; norm_num [nodeValue]
+example : toReal (lift (S (S ∅))) = 2 := by
+  rw [toReal_lift, ← toSet_two_eq, toReal₀_toSet]; norm_num [nodeValue]
 
 /-- **Negation, end to end.** The complement of the lifted von Neumann `2` is the
 real number `-2`. -/
-example : phi (neg (lift (S (S ∅)))) = -2 := by
-  rw [phi_neg, phi_lift, ← toSet_two_eq, phi0_toSet]; norm_num [nodeValue]
+example : toReal (neg (lift (S (S ∅)))) = -2 := by
+  rw [toReal_neg, toReal_lift, ← toSet_two_eq, toReal₀_toSet]; norm_num [nodeValue]
 
 /-- `+0` and `-0` both land on `0` — the zero adjacency is invisible to `Φ`. -/
-example : phi (∅ : Signed) = 0 ∧ phi (univ : Signed) = 0 := ⟨phi_empty, phi_univ⟩
+example : toReal (∅ : Signed) = 0 ∧ toReal (univ : Signed) = 0 := ⟨toReal_empty, toReal_univ⟩
 
 /-- Negation is complement, and it is an involution on values. -/
-example (x : Signed) : phi (neg (neg x)) = phi x := by simp
+example (x : Signed) : toReal (neg (neg x)) = toReal x := by simp
+
+/-! ### The golden ratio — why `φ` is not the name of the map
+
+`φ = (1+√5)/2` has continued fraction `[1; 1, 1, 1, …]`, so its Stern–Brocot path
+alternates `R L R L …`, and as a subset of `ω` that is exactly the **even
+numbers**. Truncating the path gives the Fibonacci convergents
+`1, 2, 3/2, 5/3, 8/5, …`.
+
+This is why the value map is called `toReal` and not `phi`: in this development
+`φ` is a specific real number with a specific and rather pretty encoding, and the
+name should stay available for it. -/
+
+/-- Five moves down the golden ratio's path: the even numbers below `5`. -/
+example : toSet [true, false, true, false, true] = ({0, 2, 4} : Set ℕ) := by
+  ext n
+  match n with
+  | 0 => simp
+  | 1 => simp
+  | 2 => simp
+  | 3 => simp
+  | 4 => simp
+  | (k + 5) => simp
+
+/-- The convergents really are the Fibonacci ratios: `1, 2, 3/2, 5/3, 8/5`. -/
+example : nodeValue [true] = 1 := by norm_num [nodeValue]
+example : nodeValue [true, false, true] = 3 / 2 := by norm_num [nodeValue]
+example : nodeValue [true, false, true, false, true] = 8 / 5 := by norm_num [nodeValue]
+
+/-- ...and they climb towards `φ ≈ 1.618` from alternating sides. -/
+example : nodeValue [true, false, true] < nodeValue [true, false, true, false, true] := by
+  norm_num [nodeValue]
 
 end SternBrocot

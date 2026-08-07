@@ -3,7 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import SternBrocot.SignedOrder
-import SternBrocot.Phi
+import SternBrocot.ToReal
 
 /-!
 # `Φ : P(ω + 1) → ℝ`
@@ -23,16 +23,16 @@ magnitude is recovered uniformly by
 * `magnitude_neg` — negation leaves the magnitude alone, on the nose. This is
   where the mirrored convention pays: `|-x| = |x|` is a rewriting identity
   rather than a case split.
-* `phi_neg` — `Φ(-x) = -Φ(x)`, immediately.
-* `phi_empty` and `phi_univ` are both `0`, so `-0 = 0` is respected by the value
+* `toReal_neg` — `Φ(-x) = -Φ(x)`, immediately.
+* `toReal_empty` and `toReal_univ` are both `0`, so `-0 = 0` is respected by the value
   map without any special casing — the zero adjacency is already invisible to `Φ`.
 
 ## Main results
 
-* `SternBrocot.phi_lift` — on positives, `Φ` is `Φ₀`, so the naturals land where
+* `SternBrocot.toReal_lift` — on positives, `Φ` is `Φ₀`, so the naturals land where
   they should.
-* `SternBrocot.phi_neg` — `Φ` intertwines complement with negation in `ℝ`.
-* `SternBrocot.phi_of_seqv` — `Φ` is constant on the full quotient, so it
+* `SternBrocot.toReal_neg` — `Φ` intertwines complement with negation in `ℝ`.
+* `SternBrocot.toReal_of_seqv` — `Φ` is constant on the full quotient, so it
   descends to `P(ω+1)/SEqv`.
 -/
 
@@ -94,68 +94,68 @@ theorem isFinite_lift {y : Set ℕ} (h : y ≠ univ) : IsFinite (lift y) := by
 
 open Classical in
 /-- `Φ x = ±Φ₀(magnitude x)`, with the sign taken from the sign coordinate. -/
-noncomputable def phi (x : Signed) : ℝ :=
-  if none ∈ x then -(phi0 (magnitude x)) else phi0 (magnitude x)
+noncomputable def toReal (x : Signed) : ℝ :=
+  if none ∈ x then -(toReal₀ (magnitude x)) else toReal₀ (magnitude x)
 
-theorem phi_of_pos {x : Signed} (h : none ∉ x) : phi x = phi0 (magnitude x) := by
-  rw [phi, if_neg h]
+theorem toReal_of_pos {x : Signed} (h : none ∉ x) : toReal x = toReal₀ (magnitude x) := by
+  rw [toReal, if_neg h]
 
-theorem phi_of_neg {x : Signed} (h : none ∈ x) : phi x = -(phi0 (magnitude x)) := by
-  rw [phi, if_pos h]
+theorem toReal_of_neg {x : Signed} (h : none ∈ x) : toReal x = -(toReal₀ (magnitude x)) := by
+  rw [toReal, if_pos h]
 
 /-- On the positive branch `Φ` is `Φ₀`, so the naturals land exactly where the
 unsigned development puts them. -/
-@[simp] theorem phi_lift (y : Set ℕ) : phi (lift y) = phi0 y := by
-  rw [phi_of_pos (none_notMem_lift y), magnitude_lift]
+@[simp] theorem toReal_lift (y : Set ℕ) : toReal (lift y) = toReal₀ y := by
+  rw [toReal_of_pos (none_notMem_lift y), magnitude_lift]
 
-@[simp] theorem phi_empty : phi (∅ : Signed) = 0 := by
-  rw [phi_of_pos (by simp), magnitude_empty, phi0_empty]
+@[simp] theorem toReal_empty : toReal (∅ : Signed) = 0 := by
+  rw [toReal_of_pos (by simp), magnitude_empty, toReal₀_empty]
 
 /-- `-0` also lands on `0`: the zero adjacency is invisible to `Φ`, so no special
 casing is needed to make `-0 = 0` hold downstream. -/
-@[simp] theorem phi_univ : phi (univ : Signed) = 0 := by
-  rw [phi_of_neg (mem_univ _), magnitude_univ, phi0_empty, neg_zero]
+@[simp] theorem toReal_univ : toReal (univ : Signed) = 0 := by
+  rw [toReal_of_neg (mem_univ _), magnitude_univ, toReal₀_empty, neg_zero]
 
 /-- **`Φ` intertwines complement with negation in `ℝ`.** -/
-@[simp] theorem phi_neg (x : Signed) : phi (neg x) = - phi x := by
+@[simp] theorem toReal_neg (x : Signed) : toReal (neg x) = - toReal x := by
   by_cases h : none ∈ x
-  · rw [phi_of_pos (by simp [h]), phi_of_neg h, magnitude_neg, _root_.neg_neg]
-  · rw [phi_of_neg (by simp [h]), phi_of_pos h, magnitude_neg]
+  · rw [toReal_of_pos (by simp [h]), toReal_of_neg h, magnitude_neg, _root_.neg_neg]
+  · rw [toReal_of_neg (by simp [h]), toReal_of_pos h, magnitude_neg]
 
-theorem phi_nonneg_of_pos {x : Signed} (h : none ∉ x) : 0 ≤ phi x := by
-  rw [phi_of_pos h]
-  exact phi0_nonneg _
+theorem toReal_nonneg_of_pos {x : Signed} (h : none ∉ x) : 0 ≤ toReal x := by
+  rw [toReal_of_pos h]
+  exact toReal₀_nonneg _
 
-theorem phi_nonpos_of_neg {x : Signed} (h : none ∈ x) : phi x ≤ 0 := by
-  rw [phi_of_neg h]
-  simpa using phi0_nonneg (magnitude x)
+theorem toReal_nonpos_of_neg {x : Signed} (h : none ∈ x) : toReal x ≤ 0 := by
+  rw [toReal_of_neg h]
+  simpa using toReal₀_nonneg (magnitude x)
 
 /-! ### Descending to the quotient -/
 
 /-- Complementing both sides of a tail pair gives a tail pair again, so the
 negative branch is as well-behaved as the positive one. -/
-theorem phi0_compl_of_tailPair {a b : Set ℕ} (h : TailPair a b) :
-    phi0 aᶜ = phi0 bᶜ := by
+theorem toReal₀_compl_of_tailPair {a b : Set ℕ} (h : TailPair a b) :
+    toReal₀ aᶜ = toReal₀ bᶜ := by
   obtain ⟨n, hn⟩ := h
-  exact (phi0_of_tailPair ⟨n, hn.compl⟩).symm
+  exact (toReal₀_of_tailPair ⟨n, hn.compl⟩).symm
 
-theorem phi_of_stailPair {a b : Signed} (h : STailPair a b) : phi a = phi b := by
+theorem toReal_of_stailPair {a b : Signed} (h : STailPair a b) : toReal a = toReal b := by
   by_cases hs : none ∈ a
   · have hs' : none ∈ b := h.1.1 hs
-    rw [phi_of_neg hs, phi_of_neg hs', magnitude_of_neg hs, magnitude_of_neg hs',
-      phi0_compl_of_tailPair h.2]
+    rw [toReal_of_neg hs, toReal_of_neg hs', magnitude_of_neg hs, magnitude_of_neg hs',
+      toReal₀_compl_of_tailPair h.2]
   · have hs' : none ∉ b := fun hc => hs (h.1.2 hc)
-    rw [phi_of_pos hs, phi_of_pos hs', magnitude_of_pos hs, magnitude_of_pos hs',
-      phi0_of_tailPair h.2]
+    rw [toReal_of_pos hs, toReal_of_pos hs', magnitude_of_pos hs, magnitude_of_pos hs',
+      toReal₀_of_tailPair h.2]
 
 /-- **`Φ` is constant on the full quotient** — the tail rule *and* the zero
 adjacency — so it descends to `P(ω+1)/SEqv`. -/
-theorem phi_of_seqv {a b : Signed} (h : SEqv a b) : phi a = phi b := by
+theorem toReal_of_seqv {a b : Signed} (h : SEqv a b) : toReal a = toReal b := by
   rcases h with (rfl | hp | hp) | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
   · rfl
-  · exact phi_of_stailPair hp
-  · exact (phi_of_stailPair hp).symm
-  · rw [phi_empty, phi_univ]
-  · rw [phi_univ, phi_empty]
+  · exact toReal_of_stailPair hp
+  · exact (toReal_of_stailPair hp).symm
+  · rw [toReal_empty, toReal_univ]
+  · rw [toReal_univ, toReal_empty]
 
 end SternBrocot

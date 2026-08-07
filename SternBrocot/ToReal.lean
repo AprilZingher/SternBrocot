@@ -32,11 +32,11 @@ so `Φ₀ ∅ = 0` comes out right on its own.
 
 ## Main results
 
-* `SternBrocot.phi0_toSet` — **the correctness statement**: `Φ₀` agrees with
+* `SternBrocot.toReal₀_toSet` — **the correctness statement**: `Φ₀` agrees with
   `nodeValue` on the nodes. This is what pins `Φ₀` down as *the* Stern–Brocot
   map rather than some other order isomorphism.
-* `SternBrocot.phi0_mono` — monotone.
-* `SternBrocot.phi0_of_tailEqv` — constant on tail classes, so it descends to
+* `SternBrocot.toReal₀_mono` — monotone.
+* `SternBrocot.toReal₀_of_tailEqv` — constant on tail classes, so it descends to
   the quotient.
 -/
 
@@ -108,24 +108,24 @@ theorem bddAbove_below {x : Set ℕ} (h : x ≠ univ) : BddAbove (below x) := by
 /-! ### The map -/
 
 /-- `Φ₀ x` is the supremum of the tree nodes strictly below `x`. -/
-noncomputable def phi0 (x : Set ℕ) : ℝ := sSup (below x)
+noncomputable def toReal₀ (x : Set ℕ) : ℝ := sSup (below x)
 
-@[simp] theorem phi0_empty : phi0 (∅ : Set ℕ) = 0 := by
-  rw [phi0, below_empty, Real.sSup_empty]
+@[simp] theorem toReal₀_empty : toReal₀ (∅ : Set ℕ) = 0 := by
+  rw [toReal₀, below_empty, Real.sSup_empty]
 
-theorem phi0_nonneg (x : Set ℕ) : 0 ≤ phi0 x := by
+theorem toReal₀_nonneg (x : Set ℕ) : 0 ≤ toReal₀ x := by
   rcases Set.eq_empty_or_nonempty (below x) with h | ⟨r, hr⟩
-  · rw [phi0, h, Real.sSup_empty]
+  · rw [toReal₀, h, Real.sSup_empty]
   · rcases Classical.em (BddAbove (below x)) with hb | hb
     · exact le_trans (below_nonneg hr) (le_csSup hb hr)
     · -- at `∞` the supremum does not exist; `Real.sSup` returns `0` there
-      rw [phi0, Real.sSup_def, dif_neg (by tauto)]
+      rw [toReal₀, Real.sSup_def, dif_neg (by tauto)]
 
 /-- **Monotonicity.** -/
-theorem phi0_mono {x y : Set ℕ} (hxy : x <ₗ y) (hy : y ≠ univ) : phi0 x ≤ phi0 y := by
+theorem toReal₀_mono {x y : Set ℕ} (hxy : x <ₗ y) (hy : y ≠ univ) : toReal₀ x ≤ toReal₀ y := by
   rcases Set.eq_empty_or_nonempty (below x) with h | hne
-  · rw [phi0, h, Real.sSup_empty]
-    exact phi0_nonneg y
+  · rw [toReal₀, h, Real.sSup_empty]
+    exact toReal₀_nonneg y
   · exact csSup_le hne fun r hr => le_csSup (bddAbove_below hy) (below_mono hxy hr)
 
 /-! ### Correctness on the nodes
@@ -142,7 +142,7 @@ theorem exists_node_between {cs : List Bool} {q : ℚ} (hq : 0 ≤ q) (hlt : q <
   exact ⟨bs, (lexLt_toSet_iff bs cs).2 (by rw [hv]; exact hlt), hv⟩
 
 /-- **Correctness.** `Φ₀` reproduces `nodeValue` on the tree nodes. -/
-theorem phi0_toSet (cs : List Bool) : phi0 (toSet cs) = (nodeValue cs : ℝ) := by
+theorem toReal₀_toSet (cs : List Bool) : toReal₀ (toSet cs) = (nodeValue cs : ℝ) := by
   have hub : ∀ r ∈ below (toSet cs), r ≤ (nodeValue cs : ℝ) := by
     rintro r ⟨bs, hbs, rfl⟩
     exact_mod_cast ((lexLt_toSet_iff bs cs).1 hbs).le
@@ -155,7 +155,7 @@ theorem phi0_toSet (cs : List Bool) : phi0 (toSet cs) = (nodeValue cs : ℝ) := 
       have hlt := (lexLt_toSet_iff bs cs).1 hbs
       rw [← hzero] at hlt
       exact absurd hlt (not_lt.2 (nodeValue_nonneg bs))
-    rw [phi0, hemp, Real.sSup_empty, ← hzero]
+    rw [toReal₀, hemp, Real.sSup_empty, ← hzero]
     norm_num
   · -- the node is positive: rationals below it are cofinal, by density of `ℚ`
     have hne : (below (toSet cs)).Nonempty :=
@@ -165,7 +165,7 @@ theorem phi0_toSet (cs : List Bool) : phi0 (toSet cs) = (nodeValue cs : ℝ) := 
     rw [not_le] at hcon
     obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn hcon
     have hq0 : (0 : ℚ) ≤ q := by
-      have h1 : (0 : ℝ) < (q : ℝ) := lt_of_le_of_lt (phi0_nonneg (toSet cs)) hq1
+      have h1 : (0 : ℝ) < (q : ℝ) := lt_of_le_of_lt (toReal₀_nonneg (toSet cs)) hq1
       exact_mod_cast h1.le
     obtain ⟨bs, hbs, hv⟩ := exists_node_between hq0 (by exact_mod_cast hq2)
     have hmem : ((q : ℚ) : ℝ) ∈ below (toSet cs) := ⟨bs, hbs, by rw [hv]⟩
@@ -178,7 +178,7 @@ theorem phi0_toSet (cs : List Bool) : phi0 (toSet cs) = (nodeValue cs : ℝ) := 
 A tail pair is an adjacent pair (`tailPair_iff_isAdjacent`), and nothing lies
 strictly between adjacent points — in particular no node does — so the two cuts
 coincide. -/
-theorem phi0_of_tailPair {a b : Set ℕ} (h : TailPair a b) : phi0 a = phi0 b := by
+theorem toReal₀_of_tailPair {a b : Set ℕ} (h : TailPair a b) : toReal₀ a = toReal₀ b := by
   have hadj : IsAdjacent b a := isAdjacent_of_tailPair h
   -- The *right* element of a tail pair is cofinite, so it is never itself a node.
   -- Without this the two cuts would differ by exactly the point `b`.
@@ -196,13 +196,13 @@ theorem phi0_of_tailPair {a b : Set ℕ} (h : TailPair a b) : phi0 a = phi0 b :=
     · exact absurd (heq ▸ toSet_finite bs) hbinf
     · exact (hadj.2 _ hgt hbs).elim
   have hsup : below b ⊆ below a := below_mono hadj.1
-  rw [phi0, phi0, Set.Subset.antisymm hsub hsup]
+  rw [toReal₀, toReal₀, Set.Subset.antisymm hsub hsup]
 
-theorem phi0_of_tailEqv {a b : Set ℕ} (h : TailEqv a b) : phi0 a = phi0 b := by
+theorem toReal₀_of_tailEqv {a b : Set ℕ} (h : TailEqv a b) : toReal₀ a = toReal₀ b := by
   rcases h with rfl | h | h
   · rfl
-  · exact phi0_of_tailPair h
-  · exact (phi0_of_tailPair h).symm
+  · exact toReal₀_of_tailPair h
+  · exact (toReal₀_of_tailPair h).symm
 
 
 
@@ -223,7 +223,7 @@ def nodesBelow (r : ℝ) : Set (Set ℕ) := {z | ∃ bs, z = toSet bs ∧ (nodeV
 
 /-- **Surjectivity.** Every nonnegative real is the image of a point of `P(ω)`
 other than `∞`. -/
-theorem exists_phi0_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ ∧ phi0 x = r := by
+theorem exists_toReal₀_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ ∧ toReal₀ x = r := by
   classical
   -- A node strictly above `r`, to bound the cut.
   obtain ⟨Q, hQ⟩ := exists_rat_gt r
@@ -277,7 +277,7 @@ theorem exists_phi0_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ �
     have : lexSup (nodesBelow r) = ∅ :=
       (eq_lexSup_of_isLexLUB (S := nodesBelow r) (u := ∅)
         ⟨by rw [hSempty]; rintro x ⟨⟩, fun v _ => empty_lexLe v⟩).symm
-    rw [this, phi0_empty, ← hzero]
+    rw [this, toReal₀_empty, ← hzero]
   · -- `r > 0`: bounded above by `r`, and the rationals below `r` are cofinal
     have hne : (below (lexSup (nodesBelow r))).Nonempty := by
       refine ⟨((0 : ℚ) : ℝ), hlow 0 le_rfl ?_⟩
@@ -287,7 +287,7 @@ theorem exists_phi0_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ univ �
     rw [not_le] at hcon
     obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn hcon
     have hq0 : (0 : ℚ) ≤ q := by
-      have h1 : (0 : ℝ) < (q : ℝ) := lt_of_le_of_lt (phi0_nonneg _) hq1
+      have h1 : (0 : ℝ) < (q : ℝ) := lt_of_le_of_lt (toReal₀_nonneg _) hq1
       exact_mod_cast h1.le
     exact absurd (le_csSup (bddAbove_below hxne) (hlow q hq0 hq2)) (not_le.2 hq1)
 
@@ -349,31 +349,31 @@ theorem exists_node_between_points {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ Ta
   · exact lexLt_trans hlt' hzy
 
 /-- **Strict monotonicity modulo the tail rule.** -/
-theorem phi0_lt_of_not_tailEqv {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y)
-    (hy : y ≠ univ) : phi0 x < phi0 y := by
+theorem toReal₀_lt_of_not_tailEqv {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y)
+    (hy : y ≠ univ) : toReal₀ x < toReal₀ y := by
   obtain ⟨p, hp1, hp2⟩ := exists_node_between_points hlt hne
   -- a second node, strictly above the first, still below `y`
   obtain ⟨q, hq1, hq2⟩ := exists_node_between_points hp2 (not_tailEqv_node hp2)
-  have hxp : phi0 x ≤ (nodeValue p : ℝ) := by
+  have hxp : toReal₀ x ≤ (nodeValue p : ℝ) := by
     rcases Set.eq_empty_or_nonempty (below x) with hemp | hnem
-    · rw [phi0, hemp, Real.sSup_empty]
+    · rw [toReal₀, hemp, Real.sSup_empty]
       exact_mod_cast nodeValue_nonneg p
     · refine csSup_le hnem ?_
       rintro s ⟨bs, hbs, rfl⟩
       exact_mod_cast ((lexLt_toSet_iff bs p).1 (lexLt_trans hbs hp1)).le
   have hpq : (nodeValue p : ℝ) < (nodeValue q : ℝ) := by
     exact_mod_cast (lexLt_toSet_iff p q).1 hq1
-  have hqy : (nodeValue q : ℝ) ≤ phi0 y := le_csSup (bddAbove_below hy) ⟨q, hq2, rfl⟩
+  have hqy : (nodeValue q : ℝ) ≤ toReal₀ y := le_csSup (bddAbove_below hy) ⟨q, hq2, rfl⟩
   linarith
 
 /-- **`Φ₀` is injective on the tail quotient.** Distinct classes have distinct
-images, so together with `exists_phi0_eq` it is a bijection onto `ℝ≥0`. -/
-theorem phi0_injective {x y : Set ℕ} (hx : x ≠ univ) (hy : y ≠ univ)
-    (h : phi0 x = phi0 y) : TailEqv x y := by
+images, so together with `exists_toReal₀_eq` it is a bijection onto `ℝ≥0`. -/
+theorem toReal₀_injective {x y : Set ℕ} (hx : x ≠ univ) (hy : y ≠ univ)
+    (h : toReal₀ x = toReal₀ y) : TailEqv x y := by
   by_contra hne
   rcases lexLt_trichotomy x y with hlt | rfl | hgt
-  · exact absurd h (ne_of_lt (phi0_lt_of_not_tailEqv hlt hne hy))
+  · exact absurd h (ne_of_lt (toReal₀_lt_of_not_tailEqv hlt hne hy))
   · exact hne (TailEqv.refl x)
-  · exact absurd h.symm (ne_of_lt (phi0_lt_of_not_tailEqv hgt (fun hc => hne hc.symm) hx))
+  · exact absurd h.symm (ne_of_lt (toReal₀_lt_of_not_tailEqv hgt (fun hc => hne hc.symm) hx))
 
 end SternBrocot
