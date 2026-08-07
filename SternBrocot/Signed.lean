@@ -158,10 +158,6 @@ identification pairs with `∅`. -/
 /-- The four masks `{∅, ω, {ω}, ω + 1}`. -/
 def kleinMasks : Set Signed := {∅, finCoords, {none}, univ}
 
-theorem finCoords_symmDiff_singleton_none : finCoords ∆ ({none} : Signed) = univ := by
-  ext x
-  cases x <;> simp [finCoords, Set.mem_symmDiff]
-
 /-- The four masks are exactly those whose finite part is trivial. The sign
 coordinate is unconstrained — which is the whole point: the tail relation never
 touches it, so it is free to carry an operation. -/
@@ -257,12 +253,6 @@ theorem stailEqv_equivalence : Equivalence STailEqv :=
 def SDescends (f : Signed → Signed) : Prop := ∀ a b, STailEqv a b → STailEqv (f a) (f b)
 
 /-! ### Signed rigidity -/
-
-theorem symmDiff_left_cancel_signed {a b m : Signed} (h : a ∆ m = b ∆ m) : a = b := by
-  ext k
-  have := Set.ext_iff.mp h k
-  simp only [Set.mem_symmDiff] at this
-  by_cases hm : k ∈ m <;> tauto
 
 /-- **Reciprocal descends**, exchanging the two sides of a tail pair, exactly as
 it does on `P(ω)`. -/
