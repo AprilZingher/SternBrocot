@@ -1,0 +1,13 @@
+# Lake build directory and vendored dependencies (Mathlib is ~7.7 GB —
+# recover it with `lake exe cache get`, never commit it)
+/.lake/
+**/.lake/
+
+# Build artefacts
+*.olean
+*.ilean
+*.trace
+*.hash
+
+# macOS
+.DS_Store
