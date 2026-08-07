@@ -32,9 +32,9 @@ each sign (`tailPair_iff_isAdjacent`), and `(univ, ∅)` across the sign boundar
 One rule, no special case. Note `±∞` are the endpoints of the order, with
 everything between them, so they are correctly left distinct.
 
-`zeroPair_isolated` is what makes this safe: neither `∅` nor `univ` lies in a
-tail pair, so the new pair cannot chain with an old one and classes stay at size
-at most two.
+What makes this safe is that neither `∅` nor `univ` lies in a tail pair
+(`not_tailPair_empty_left` and friends), so the new pair cannot chain with an old
+one and classes stay at size at most two.
 
 ## Main results
 
@@ -161,15 +161,6 @@ theorem not_tailPair_univ_right {y : Set ℕ} : ¬ TailPair y (univ : Set ℕ) :
   rintro ⟨n, h⟩
   exact h.notMem_right (mem_univ n)
 
-/-- **The zero pair chains with nothing.** Neither endpoint of `(univ, ∅)` sits
-in a tail pair, so adjoining that single identification leaves every class with
-at most two elements — the same structure the tail rule alone has. -/
-theorem zeroPair_isolated :
-    (∀ y : Set ℕ, ¬ TailPair (univ : Set ℕ) y) ∧ (∀ y : Set ℕ, ¬ TailPair y (univ : Set ℕ)) ∧
-    (∀ y : Set ℕ, ¬ TailPair (∅ : Set ℕ) y) ∧ (∀ y : Set ℕ, ¬ TailPair y (∅ : Set ℕ)) :=
-  ⟨fun _ => not_tailPair_univ_left, fun _ => not_tailPair_univ_right,
-   fun _ => not_tailPair_empty_left, fun _ => not_tailPair_empty_right⟩
-
 /-- A point whose finite part is `∅` is alone in its tail class. -/
 theorem not_stailPair_of_finPart_empty {a b : Signed} (h : finPart a = ∅) :
     ¬ STailPair a b ∧ ¬ STailPair b a := by
@@ -233,8 +224,8 @@ theorem SEqv.trans {a b c : Signed} : SEqv a b → SEqv b c → SEqv a c := by
     · exact absurd hc empty_ne_univ_signed
 
 /-- **The full quotient is an equivalence relation.** The tail rule and the zero
-adjacency compose without interference, because `zeroPair_isolated` keeps them
-from chaining. -/
+adjacency compose without interference: `∅` and `univ` lie in no tail pair, so
+the two relations never chain. -/
 theorem seqv_equivalence : Equivalence SEqv :=
   ⟨SEqv.refl, SEqv.symm, SEqv.trans⟩
 

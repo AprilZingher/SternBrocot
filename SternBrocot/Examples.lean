@@ -80,20 +80,10 @@ example : recip ({0, 1} : Set ℕ) = Ioi 1 := by
   simp only [recip, Set.mem_compl_iff, Set.mem_insert_iff, Set.mem_singleton_iff, Set.mem_Ioi]
   omega
 
-/-- Reciprocal is an involution, and it exchanges the two moves — the identity
-`J R J = L` in `PGL₂`. -/
-example (x : Set ℕ) : recip (recip x) = x := recip_recip x
-
-example (x : Set ℕ) : recip (L x) = S (recip x) := recip_L x
-
 /-! ### Rigidity, on the nose
 
 Only two masks work. Anything else — even a single stray point — breaks the
 quotient. -/
-
-example : Descends (· ∆ (∅ : Set ℕ)) := (rigidity _).mpr (Or.inl rfl)
-
-example : Descends (· ∆ (univ : Set ℕ)) := (rigidity _).mpr (Or.inr rfl)
 
 /-- `x ↦ x ∆ {0}` does **not** descend: the Boolean structure has no room for a
 third operation. -/
@@ -141,8 +131,6 @@ example : pathMat [true, false, true] = (2, 3, 1, 2) := by norm_num [pathMat]
 A path is canonical exactly when it ends in a right move. These pin that down:
 without them, `Canonical` could be some other predicate and the enumeration
 theorem would still typecheck. -/
-
-example : Canonical [true] := Canonical.single
 
 /-- A path ending in a left move is *not* canonical — `[false]` denotes `0`, which
 is already denoted by `[]`. -/
@@ -262,9 +250,6 @@ example : nodeValue [true, true] = 2 := by norm_num [nodeValue]
 example : toSet [false, true] <ₗ toSet [true] :=
   (lexLt_toSet_iff _ _).2 (by norm_num [nodeValue])
 
-/-- Every node is a finite set, and every finite set is a node. -/
-example (bs : List Bool) : (toSet bs).Finite := toSet_finite bs
-
 example : ∃ bs, Canonical bs ∧ toSet bs = ({0, 1} : Set ℕ) :=
   exists_canonical_path_of_finite (Set.toFinite _)
 
@@ -297,10 +282,6 @@ example : toReal₀ (S (S ∅)) = 2 := by
   rw [← h, toReal₀_toSet]
   norm_num [nodeValue]
 
-/-- `Φ₀` sends `0` to `0`, with no special-casing needed: nothing lies below `∅`,
-and `sSup ∅ = 0`. -/
-example : toReal₀ (∅ : Set ℕ) = 0 := toReal₀_empty
-
 /-- The two representations of `2` — `{0,1}` and `ω \ {1}` — have the same image,
 since `Φ₀` is constant on tail classes. -/
 example : toReal₀ ({0, 1} : Set ℕ) = toReal₀ {n : ℕ | n ≠ 1} :=
@@ -322,12 +303,6 @@ example : toReal (lift (S (S ∅))) = 2 := by
 real number `-2`. -/
 example : toReal (neg (lift (S (S ∅)))) = -2 := by
   rw [toReal_neg, toReal_lift, ← toSet_two_eq, toReal₀_toSet]; norm_num [nodeValue]
-
-/-- `+0` and `-0` both land on `0` — the zero adjacency is invisible to `Φ`. -/
-example : toReal (∅ : Signed) = 0 ∧ toReal (univ : Signed) = 0 := ⟨toReal_empty, toReal_univ⟩
-
-/-- Negation is complement, and it is an involution on values. -/
-example (x : Signed) : toReal (neg (neg x)) = toReal x := by simp
 
 /-! ### The golden ratio — why `φ` is not the name of the map
 
@@ -351,9 +326,8 @@ example : toSet [true, false, true, false, true] = ({0, 2, 4} : Set ℕ) := by
   | 4 => simp
   | (k + 5) => simp
 
-/-- The convergents really are the Fibonacci ratios: `1, 2, 3/2, 5/3, 8/5`. -/
-example : nodeValue [true] = 1 := by norm_num [nodeValue]
-example : nodeValue [true, false, true] = 3 / 2 := by norm_num [nodeValue]
+/-- The convergents are the Fibonacci ratios; `1` and `3/2` are checked above, and
+the path continues `8/5`. -/
 example : nodeValue [true, false, true, false, true] = 8 / 5 := by norm_num [nodeValue]
 
 /-- ...and they climb towards `φ ≈ 1.618` from alternating sides. -/

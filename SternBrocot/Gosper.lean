@@ -32,9 +32,7 @@ layer above and is where Lean 4 is genuinely harder than Coq.
 
 The hand-derived rewrite rules at the bottom are all *instances* of this one
 machine, and they are correct — but rewriting grows the expression at every step,
-while the tensor stays at eight integers forever. Two of the sixteen original
-rules were wrong; both are recorded here with a machine-checked refutation at a
-specific point, alongside the corrected form.
+while the tensor stays at eight integers forever.
 
 ## Main results
 
@@ -42,8 +40,8 @@ specific point, alongside the corrected form.
   theorems.
 * `SternBrocot.Tensor.value_add`, `value_mul` — the machine started at `x + y`
   and `x * y` computes them.
-* `SternBrocot.rule_S_sub_L`, `rule_L_sub_L` — the two corrected rules, with
-  `orig_rule_14_wrong` and `orig_rule_8_wrong` refuting the originals.
+* `SternBrocot.rule_S_sub_L`, `rule_L_sub_L` — the two rules that needed
+  correcting.
 -/
 
 namespace SternBrocot
@@ -56,8 +54,6 @@ def moveL (q : ℚ) : ℚ := q / (q + 1)
 
 @[simp] theorem moveS_apply (q : ℚ) : moveS q = q + 1 := rfl
 @[simp] theorem moveL_apply (q : ℚ) : moveL q = q / (q + 1) := rfl
-
-theorem succ_ne_zero_of_nonneg {q : ℚ} (h : 0 ≤ q) : q + 1 ≠ 0 := by linarith
 
 /-! ### The tensor -/
 
@@ -302,11 +298,10 @@ theorem rule_LL_add_L (ha : 0 ≤ a) (hb : 0 ≤ b) (hab : 1 - a * b ≠ 0) :
   field_simp
   ring
 
-/-! #### The two corrections
+/-! #### The two corrected rules
 
-Rule 14 was stated as `Sa - Lb → a + 1/Lb`; it needs `1/Sb`. Rule 8's `a < b`
-branch was stated with `SSa*b`; the arguments swap, giving `SSb*a`. Both
-corrections are proved, and both originals are refuted at a specific point. -/
+Rule 14 needs `1/Sb`, not `1/Lb`; rule 8's negated branch needs `SSb*a`, the
+arguments swapping. -/
 
 /-- **Rule 14, corrected**: `Sa - Lb = a + 1/Sb`. -/
 theorem rule_S_sub_L (hb : 0 ≤ b) : moveS a - moveL b = a + (moveS b)⁻¹ := by
@@ -314,11 +309,6 @@ theorem rule_S_sub_L (hb : 0 ≤ b) : moveS a - moveL b = a + (moveS b)⁻¹ := 
   simp only [moveS_apply, moveL_apply]
   field_simp
   ring
-
-/-- The original rule 14 is wrong: at `a = b = 1` it gives `3`, not `3/2`. -/
-theorem orig_rule_14_wrong :
-    moveS (1 : ℚ) - moveL 1 ≠ 1 + (moveL (1 : ℚ))⁻¹ := by
-  norm_num [moveS, moveL]
 
 /-- **Rule 8, corrected**: `La - Lb = -L((b-a) / S(SSb * a))`.
 
@@ -338,12 +328,6 @@ theorem rule_L_sub_L (ha : 0 ≤ a) (hb : 0 ≤ b) :
   rw [hu, div_div_eq_mul_div, div_mul_cancel₀ _ h3]
   field_simp
   ring
-
-/-- The original rule 8 is wrong on that branch: at `a = 1, b = 2` it gives
-`-1/8`, but `L1 - L2 = -1/6`. -/
-theorem orig_rule_8_wrong :
-    moveL (1 : ℚ) - moveL 2 ≠ -(moveL ((2 - 1) / moveS (moveS (moveS (1 : ℚ)) * 2))) := by
-  norm_num [moveS, moveL]
 
 /-! ### The machine, running
 

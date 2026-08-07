@@ -3,7 +3,6 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import SternBrocot.Bridge
-import SternBrocot.ToReal
 
 /-!
 # Induction along the tree
@@ -108,18 +107,5 @@ theorem rat_induction {P : ℚ → Prop} (h0 : P 0)
   · exact nonneg_rat_induction h0 hS hL hq
   · have hp := nonneg_rat_induction h0 hS hL (by linarith : (0 : ℚ) ≤ -q)
     simpa using hneg _ hp
-
-/-! ### The limit of the principle
-
-`exists_canonical_of_nonneg` says the moves reach exactly `ℚ≥0` — no irrational
-is ever produced, only approached. So an induction of this shape can never on its
-own prove something about all reals; the extension step is density plus closure,
-and that is ordinary. This is stated rather than hidden because it is the honest
-boundary of what the encoding buys. -/
-
-/-- Every value produced by the tree is rational — the induction principle
-above reaches `ℚ` and stops there. -/
-theorem toReal₀_toSet_rat (bs : List Bool) : ∃ q : ℚ, toReal₀ (toSet bs) = (q : ℝ) :=
-  ⟨nodeValue bs, toReal₀_toSet bs⟩
 
 end SternBrocot

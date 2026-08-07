@@ -169,8 +169,8 @@ Ordered as planned. Items 1a–1c are done.
    Mathlib first — `GenContFract` exists, this theorem did not as of writing.
 4. **`Gosper.lean`** 🔨 — the `2×2×2` tensor. ✅ the six step-correctness
    theorems (absorb S/L on each input, emit S/L), the starting tensors for
-   `+ - × /`, and the hand-derived rules including both corrections, each with a
-   machine-checked refutation of the original at a specific point.
+   `+ - × /`, and the hand-derived rules, including the two that needed correcting
+   (rule 14 takes `1/Sb`; rule 8's negated branch swaps to `SSb*a`).
    **Next: the corecursion.** Run the machine forever and prove it productive —
    this is the part Lean 4 makes harder than Coq, and the reason it is a paper.
    Note two findings from the rules: the guards in rules 7 and 8 do *not* affect
