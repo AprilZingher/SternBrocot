@@ -38,8 +38,8 @@ The tail rule is the *only* redundancy. Verified concretely in `Examples.lean`:
 | `SternBrocot/Enumeration.lean` | **the tree enumerates `ℚ≥0` exactly once** | complete |
 | `SternBrocot/PathOrder.lean` | lex order on paths; `nodeValue` is an order embedding | complete |
 | `SternBrocot/Bridge.lean` | `toSet`: paths ↔ finite subsets of `ω`; the orders agree | complete |
-| `SternBrocot/Signed.lean` | `P(ω+1)`; negation; Klein four-group; **signed rigidity** | complete |
-| `SternBrocot/SignedOrder.lean` | sign-first order; negation antitone; full quotient | complete |
+| `SternBrocot/Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** | complete |
+| `SternBrocot/SignedOrder.lean` | mirrored sign order; full quotient = adjacencies | complete |
 | `SternBrocot/Phi.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut; correct on nodes | in progress |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding | complete |
 
@@ -172,6 +172,24 @@ Ordered as planned. Items 1a–1c are done.
 - No `LinearOrder` instance yet: `Set ℕ` already carries the `⊆` order, so the
   lex order lives as bare relations `<ₗ` and `≤ₗ`. Introduce a type synonym with
   the instance when assembling the ordered field, not before.
+- **The mirrored sign convention (B′).** `none ∈ x` means *negative*, so
+  positives carry no sign bit and the naturals keep their `Basic.lean` form —
+  `1 = {0}`, `2 = {0,1}`. Protecting that is why the sign polarity is this way
+  round and not the other. The negative branch stores the **complement** of the
+  magnitude's path, so:
+    * `neg = complement` (`x ∆ (ω ∪ {ω})`), `recipS = x ∆ ω`, `x ∆ {ω}` = `-1/x`;
+    * `+0 = ∅`, `-0 = univ`, `-∞ = {ω}`, `+∞ = ω`;
+    * same-sign comparison is **forward lex on both sides**, because
+      `compl_lexLt_compl` says complement reverses lex. `SLexLt` has two
+      disjuncts, not three, and `slexLt_neg` needs no case analysis.
+  Do not flip the polarity to make the order plain lex — that costs the naturals,
+  which is the wrong trade for this project.
+- **`-0 = 0` is an adjacency, not a postulate.** `univ` and `∅` are the largest
+  negative and smallest positive with nothing between (`nothing_between_zeros`),
+  so the quotient identifies exactly the *adjacent* pairs: tail pairs inside each
+  sign, plus `(univ, ∅)` at the sign boundary. `zeroPair_isolated` is what makes
+  it safe — neither endpoint is in a tail pair, so classes stay at size ≤ 2.
+  `±∞` are the order's endpoints, so correctly left distinct.
 - Tail pairs are written `(a, b)` with `a` the side carrying the branch point,
   which is always the *larger* one: `lexLt_of_tailPair : TailPair a b → b <ₗ a`.
   Getting this orientation backwards is the easiest mistake in this development.

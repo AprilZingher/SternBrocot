@@ -8,16 +8,31 @@ import SternBrocot.Tail
 # The sign coordinate: `P(ω + 1)`
 
 Negation cannot be a Boolean translation on `P(ω)` — that is exactly
-`SternBrocot.rigidity`, which says the only masks that descend to the tail
-quotient are `∅` and `ω`, giving the identity and reciprocal. So one point must
-be adjoined. Here `ω + 1` is modelled as `Option ℕ`, with `none` playing the
+`SternBrocot.rigidity`, which says the only masks descending to the tail quotient
+are `∅` and `ω`, giving the identity and reciprocal. So one point must be
+adjoined. Here `ω + 1` is modelled as `Option ℕ`, with `none` playing the
 adjoined sign point `ω`.
 
-With the sign coordinate in place:
+## The mirrored convention
 
-* negation is `ν x = x ∆ {ω}`,
-* reciprocal is `ρ x = x ∆ ω` (flips every finite bit, leaves the sign alone,
-  which is what `1/(-x) = -(1/x)` requires).
+`none ∈ x` marks `x` as **negative**, so positives carry no sign bit and the
+von Neumann naturals keep exactly the form they have in `Basic.lean`: `1 = {0}`,
+`2 = {0,1}`. That is the property the whole encoding is built around, so it is
+the one that gets protected.
+
+On the negative branch the finite bits store the **complement** of the
+magnitude's Stern–Brocot path — the negative side is drawn as a mirror image of
+the positive side, which is how the signed tree actually looks. Consequently:
+
+* negation is `ν x = x ∆ (ω ∪ {ω})`, i.e. **complement** — it flips the sign and
+  mirrors the path in one move;
+* reciprocal is `ρ x = x ∆ ω`, flipping the finite bits and leaving the sign
+  alone, and this is the *same* operation in both signs;
+* `x ∆ {ω}` is `-1/x`.
+
+The payoff is in `SignedOrder.lean`: because complement reverses the lex order
+(`compl_lexLt_compl`), same-sign comparison is forward lex on **both** sides,
+with no reversed branch.
 
 ## Main results
 
@@ -25,23 +40,16 @@ With the sign coordinate in place:
   `∆` and form a Klein four-group, isomorphic to `{x, -x, 1/x, -1/x}` in `PGL₂`.
 * `SternBrocot.signedRigidity` — **the sharp statement**: for `m ⊆ ω + 1`, the
   translation `x ↦ x ∆ m` descends to the tail quotient **iff** `m` is one of
-  those four. So adjoining a single point buys exactly one new operation
-  (negation) and its composite with reciprocal, and nothing more. Addition is
-  still not Boolean, and never will be.
+  those four. Adjoining a single point buys exactly one new operation and its
+  composite with reciprocal, and nothing more.
 
-## Two warnings, both load-bearing
+## The one warning that survives
 
-**Do not extend the tail rule to level `ω`.** The identification "including `n`
-is the same as including everything above `n`", applied at `ω`, would identify
-`x` with `neg x` for *every* `x` and collapse the sign bit entirely. `STailPair`
-below therefore requires the sign coordinate to *agree*, and only relates the
-finite parts.
-
-**`-0 = 0` does not come for free.** Translation in a Boolean group is
-fixed-point-free, so no mask fixes anything; `∅` and `{ω}` are genuinely
-distinct points here, denoting `0` and `-0`. Identifying them is an *extra*
-quotient (`ZeroDegen`), not a consequence of the tail rule. It is the same move
-as `θ` being meaningless at `r = 0` in polar coordinates.
+The tail rule relates the finite parts only, with the sign coordinate
+*agreeing* (`STailPair`). Applying "including `n` ≡ including everything above
+`n`" *at* `ω` would collapse the sign bit. The separate identification `-0 = 0`
+is handled in `SignedOrder.lean`, where it appears as the adjacency `univ ∼ ∅`
+rather than as a special postulate.
 -/
 
 open Set
@@ -50,16 +58,18 @@ open scoped symmDiff
 namespace SternBrocot
 
 /-- The carrier with a sign coordinate: `P(ω + 1)`, with `none` as the adjoined
-point `ω`. -/
+point `ω`. Membership of `none` marks a *negative* point. -/
 abbrev Signed := Set (Option ℕ)
 
 /-- The finite coordinates `ω ⊆ ω + 1`, as a mask. -/
 def finCoords : Signed := {x | x ≠ none}
 
-/-- The finite part of a signed point: its `P(ω)` shadow. -/
+/-- The finite part of a signed point: the stored bits. On the positive branch
+this is the Stern–Brocot path; on the negative branch it is its complement. -/
 def finPart (x : Signed) : Set ℕ := {n | some n ∈ x}
 
-/-- Embed `P(ω)` into `P(ω + 1)` with positive sign. -/
+/-- Embed `P(ω)` into `P(ω + 1)` with positive sign. The naturals land here
+unchanged. -/
 def lift (y : Set ℕ) : Signed := some '' y
 
 @[simp] theorem mem_finPart {x : Signed} {n : ℕ} : n ∈ finPart x ↔ some n ∈ x := Iff.rfl
@@ -74,6 +84,15 @@ def lift (y : Set ℕ) : Signed := some '' y
 @[simp] theorem none_notMem_lift (y : Set ℕ) : none ∉ lift y := by
   simp [lift]
 
+@[simp] theorem finPart_empty : finPart (∅ : Signed) = ∅ := by
+  ext n; simp [finPart]
+
+@[simp] theorem finPart_univ : finPart (univ : Signed) = univ := by
+  ext n; simp [finPart]
+
+@[simp] theorem finPart_singleton_none : finPart ({none} : Signed) = ∅ := by
+  ext n; simp [finPart]
+
 /-- A signed point is determined by its finite part and its sign. -/
 theorem signed_ext {a b : Signed} (hfin : finPart a = finPart b)
     (hsgn : none ∈ a ↔ none ∈ b) : a = b := by
@@ -87,35 +106,36 @@ theorem signed_ext {a b : Signed} (hfin : finPart a = finPart b)
   ext n
   simp only [mem_finPart, Set.mem_symmDiff]
 
-theorem none_mem_symmDiff (x m : Signed) :
-    (none ∈ x ∆ m) ↔ (none ∈ x ↔ none ∉ m) := by
-  simp only [Set.mem_symmDiff]
-  by_cases h : none ∈ m <;> simp [h]
-
 /-! ### The two operations -/
 
-/-- Negation: symmetric difference with the sign point. This is the mask that
-*cannot* live in `P(ω)`. -/
-def neg (x : Signed) : Signed := x ∆ {none}
+/-- Negation: **complement** in `P(ω + 1)`. It flips the sign and mirrors the
+finite bits together, which is exactly what the mirrored convention needs. This
+is the mask that cannot live in `P(ω)`. -/
+def neg (x : Signed) : Signed := x ∆ univ
 
 /-- Reciprocal: symmetric difference with the finite coordinates. It flips every
-finite bit and leaves the sign alone, as `1/(-x) = -(1/x)` demands. -/
+finite bit and leaves the sign alone, and — because the negative branch stores a
+complemented path — it is the *same* operation in both signs, as
+`1/(-x) = -(1/x)` demands. -/
 def recipS (x : Signed) : Signed := x ∆ finCoords
 
-@[simp] theorem finPart_neg (x : Signed) : finPart (neg x) = finPart x := by
+theorem neg_eq_compl (x : Signed) : neg x = xᶜ := by
+  ext k; simp [neg, Set.mem_symmDiff]
+
+@[simp] theorem finPart_neg (x : Signed) : finPart (neg x) = (finPart x)ᶜ := by
   ext n; simp [neg, Set.mem_symmDiff]
 
 @[simp] theorem finPart_recipS (x : Signed) : finPart (recipS x) = (finPart x)ᶜ := by
   ext n; simp [recipS, Set.mem_symmDiff]
 
-theorem none_mem_neg (x : Signed) : none ∈ neg x ↔ none ∉ x := by
+@[simp] theorem none_mem_neg (x : Signed) : none ∈ neg x ↔ none ∉ x := by
   simp [neg, Set.mem_symmDiff]
 
 @[simp] theorem none_mem_recipS (x : Signed) : none ∈ recipS x ↔ none ∈ x := by
   simp [recipS, Set.mem_symmDiff]
 
 theorem neg_neg (x : Signed) : neg (neg x) = x := by
-  simp [neg]
+  rw [neg_eq_compl, neg_eq_compl, compl_compl]
 
 theorem recipS_recipS (x : Signed) : recipS (recipS x) = x := by
   simp [recipS]
@@ -123,7 +143,15 @@ theorem recipS_recipS (x : Signed) : recipS (recipS x) = x := by
 /-- Negation and reciprocal commute — they are the two independent generators. -/
 theorem neg_recipS (x : Signed) : neg (recipS x) = recipS (neg x) := by
   simp only [neg, recipS, symmDiff_assoc]
-  rw [symmDiff_comm finCoords {none}]
+  rw [symmDiff_comm finCoords univ]
+
+/-- `-0` is `univ`: everything, sign included. This is the point the zero
+identification pairs with `∅`. -/
+@[simp] theorem neg_empty : neg (∅ : Signed) = univ := by
+  rw [neg_eq_compl, compl_empty]
+
+@[simp] theorem neg_univ : neg (univ : Signed) = ∅ := by
+  rw [neg_eq_compl, compl_univ]
 
 /-! ### The Klein four-group -/
 
@@ -236,22 +264,6 @@ theorem symmDiff_left_cancel_signed {a b m : Signed} (h : a ∆ m = b ∆ m) : a
   simp only [Set.mem_symmDiff] at this
   by_cases hm : k ∈ m <;> tauto
 
-/-- **Negation descends.** `{ω}` does not meet the finite coordinates, so it
-leaves every finite part untouched, and it flips both signs of a tail pair
-equally — preserving the agreement `STailPair` requires. -/
-theorem sdescends_neg : SDescends neg := by
-  intro a b hab
-  rcases hab with (rfl | hab | hba)
-  · exact STailEqv.refl _
-  · refine Or.inr (Or.inl ⟨?_, ?_⟩)
-    · rw [none_mem_neg, none_mem_neg]
-      exact not_congr hab.1
-    · rw [finPart_neg, finPart_neg]; exact hab.2
-  · refine Or.inr (Or.inr ⟨?_, ?_⟩)
-    · rw [none_mem_neg, none_mem_neg]
-      exact not_congr hba.1
-    · rw [finPart_neg, finPart_neg]; exact hba.2
-
 /-- **Reciprocal descends**, exchanging the two sides of a tail pair, exactly as
 it does on `P(ω)`. -/
 theorem sdescends_recipS : SDescends recipS := by
@@ -266,6 +278,22 @@ theorem sdescends_recipS : SDescends recipS := by
     refine Or.inr (Or.inl ⟨?_, ?_⟩)
     · rw [none_mem_recipS, none_mem_recipS]; exact hba.1.symm
     · rw [finPart_recipS, finPart_recipS]; exact ⟨n, hn.compl⟩
+
+/-- **Negation descends.** Complement flips both signs of a tail pair equally,
+preserving the agreement `STailPair` requires, and mirrors both finite parts,
+which exchanges the two sides exactly as reciprocal does. -/
+theorem sdescends_neg : SDescends neg := by
+  intro a b hab
+  rcases hab with (rfl | hab | hba)
+  · exact STailEqv.refl _
+  · obtain ⟨n, hn⟩ := hab.2
+    refine Or.inr (Or.inr ⟨?_, ?_⟩)
+    · rw [none_mem_neg, none_mem_neg]; exact not_congr hab.1.symm
+    · rw [finPart_neg, finPart_neg]; exact ⟨n, hn.compl⟩
+  · obtain ⟨n, hn⟩ := hba.2
+    refine Or.inr (Or.inl ⟨?_, ?_⟩)
+    · rw [none_mem_neg, none_mem_neg]; exact not_congr hba.1.symm
+    · rw [finPart_neg, finPart_neg]; exact ⟨n, hn.compl⟩
 
 /-- The finite part of a descending mask must itself descend on `P(ω)`, so by
 `rigidity` it is `∅` or `ω`. The sign coordinate is unconstrained, because the
@@ -313,36 +341,35 @@ theorem signedRigidity (m : Signed) : SDescends (· ∆ m) ↔ m ∈ kleinMasks 
       exact hab
     · have hr : ∀ x : Signed, x ∆ finCoords = recipS x := fun _ => rfl
       simpa only [hr] using sdescends_recipS
-    · have hn : ∀ x : Signed, x ∆ {none} = neg x := fun _ => rfl
-      simpa only [hn] using sdescends_neg
-    · intro a b hab
-      have hsplit : ∀ x : Signed, x ∆ (univ : Signed) = neg (recipS x) := by
+    · -- `{ω}` is `-1/x`, the composite of the two generators
+      intro a b hab
+      have hmask : finCoords ∆ (univ : Signed) = {none} := by
+        ext k; cases k <;> simp [finCoords, Set.mem_symmDiff]
+      have hsplit : ∀ x : Signed, x ∆ ({none} : Signed) = neg (recipS x) := by
         intro x
-        rw [neg, recipS, symmDiff_assoc, finCoords_symmDiff_singleton_none]
+        rw [neg, recipS, symmDiff_assoc, hmask]
       simpa only [hsplit] using sdescends_neg _ _ (sdescends_recipS a b hab)
+    · have hn : ∀ x : Signed, x ∆ (univ : Signed) = neg x := fun _ => rfl
+      simpa only [hn] using sdescends_neg
 
-/-! ### `-0 = 0` is an extra quotient
+/-! ### No mask has a fixed point
 
-Translation in a Boolean group has no fixed points, so `∅` and `{ω}` — that is
-`0` and `-0` — are genuinely distinct points of `P(ω + 1)`. Identifying them is
-an additional quotient, not a consequence of the tail rule. -/
+Translation in a Boolean group is fixed-point-free, so `∅` and `univ` — that is
+`+0` and `-0` — are genuinely distinct points. They are identified in
+`SignedOrder.lean`, where they turn out to be *adjacent*, so the identification
+is an instance of the same "collapse adjacencies" rule as the tail relation
+rather than a separate postulate. -/
 
-/-- No mask fixes any point, so nothing makes `-0 = 0` automatic. -/
 theorem neg_ne_self (x : Signed) : neg x ≠ x := by
   intro h
   have := congrArg (fun s => none ∈ s) h
   simp only [none_mem_neg, eq_iff_iff] at this
   tauto
 
-/-- The degeneracy to impose at zero: the sign coordinate carries no information
-where there is no side to be on. -/
+/-- The zero identification: `+0 = ∅` and `-0 = univ = neg ∅`. -/
 def ZeroDegen (a b : Signed) : Prop :=
-  (a = ∅ ∧ b = {none}) ∨ (a = {none} ∧ b = ∅)
+  (a = ∅ ∧ b = univ) ∨ (a = univ ∧ b = ∅)
 
-theorem zeroDegen_neg : ZeroDegen ∅ (neg ∅) := by
-  left
-  refine ⟨rfl, ?_⟩
-  ext x
-  cases x <;> simp [neg, Set.mem_symmDiff]
+theorem zeroDegen_neg : ZeroDegen ∅ (neg ∅) := Or.inl ⟨rfl, neg_empty⟩
 
 end SternBrocot
