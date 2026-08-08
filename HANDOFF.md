@@ -501,12 +501,25 @@ for f in SternBrocot/*.lean; do m=$(basename $f .lean);
 
 ### What is still not `ℝ`-free, and why
 
-* **The `LinearOrder SBReal` instance.** It is `LinearOrder.lift' toRealQ`, so
-  the order relation on the quotient literally unfolds to a comparison in `ℝ`.
-  Fixing this means descending `SLexLt` through the adjacency quotient —
-  `⟦a⟧ < ⟦b⟧ ↔ a <ₛ b ∧ ¬ SEqv a b` — proving it is a linear order, and swapping
-  the instance. `orderIsoReal`'s `map_rel_iff' := Iff.rfl` would become the
-  agreement theorem instead. This is the next step and the load-bearing one.
+* **The `LinearOrder SBReal` instance** — still `LinearOrder.lift' toRealQ`, so
+  the relation unfolds to a comparison in `ℝ`. But this is now a statement about
+  how the instance was *assembled*, not about what it means: `mk_lt_mk_iff`
+  (`Field.lean`) proves `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, with no `ℝ`
+  on either side, and `mk_le_mk_iff` does the same for `≤`. `SLexLt` is built
+  from the bit strings alone, so the order *is* the lex order.
+
+  Swapping the instance to be defined that way is now cosmetic — it would make
+  `Field.lean` itself `ℝ`-free by import graph, but proves nothing new, and
+  `orderIsoReal`'s `map_rel_iff' := Iff.rfl` would have to become
+  `mk_lt_mk_iff`-shaped work. Worth doing only as part of a larger `ℝ`-freeing
+  pass, not on its own.
+
+  The ingredient that made this cheap, `slexLt_of_toReal_lt`, was sitting in
+  `Intrinsic.lean` — three files *downstream* of `Field.lean`, where nothing
+  about the quotient order could see it. It now lives in `SignedToReal.lean`
+  next to `toReal_mono` and `toReal_injective`, with `toReal_lt_iff` the raw
+  form. Misplacement, not difficulty, is why this gap survived as long as it
+  did.
 * **The field axioms.** Proved by pushing through `toRealQ`. Making them
   `ℝ`-free needs the cut characterisation
   `ratPoint r <ₛ addRaw a b ↔ ∃ p q, ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ r < p + q`,

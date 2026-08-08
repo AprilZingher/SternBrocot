@@ -101,16 +101,6 @@ This is the load-bearing lemma, and it is stated at the *raw* level rather than
 on the quotient because everything else falls out of it: the congruence is
 `toReal_injective`, and the quotient version is `Quotient.induction`. -/
 
-/-- The converse of `toReal_mono`, by trichotomy. Non-strict monotonicity is all
-`SignedToReal` gives — the quotient is why — but reflecting a *strict*
-inequality needs nothing more. -/
-theorem slexLt_of_toReal_lt {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
-    (h : toReal x < toReal y) : x <ₛ y := by
-  rcases slexLt_trichotomy x y with h1 | rfl | h1
-  · exact h1
-  · exact absurd h (lt_irrefl _)
-  · exact absurd (toReal_mono h1 hy hx) (not_le.2 h)
-
 /-- A rational strictly below a point sits strictly below it. -/
 theorem ratPoint_slexLt {p : ℚ} {a : Signed} (ha : IsFinite a) (h : (p : ℝ) < toReal a) :
     ratPoint p <ₛ a :=

@@ -221,4 +221,34 @@ theorem toReal_injective {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
     · exact Or.inl (Or.inr (Or.inl ⟨by simp [hxn, hyn], hp⟩))
     · exact Or.inl (Or.inr (Or.inr ⟨by simp [hxn, hyn], hp⟩))
 
+/-- The converse of `toReal_mono`, by trichotomy. Non-strict monotonicity is all
+the two preceding sections give — the quotient is why — but reflecting a
+*strict* inequality needs nothing more.
+
+Together with `toReal_mono` and `toReal_injective` this is what pins the order
+on the quotient to `SLexLt`; see `mk_lt_mk_iff` in `Field.lean`. It used to live
+in `Intrinsic.lean`, far downstream, which is part of why that connection went
+unnoticed for so long. -/
+theorem slexLt_of_toReal_lt {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
+    (h : toReal x < toReal y) : x <ₛ y := by
+  rcases slexLt_trichotomy x y with h1 | rfl | h1
+  · exact h1
+  · exact absurd h (lt_irrefl _)
+  · exact absurd (toReal_mono h1 hy hx) (not_le.2 h)
+
+/-- **`toReal` reflects the strict order, modulo the quotient.** A strict
+inequality of values is exactly "lex-below and not identified".
+
+This is the raw form; `mk_lt_mk_iff` is the statement on `SBReal`. The `¬ SEqv`
+conjunct is not redundant: `SLexLt` is strict on the *nose*, but a tail pair has
+`b <ₛ a` while `toReal a = toReal b`, so lex-below alone does not give a strict
+inequality of values. -/
+theorem toReal_lt_iff {x y : Signed} (hx : IsFinite x) (hy : IsFinite y) :
+    toReal x < toReal y ↔ (x <ₛ y ∧ ¬ SEqv x y) := by
+  constructor
+  · intro h
+    exact ⟨slexLt_of_toReal_lt hx hy h, fun hs => absurd (toReal_of_seqv hs) (ne_of_lt h)⟩
+  · rintro ⟨hlt, hne⟩
+    exact lt_of_le_of_ne (toReal_mono hlt hx hy) fun he => hne (toReal_injective hx hy he)
+
 end SternBrocot

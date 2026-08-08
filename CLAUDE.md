@@ -10,24 +10,34 @@ von Neumann ordinals unchanged.
 stated as such — `Field SBReal`, `IsStrictOrderedRing SBReal` (the order is
 compatible with `+` and `×`) and `exists_isLUB` (every nonempty bounded-above
 set has a least upper bound), with `orderIsoReal : SBReal ≃o ℝ` exhibiting the
-uniqueness. `ring` and `linarith` both work on it. **Both the order and the field
-operations are currently transported from `ℝ`**: `instLinearOrderSBReal` is
-`LinearOrder.lift' toRealQ`, so `a ≤ b` on `SBReal` unfolds definitionally to a
-comparison of two reals (`le_iff_toRealQ_le` is `Iff.rfl`), and the field
-structure is `equivReal.field`. By uniqueness of complete ordered fields that
-transport had no freedom in it (see `toRealQ_add_eq_sSup`: the order alone
-determines `+`), so the mathematics is settled — but the *definition* still
-mentions `ℝ`, and closing that is the main remaining work. ~8,250 lines,
-everything on `propext`, `Classical.choice`, `Quot.sound`.
+uniqueness. `ring` and `linarith` both work on it. ~8,250 lines, everything on
+`propext`, `Classical.choice`, `Quot.sound`.
 
-**Do not write "the order is intrinsic."** This file said it for several
-commits and it was false: the lex order and the bitwise supremum are built here
-from scratch and `toReal` is defined from them, but *nothing connects them back
-to the order on the quotient*. There is no theorem anywhere relating `≤` on
-`SBReal` to `SLexLt`. Until there is one — `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`
-is the statement, and the ingredients (`slexLt_of_toReal_lt`, `toReal_mono`,
-`toReal_injective`) are all present — "complete ordered field" here means ℝ's
-structure relabelled along a bijection.
+**The order is the lex order** — `mk_lt_mk_iff`:
+
+> `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`
+
+with no `ℝ` on either side, and `mk_le_mk_iff` for `≤`. Both instances are still
+*built* by transport (`instLinearOrderSBReal` is `LinearOrder.lift' toRealQ`, so
+`le_iff_toRealQ_le` is `Iff.rfl`), but for the order that is now a fact about
+assembly rather than about content: `SLexLt` comes from the bit strings alone,
+so `exists_isLUB` and `instIsStrictOrderedRingSBReal` are statements about a
+relation this development defines, not about `ℝ`'s order under another name.
+
+**Be precise about which half this covers.** The *field operations* have no
+counterpart to `mk_lt_mk_iff` yet. `Intrinsic.lean` gives `ℝ`-free `+` and `×`
+and proves they agree with the transported ones (`add'_eq_add`, `mul'_eq_mul`),
+which is the analogous content, but the axioms are still proved through `toReal`
+and the instance is still `equivReal.field`. So: order — settled; operations —
+defined `ℝ`-free, proved via `ℝ`.
+
+**A caution, from an adversarial review that caught this file lying.** For
+several commits this paragraph said "the order is intrinsic" while
+`instLinearOrderSBReal` was a bare lift and *no theorem anywhere* related `≤` on
+`SBReal` to `SLexLt`. The sentence was true of `toReal` and false of the
+instance, and the gap went unnoticed because the two readings sound identical.
+`mk_lt_mk_iff` is what makes the claim safe to make. If a future refactor
+removes it, remove the claim with it.
 
 **Lagrange's theorem is in, both directions** —
 `eventuallyPeriodic_iff_degLeTwo`: the path of `x` is eventually periodic iff
@@ -61,15 +71,17 @@ cases.
 
 **Items 2, 4, 5 and the Hurwitz half of 6 are done, and nothing has a `sorry`.**
 Remaining recommended order: **the rest of 6 (Legendre, badly approximable) →
-the intrinsic order → 3 (productivity).** Item 2 is the only item that changes
-what the project *is* — it removes `ℝ` from the definition — and it did not
-invalidate any CF theorem proved before it (nothing in the Lagrange import chain
-reaches `Field.lean`).
+the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
+(`mk_lt_mk_iff`); what is left of the `ℝ`-freeing programme is the operations.
 
-What is left of item 2 is not the definitions, which are already `ℝ`-free, but
-the `LinearOrder SBReal` instance (still `LinearOrder.lift' toRealQ`) and the
-proofs of the field axioms (still routed through `toReal`). See the `ℝ`-freeness
-audit in `HANDOFF.md` for which modules are already clean by import graph.
+Item 2 is the only item that changes what the project *is* — it removes `ℝ` from
+the definition — and it did not invalidate any CF theorem proved before it
+(nothing in the Lagrange import chain reaches `Field.lean`).
+
+What is left of item 2 is not the definitions, which are already `ℝ`-free, and
+no longer the order, which `mk_lt_mk_iff` pins to `SLexLt`. It is the *proofs*
+of the field axioms, still routed through `toReal`. See the `ℝ`-freeness audit
+in `HANDOFF.md` for which modules are clean by import graph.
 
 **The ordering turns on a question this file has not settled**: is this a
 *construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
@@ -97,8 +109,17 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
    inner `+` rational, so no circularity. All ten field axioms are proved, and
    `add'_eq_add` / `mul'_eq_mul` show they are the operations `Field.lean`
-   transported — so installing them as the instance changes no theorem. That
-   swap is the one thing left, and it is mechanical.
+   transported — so installing them as the instance changes no theorem.
+
+   **Installing them is not, however, "one mechanical swap"** — this file said
+   that and an adversarial review knocked it down. The axiom *statements* use
+   `0`, `1`, `-a`, `a⁻¹` from the transported `Field` instance, and their proofs
+   route through `toRealQ_zero/one/neg/inv`, which are derived from
+   `toRealQ_add`/`toRealQ_mul` — theorems *about that instance*. Swapping needs
+   intrinsic `0`, `1`, `neg`, `inv` plus their `toReal` specs first, and then the
+   ten axioms reproved. Note also that once the two agreement theorems are in
+   hand each of the ten is a one-line appeal to Mathlib: the content lives in
+   `add'_eq_add`/`mul'_eq_mul`, not in the count of axioms.
 
    **The `ℝ`-free claim is now structural.** `IntrinsicCore.lean` holds
    `slexSup`, `ratPoint`, `addRaw`, `mulRaw` and the finiteness lemmas, and
@@ -302,6 +323,12 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
   rests. Tail pairs are exactly adjacent pairs.
 - `nodeValue_bijOn` — the tree enumerates `ℚ≥0` exactly once, in lowest terms.
 - `orderIsoReal : SBReal ≃o ℝ` — the construction.
+- `mk_lt_mk_iff` — **the order on `SBReal` is the signed lex order**,
+  `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, with no `ℝ` on either side. This
+  is what stops `exists_isLUB` and `instIsStrictOrderedRingSBReal` from being
+  facts about `ℝ`'s order under a different name. The `¬ SEqv` conjunct is the
+  content: a tail pair is strictly lex-below on the nose while having equal
+  value, so lex-below alone does not give a strict inequality on the quotient.
 - `instIsStrictOrderedRingSBReal` + `exists_isLUB` — the **complete ordered
   field** axioms, stated rather than merely implied by the order isomorphism.
   Neither was in the development before; a `LinearOrder` on a field says nothing
