@@ -10,14 +10,24 @@ von Neumann ordinals unchanged.
 stated as such — `Field SBReal`, `IsStrictOrderedRing SBReal` (the order is
 compatible with `+` and `×`) and `exists_isLUB` (every nonempty bounded-above
 set has a least upper bound), with `orderIsoReal : SBReal ≃o ℝ` exhibiting the
-uniqueness. `ring` and `linarith` both work on it. The *order* is intrinsic — built
-here from the lex order and a bitwise supremum, never mentioning `ℝ`. The *field
-operations* are transported from `ℝ` along the isomorphism. By uniqueness of
-complete ordered fields that transport had no freedom in it (see
-`toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
-settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~7,500 lines, everything on `propext`,
-`Classical.choice`, `Quot.sound`.
+uniqueness. `ring` and `linarith` both work on it. **Both the order and the field
+operations are currently transported from `ℝ`**: `instLinearOrderSBReal` is
+`LinearOrder.lift' toRealQ`, so `a ≤ b` on `SBReal` unfolds definitionally to a
+comparison of two reals (`le_iff_toRealQ_le` is `Iff.rfl`), and the field
+structure is `equivReal.field`. By uniqueness of complete ordered fields that
+transport had no freedom in it (see `toRealQ_add_eq_sSup`: the order alone
+determines `+`), so the mathematics is settled — but the *definition* still
+mentions `ℝ`, and closing that is the main remaining work. ~8,250 lines,
+everything on `propext`, `Classical.choice`, `Quot.sound`.
+
+**Do not write "the order is intrinsic."** This file said it for several
+commits and it was false: the lex order and the bitwise supremum are built here
+from scratch and `toReal` is defined from them, but *nothing connects them back
+to the order on the quotient*. There is no theorem anywhere relating `≤` on
+`SBReal` to `SLexLt`. Until there is one — `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`
+is the statement, and the ingredients (`slexLt_of_toReal_lt`, `toReal_mono`,
+`toReal_injective`) are all present — "complete ordered field" here means ℝ's
+structure relabelled along a bijection.
 
 **Lagrange's theorem is in, both directions** —
 `eventuallyPeriodic_iff_degLeTwo`: the path of `x` is eventually periodic iff
@@ -93,9 +103,16 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    **The `ℝ`-free claim is now structural.** `IntrinsicCore.lean` holds
    `slexSup`, `ratPoint`, `addRaw`, `mulRaw` and the finiteness lemmas, and
    `Real` is not reachable through its transitive import closure at all — the
-   check is that `Real.pi` does not resolve in a file importing only it. Along
-   with `Density.lean` and `Magnitude.lean` that makes **seventeen** modules
+   check is that `Real` does not resolve in a file importing only it. Along
+   with `Density.lean` and `Magnitude.lean` that makes **sixteen** modules
    `ℝ`-free by import graph rather than by inspection.
+
+   **Probe with `#check Real`, not `Real.pi`.** This file used to specify
+   `Real.pi`, which is unsound as a test: `Real.pi` lives in
+   `Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic`, not in
+   `Mathlib.Data.Real.Basic`, so it fails to resolve even in `ToReal.lean` —
+   a module whose whole purpose is to land in `ℝ`. The `Real.pi` probe reports
+   all 28 modules as `ℝ`-free. `#check Real` gives the real partition, 16/12.
 
    **A distinction this file forced.** The *definitions* are now `ℝ`-free; the
    *proofs* of the axioms still go through `toReal`. The density argument is

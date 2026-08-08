@@ -13,14 +13,21 @@ pairs. `toReal` descends to a **bijection** onto `ℝ`, so this carrier is the r
 line — not merely a set of the right size, but order-isomorphically the reals,
 with reciprocal and negation given by set complement.
 
-## What is transported and what is not
+## What is transported
 
-The order is *intrinsic*: `LinearOrder SBReal` is lifted along `toReal`, and
-`toReal` was built from the lex order and the bitwise supremum, both proved here
-from scratch. The field structure is **transported** from `ℝ` along the
-bijection, which is the honest status of item (A) in the plan: the carrier
-faithfully represents `ℝ`, and `+`, `×` are defined by pullback rather than
-intrinsically.
+**Both the order and the field structure**, as things stand. `LinearOrder
+SBReal` is `LinearOrder.lift' toRealQ`, so `a ≤ b` unfolds definitionally to
+`toRealQ a ≤ toRealQ b` — a comparison of two real numbers; `le_iff_toRealQ_le`
+below is literally `Iff.rfl`. The field structure is `equivReal.field`.
+
+It is tempting to call the order intrinsic on the grounds that `toReal` was
+itself built from the lex order and the bitwise supremum, both proved here from
+scratch. That is true of `toReal` and false of the instance: nothing in this
+development connects `≤` on the quotient back to `SLexLt`. The missing statement
+is `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, and its ingredients
+(`slexLt_of_toReal_lt`, `toReal_mono`, `toReal_injective`) all exist — but until
+it is proved, the carrier faithfully represents `ℝ` and every piece of structure
+on it is a pullback.
 
 Making the operations intrinsic is the Gosper project, and `toReal₀_toSet` is the
 specification it gets proved against: an algorithm on bit streams is correct
@@ -129,8 +136,8 @@ noncomputable def equivReal : SBReal ≃ ℝ := Equiv.ofBijective toRealQ toReal
 
 /-! ### The structure
 
-The order is intrinsic — lifted along `toReal`, which was built from the lex
-order and the bitwise supremum. The field operations are transported from `ℝ`. -/
+Both lifted along `toRealQ`. See the module docstring: calling the order
+intrinsic would be a claim about a theorem that does not exist yet. -/
 
 noncomputable instance instLinearOrderSBReal : LinearOrder SBReal :=
   LinearOrder.lift' toRealQ toRealQ_injective

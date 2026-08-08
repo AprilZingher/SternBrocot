@@ -25,7 +25,7 @@ gets all 8639.
 
 ## Item 1 — COMPLETED
 
-New file `SternBrocot/Convergent.lean` (585 lines, no `sorry`), plus a section
+New file `SternBrocot/Convergent.lean` (781 lines, no `sorry`), plus a section
 at the end of `Examples.lean`. Wired into `SternBrocot.lean`.
 
 ### What was proved
@@ -105,7 +105,7 @@ Measured rather than guessed.
 
 * **Rebuild, actual cost:** the estimates section is 92 lines end to end
   (`column_errors` 12, `abs_sub_columns_lt` 30, the two convergent corollaries
-  ~30, prose the rest). The whole file is 585 lines including the run
+  ~30, prose the rest). The whole file is 781 lines including the run
   decomposition, which the bridge would *also* need.
 * **Bridge, cost:** Mathlib's `abs_sub_convs_le` is stated for
   `GenContFract.of v`, which is built from `IntFractPair.stream` — i.e. from
@@ -475,11 +475,29 @@ so no downstream file changed.
 
 ### How the claim is checked
 
-Not by reading. `Real.pi` fails to resolve in a file importing only the module,
-so `Real` is not in the transitive import closure. By that test **seventeen**
-modules are `ℝ`-free: Basic, Order, Completeness, Node, Enumeration, PathOrder,
+Not by reading. `Real` fails to resolve in a file importing only the module, so
+`Real` is not in the transitive import closure. By that test **sixteen** modules
+are `ℝ`-free: Basic, Order, Completeness, Node, Enumeration, PathOrder,
 Bridge, Density, Magnitude, Signed, SignedOrder, IntrinsicCore, Gosper,
-GosperRat, Tail, Induction — and anything importing only those.
+GosperRat, Tail, Induction. That is the whole list — there is no further module
+in the repo importing only those, so the "and anything importing only those"
+hedge this file used to carry added nothing, and the count it was attached to
+(seventeen) was simply one more than the list.
+
+The twelve that are not `ℝ`-free: ToReal, SignedToReal, Shift, Degree, Lagrange,
+Convergent, Hurwitz, Reduction, Field, Intrinsic, Complete, Examples.
+
+**Probe with `#check Real`, not `Real.pi`.** The earlier version of this section
+specified `Real.pi`, which does not test what it claims: `Real.pi` is in
+`Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic`, which no module here
+imports, so the probe fails everywhere and reports all 28 modules `ℝ`-free —
+including `ToReal.lean`. Re-run with:
+
+```
+for f in SternBrocot/*.lean; do m=$(basename $f .lean);
+  printf 'import SternBrocot.%s\n#check Real\n' "$m" > /tmp/rf.lean;
+  lake env lean /tmp/rf.lean >/dev/null 2>&1 && echo "NOT R-free: $m"; done
+```
 
 ### What is still not `ℝ`-free, and why
 
