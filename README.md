@@ -38,6 +38,17 @@ The tail rule is the only redundancy in the encoding.
   (`pathLt_iff_lexLt`). Canonical paths biject with the finite subsets of `ω`,
   and the lex order on the carrier is exactly the order of the values.
 
+- **Lagrange's theorem, forward direction** (`degLeTwo_of_eventuallyPeriodic`).
+  If the bit path of `x` is eventually periodic then its value has degree at
+  most two over `ℚ`. The engine is that the tree's defining recursion
+  `t ↦ t + 1`, `t ↦ t/(t+1)` holds for the *infinite* paths too
+  (`toReal₀_S`, `toReal₀_L`), so a finite prefix acts by a Möbius map in
+  `SL₂(ℤ)` and periodicity becomes a fixed-point equation. Stated as
+  degree ≤ 2, not "quadratic irrational": in this encoding a rational has an
+  eventually **constant** path, and `eventuallyConstant_iff_rat` proves that
+  case in both directions. `Examples.lean` runs it on `φ`, whose path is the
+  even numbers.
+
 - **The construction** (`orderIsoReal : SBReal ≃o ℝ`). The finite points of
   `P(ω+1)`, modulo the quotient that collapses adjacent pairs, are *order
   isomorphic to the real line*. Negation is set complement; reciprocal is
@@ -70,6 +81,9 @@ No `sorry`, no `native_decide`. Every result depends only on `propext`,
 | `SternBrocot/ToReal.lean` | `Φ₀ : P(ω) → ℝ≥0` as a Dedekind cut |
 | `SternBrocot/SignedToReal.lean` | `Φ : P(ω+1) → ℝ`, monotone and bijective |
 | `SternBrocot/Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
+| `SternBrocot/Shift.lean` | the shift; the move recursion for `Φ₀`; prefixes act by Möbius |
+| `SternBrocot/Degree.lean` | algebraic degree ≤ 2, and the `SL₂(ℤ)` action on it |
+| `SternBrocot/Lagrange.lean` | eventually periodic ⟹ degree ≤ 2; rational ⟺ eventually constant |
 | `SternBrocot/Field.lean` | `SBReal ≃o ℝ` and the field structure |
 | `SternBrocot/Gosper.lean` | the 2×2×2 tensor; absorb/emit step correctness |
 | `SternBrocot/GosperRat.lean` | the machine on rational inputs: paths in, path out |

@@ -9,6 +9,8 @@ import SternBrocot.PathOrder
 import SternBrocot.Bridge
 import SternBrocot.ToReal
 import SternBrocot.SignedToReal
+import SternBrocot.Lagrange
+import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!
 # Sanity checks
@@ -333,5 +335,66 @@ example : nodeValue [true, false, true, false, true] = 8 / 5 := by norm_num [nod
 /-- ...and they climb towards `φ ≈ 1.618` from alternating sides. -/
 example : nodeValue [true, false, true] < nodeValue [true, false, true, false, true] := by
   norm_num [nodeValue]
+
+/-! ### `φ` on the nose
+
+The truncations above only say the *convergents* are the Fibonacci ratios. The
+claim itself — the even numbers **are** `φ` — is a statement about the infinite
+path, and `toReal₀_S`/`toReal₀_L` prove it: the path is fixed by two shifts, so
+its value satisfies `t = t/(t+1) + 1`, which is `t² = t + 1`. -/
+
+/-- The golden ratio's path: `R L R L …`, i.e. the even numbers. -/
+def goldenPath : Set ℕ := {n | Even n}
+
+theorem goldenPath_ne_univ : goldenPath ≠ univ := by
+  intro h
+  have : (1 : ℕ) ∈ goldenPath := h ▸ mem_univ 1
+  simp [goldenPath, Nat.even_iff] at this
+
+/-- **The path repeats with period two**, which is what makes `φ` quadratic. -/
+theorem shift_two_goldenPath : shift^[2] goldenPath = goldenPath := by
+  rw [iterate_shift]
+  ext n
+  simp only [Set.mem_setOf_eq, goldenPath, Nat.even_iff]
+  omega
+
+theorem goldenPath_eventuallyPeriodic : EventuallyPeriodic goldenPath :=
+  ⟨0, 2, by norm_num, shift_two_goldenPath⟩
+
+/-- One period, written out: a right move then a left move returns the path. -/
+theorem goldenPath_eq : goldenPath = S (L goldenPath) := by
+  ext n
+  match n with
+  | 0 => simp [goldenPath]
+  | 1 => simp [goldenPath, Nat.even_iff]
+  | (k + 2) =>
+    simp only [goldenPath, Set.mem_setOf_eq, succ_mem_S, succ_mem_L, Nat.even_iff]
+    omega
+
+/-- **The even numbers are `φ`.** -/
+theorem toReal₀_goldenPath : toReal₀ goldenPath = Real.goldenRatio := by
+  set t : ℝ := toReal₀ goldenPath with ht
+  have ht0 : 0 ≤ t := toReal₀_nonneg _
+  -- the fixed-point equation, from one period of the path
+  have hfix : t = t / (t + 1) + 1 := by
+    conv_lhs => rw [ht, goldenPath_eq]
+    rw [toReal₀_S (L_ne_univ _), toReal₀_L goldenPath_ne_univ]
+  have hquad : t ^ 2 = t + 1 := by
+    have h1 : (0 : ℝ) < t + 1 := by linarith
+    field_simp at hfix
+    linarith
+  -- `t ≥ 1`, so the positive root is the one
+  have ht1 : 1 ≤ t := by nlinarith
+  have h5 : Real.sqrt 5 = 2 * t - 1 := by
+    rw [show (5 : ℝ) = (2 * t - 1) ^ 2 by nlinarith]
+    exact Real.sqrt_sq (by linarith)
+  rw [Real.goldenRatio, h5]
+  ring
+
+/-- **Lagrange, on `φ`.** Not a fresh proof that `φ` is quadratic — a check that
+the general theorem, applied to a path that is visibly periodic, gives it. -/
+example : DegLeTwo Real.goldenRatio :=
+  toReal₀_goldenPath ▸ degLeTwo_of_eventuallyPeriodic goldenPath_ne_univ
+    goldenPath_eventuallyPeriodic
 
 end SternBrocot

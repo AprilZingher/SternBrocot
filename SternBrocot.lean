@@ -11,6 +11,9 @@ import SternBrocot.SignedOrder
 import SternBrocot.ToReal
 import SternBrocot.SignedToReal
 import SternBrocot.Induction
+import SternBrocot.Degree
+import SternBrocot.Shift
+import SternBrocot.Lagrange
 import SternBrocot.Field
 import SternBrocot.Gosper
 import SternBrocot.GosperRat

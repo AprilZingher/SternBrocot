@@ -13,8 +13,12 @@ operations* are transported from `ℝ` along the isomorphism. By uniqueness of
 complete ordered fields that transport had no freedom in it (see
 `toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
 settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~4,200 lines, no `sorry`, everything on `propext`,
+remaining work. ~5,500 lines, no `sorry`, everything on `propext`,
 `Classical.choice`, `Quot.sound`.
+
+The first classical continued-fraction theorem is now in: **Lagrange's theorem,
+forward direction** (`degLeTwo_of_eventuallyPeriodic`), together with the
+degree-one case in both directions (`eventuallyConstant_iff_rat`).
 
 ## Setup
 
@@ -41,8 +45,19 @@ cases.
 
 ## Next steps
 
-In the order they should be done. Items 1 and 2 are the real remaining work;
-3 and 4 are independent.
+**Recommended order: 5 (convergents) → 6 (Hurwitz) → 2 (intrinsic ops) → the
+hard half of 4.** Item 5 is shared infrastructure that both 6 and the rest of 4
+need, so it is cheapest first; Hurwitz is the smallest theorem on top of it and
+validates that layer before a big proof bets on it. Item 2 is the only item that
+changes what the project *is* — it removes `ℝ` from the definition — and it does
+not invalidate any CF theorem proved before it (nothing in the Lagrange import
+chain reaches `Field.lean`), so deferring it costs exposure, not rework.
+
+**The ordering turns on a question this file has not settled**: is this a
+*construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
+thesis and belongs before the library — or a *CF library* ("classical theorems
+Mathlib lacks"), in which case the theorems are the thesis and item 2 can wait?
+The status paragraph above claims the first, item 6 pitches the second. Decide.
 
 1. **Gosper on ℚ** — ✅ **the loop is closed** (`GosperRat.lean`).
    `Tensor.absorbLeftPath`/`Tensor.absorbRightPath` feed whole paths in; `pathOf` is the
@@ -71,29 +86,87 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
    arguments cannot supply this** — proving a function continuous presupposes it
    is total, which is what productivity would establish.
 
-4. **Lagrange's theorem** — independent, Mathlib-shaped, and **available now**:
-   it does *not* need productivity. Productivity is about computing a path; every
-   real already *is* a subset of `ω+1` (`exists_toReal_eq`), so periodicity is
-   just a property of that set and needs no algorithm. What it needs: the shift
-   on paths and its effect on values (drop bit `0`: `x ↦ x - 1` after `S`,
-   `x ↦ x/(1-x)` after `L`), then periodicity ⟺ `x` is a fixed point of a Möbius
-   map in `SL₂(ℤ)`, giving a quadratic. The `SL₂` half is already built —
-   `pathMat`, `pathMat_det`.
+4. **Lagrange's theorem** — 🟡 **forward direction done** (`Shift.lean`,
+   `Degree.lean`, `Lagrange.lean`). It did *not* need productivity, as expected:
+   every real already *is* a subset of `ω+1` (`exists_toReal_eq`), so
+   periodicity is a property of that set.
 
-   **State it correctly.** In this encoding a *rational* has an eventually
-   **constant** path, hence an eventually periodic one. Classical Lagrange
-   excludes rationals via "infinite continued fraction", and that exclusion does
-   not survive translation. The true statement is
+   The statement, correctly: in this encoding a *rational* has an eventually
+   **constant** path, hence an eventually periodic one, so the theorem is
 
    > the path of `x` is eventually periodic **iff** `[ℚ(x) : ℚ] ≤ 2`
 
    — rational *or* quadratic irrational. "iff quadratic irrational" is **false**
-   here and would compile fine as a skeleton.
+   here. `DegLeTwo` is the concrete form (a nonzero integer quadratic);
+   `DegLeTwo.finrank_adjoin_le` plus `DegLeTwo.finiteDimensional` is the field
+   theory. **Both** are needed: `Module.finrank` is `0` on an infinite-dimensional
+   space, so `finrank ≤ 2` alone also holds of every transcendental.
 
-   Verify against current Mathlib before starting — `GenContFract` exists, this
-   theorem did not as of writing.
+   What is proved:
+   - `toReal₀_S`, `toReal₀_L` — the move recursion `t ↦ t+1`, `t ↦ t/(t+1)`
+     holds for `Φ₀` on *all* of `P(ω)`, not just the nodes. Both need
+     `y ≠ univ`, since `Φ₀` is junk at `∞`. This is the analytic content;
+     the rest is algebra.
+   - `toReal₀_applyPath` — a finite prefix acts by `pathMat` as a Möbius map.
+   - `degLeTwo_of_eventuallyPeriodic` — periodicity makes the value a fixed
+     point of the block's Möbius map; `pathMat_ne_one` (a nonempty word is never
+     the identity matrix) is the nondegeneracy.
+   - `eventuallyConstant_iff_rat` — the degree-one case both ways; the analogue
+     of Mathlib's `GenContFract.terminates_iff_rat`.
+   - `degLeTwo_toReal_of_eventuallyPeriodic` — the signed version, on all of `ℝ`.
+   - `Examples.lean` closes the loop concretely: `toReal₀ goldenPath = φ`, where
+     `goldenPath = {n | Even n}`. Previously only the truncations were checked.
 
-5. **Other classical CF theorems Mathlib lacks.** Surveyed against this Mathlib;
+   **Remaining: the hard direction** — a quadratic *irrational* has an eventually
+   periodic path. This is genuinely classical Lagrange and is a separate
+   development: it needs the reduction theory of binary quadratic forms
+   (bounded transformed coefficients along the path, then pigeonhole).
+   One trap found while scoping it: the naive bound on the transformed form
+   `q(a,c)` is `|A|(1/d² + (c/d)|t - t'|)`, and `c/d` is **not** bounded along a
+   bit path (`L^n` gives `c/d = n`). The classical argument works because
+   convergent denominators satisfy `qₙ ≤ qₙ₊₁`; the bit-path prefixes in the
+   middle of a run do not, so the pigeonhole has to be run on the subsequence of
+   run boundaries, not on every shift.
+
+   Confirmed absent from this Mathlib before starting — `GenContFract` exists,
+   this theorem does not.
+
+   **Do item 5 first.** The pigeonhole runs on the convergents, which is exactly
+   what item 5 builds.
+
+5. **The convergents — shared infrastructure, and the thing to build next.**
+   Both Hurwitz and the hard half of Lagrange need it, so it is paid for once.
+
+   In this encoding the convergents are **not** the prefixes of the bit path.
+   They are the prefixes at **run boundaries** — the positions where an `R`-run
+   flips to an `L`-run or back. A prefix in the middle of a run is an
+   intermediate mediant, not a convergent, and that distinction is the whole
+   difficulty: the classical estimates hold at run boundaries and fail between
+   them. This is the same fact as the `c/d` trap recorded under item 4.
+
+   What to build:
+   - **Run-boundary extraction.** From `x : Set ℕ` produce the increasing
+     sequence of indices where the bit flips. The partial quotients are the run
+     lengths. For an irrational `x` this sequence is infinite (the path is not
+     eventually constant, by `eventuallyConstant_iff_rat`); for a rational it
+     terminates, so statements will carry an irrationality hypothesis where
+     classical ones say "infinite continued fraction".
+   - **The recurrence** `pₙ = aₙ pₙ₋₁ + pₙ₋₂`, `qₙ = aₙ qₙ₋₁ + qₙ₋₂`. This
+     should come out of `pathMat` evaluated at run boundaries almost directly —
+     `pathMat` of an `R`-run and of an `L`-run are the two elementary matrices
+     raised to the run length, and `pathMat_det` already gives `pₙqₙ₋₁ − pₙ₋₁qₙ
+     = ±1`.
+   - **The two estimates**: `qₙ ≤ qₙ₊₁` (this is what fails mid-run and is why
+     the subsequence is necessary) and `|Φ₀ x − pₙ/qₙ| < 1/(qₙ qₙ₊₁)`.
+
+   Relation to Mathlib: `GenContFract` has continuants, the determinant identity
+   and convergence, but for *its* representation. Whether to bridge to it or
+   rebuild here is an open call — bridging costs a translation between the run-
+   length encoding and `GenContFract.of`, rebuilding costs the estimates. The
+   estimates are probably cheaper than the bridge, and rebuilding keeps the
+   development self-contained, but check before committing.
+
+6. **Other classical CF theorems Mathlib lacks.** Surveyed against this Mathlib;
    all confirmed absent (beware false positives — the `Hurwitz`, `Legendre` and
    `Steinhaus` hits are Hurwitz *zeta*, Legendre *symbol*, Banach–*Steinhaus*).
 
@@ -110,8 +183,14 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
    `Real.infinite_rat_abs_sub_lt_one_div_den_sq_of_irrational` (the `1/q²` version;
    needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
    in this project's import closure).
-   Hurwitz is the natural next one — the `1/q²` case and `goldenRatio` are both
-   already there, so it is the √5 refinement that is missing.
+
+   **Hurwitz is the one to do first**, once item 5 is in place. Only the `√5`
+   refinement is missing — Mathlib supplies the `1/q²` case and `goldenRatio`,
+   and `Examples.toReal₀_goldenPath` now proves `Φ₀ {n | Even n} = φ` outright,
+   which is the extremality witness. The standard proof takes any three
+   consecutive convergents and shows at least one satisfies the bound, so it
+   consumes item 5 and nothing else. It is the smallest theorem that
+   demonstrates the convergent layer works.
 
    These are *classical results missing from a library*, not open problems. The
    wall at algebraic degree ≥ 3 is real and none of these touch it. But together
@@ -134,6 +213,9 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
 | `ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0`, a Dedekind cut |
 | `SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`; monotone, bijective |
 | `Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
+| `Shift.lean` | the shift; **the move recursion for `Φ₀`**; prefixes act by Möbius |
+| `Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
+| `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
@@ -151,6 +233,10 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
 - `nodeValue_bijOn` — the tree enumerates `ℚ≥0` exactly once, in lowest terms.
 - `orderIsoReal : SBReal ≃o ℝ` — the construction.
 - `rat_induction` — induction along the tree. Reaches `ℚ`; **not** `ℝ`.
+- `toReal₀_S` / `toReal₀_L` — the move recursion holds for the *supremum* value
+  map, not just for `nodeValue` on finite paths. Everything about the shift
+  rests on these two.
+- `degLeTwo_of_eventuallyPeriodic` — Lagrange, forward direction.
 
 ## Traps
 
@@ -170,6 +256,12 @@ Things that cost time to rediscover.
   plain lex — it costs the naturals, which is the wrong trade here.
 - **`toReal₀` is junk at `univ`** (`Real.sSup` of an unbounded set is `0`), so its
   lemmas carry `x ≠ univ`. `toSet_ne_univ` discharges it for nodes.
+- **The shift does not preserve `x ≠ univ`.** `{n | n ≥ 1}` is not `univ` but its
+  shift is. So any argument iterating `toReal₀_S`/`toReal₀_L` down a path needs a
+  separate branch for "some shift hits `univ`" — those points are exactly the
+  cofinite ones, i.e. the upper representatives of the rationals, and
+  `exists_rat_of_eventually_mem` disposes of them. Skipping this branch is the
+  easiest way to prove a false lemma here.
 - **`below a ⊆ below b` for a tail pair is not immediate** — it fails if `b` is a
   node. It holds because the *right* element of a tail pair is cofinite, hence
   never a node. Load-bearing; I got it wrong first time.
