@@ -93,6 +93,28 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
    Verify against current Mathlib before starting — `GenContFract` exists, this
    theorem did not as of writing.
 
+5. **Other classical CF theorems Mathlib lacks.** Surveyed against this Mathlib;
+   all confirmed absent (beware false positives — the `Hurwitz`, `Legendre` and
+   `Steinhaus` hits are Hurwitz *zeta*, Legendre *symbol*, Banach–*Steinhaus*).
+
+   | theorem | encoding helps? |
+   |---|---|
+   | **Hurwitz** — `1/(√5 q²)` infinitely often, √5 optimal | yes: φ is the all-run-length-1 path, visibly extremal |
+   | **Legendre** — `< 1/(2q²)` ⟹ `p/q` is a convergent | partly: convergents are the nodes along the path |
+   | **badly approximable ↔ bounded partial quotients** | yes: bounded run-lengths in the bit string |
+   | three-distance / Steinhaus | not obviously |
+   | Gauss–Kuzmin | no — needs ergodic theory |
+
+   Mathlib *has*: CF basics, continuants, determinant, convergence,
+   `TerminatesIffRat`, Dirichlet approximation, and
+   `infinite_rat_abs_sub_lt_one_div_den_sq_of_irrational` (the `1/q²` version).
+   Hurwitz is the natural next one — the `1/q²` case and `goldenRatio` are both
+   already there, so it is the √5 refinement that is missing.
+
+   These are *classical results missing from a library*, not open problems. The
+   wall at algebraic degree ≥ 3 is real and none of these touch it. But together
+   they make this a plausible small library rather than a single contribution.
+
 ## Files
 
 | file | contents |
