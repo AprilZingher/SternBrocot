@@ -165,4 +165,49 @@ of the values of its inputs. -/
   rw [equivReal_apply, equivReal_apply, ← equivReal_apply (equivReal.symm _),
     Equiv.apply_symm_apply]
 
+/-! ### The order already determines the operations
+
+Transporting the field structure from `ℝ` looks like it might be smuggling
+something in. It is not: a complete ordered field is unique up to unique
+isomorphism, so once the order is fixed there is exactly one field structure
+compatible with it, and the transport merely exhibits it.
+
+The theorem below says so concretely — `a + b` is pinned down by the order alone,
+as the supremum of `c + d` over everything below `a` and `b`. This is the same
+characterisation Mathlib uses to prove uniqueness (`cutMap_add`: the cut of a sum
+is the sum of the cuts).
+
+What this does *not* do is make the definition independent of `ℝ`. That is the
+remaining gap, and it closes by defining `+` and `×` as these suprema outright
+and deriving the field axioms from `ℚ`'s by density — at which point `ℝ` is never
+mentioned. -/
+
+theorem exists_lt_toRealQ_eq {a : SBReal} {u : ℝ} (h : u < toRealQ a) :
+    ∃ c : SBReal, c < a ∧ toRealQ c = u := by
+  obtain ⟨c, hc⟩ := toRealQ_surjective u
+  exact ⟨c, by rw [lt_iff_toRealQ_lt, hc]; exact h, hc⟩
+
+/-- **Addition is determined by the order.** -/
+theorem toRealQ_add_eq_sSup (a b : SBReal) :
+    toRealQ (a + b)
+      = sSup {r : ℝ | ∃ c d : SBReal, c < a ∧ d < b ∧ r = toRealQ c + toRealQ d} := by
+  set A := toRealQ a with hA
+  set B := toRealQ b with hB
+  set S := {r : ℝ | ∃ c d : SBReal, c < a ∧ d < b ∧ r = toRealQ c + toRealQ d} with hS
+  have hmem : ∀ u v : ℝ, u < A → v < B → u + v ∈ S := by
+    intro u v hu hv
+    obtain ⟨c, hc, hcv⟩ := exists_lt_toRealQ_eq hu
+    obtain ⟨d, hd, hdv⟩ := exists_lt_toRealQ_eq hv
+    exact ⟨c, d, hc, hd, by rw [hcv, hdv]⟩
+  have hne : S.Nonempty := ⟨(A - 1) + (B - 1), hmem _ _ (by linarith) (by linarith)⟩
+  have hub : ∀ r ∈ S, r ≤ A + B := by
+    rintro r ⟨c, d, hc, hd, rfl⟩
+    rw [lt_iff_toRealQ_lt] at hc hd
+    linarith
+  rw [toRealQ_add, ← hA, ← hB]
+  refine (csSup_eq_of_forall_le_of_forall_lt_exists_gt hne hub ?_).symm
+  intro w hw
+  refine ⟨(A - (A + B - w) / 4) + (B - (A + B - w) / 4), hmem _ _ (by linarith) (by linarith), ?_⟩
+  linarith
+
 end SternBrocot
