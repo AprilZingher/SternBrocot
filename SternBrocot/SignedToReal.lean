@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.SignedOrder
+import SternBrocot.Magnitude
 import SternBrocot.ToReal
 
 /-!
@@ -40,55 +40,6 @@ open Set
 open scoped symmDiff
 
 namespace SternBrocot
-
-/-! ### Magnitude -/
-
-/-- The magnitude's Stern–Brocot path: the stored bit exclusive-or'd with the
-sign. On positives this is the stored bits; on negatives, their complement. -/
-def magnitude (x : Signed) : Set ℕ := {n | ¬ (some n ∈ x ↔ none ∈ x)}
-
-theorem magnitude_of_pos {x : Signed} (h : none ∉ x) : magnitude x = finPart x := by
-  ext n
-  simp only [magnitude, Set.mem_setOf_eq, mem_finPart]
-  tauto
-
-theorem magnitude_of_neg {x : Signed} (h : none ∈ x) : magnitude x = (finPart x)ᶜ := by
-  ext n
-  simp only [magnitude, Set.mem_setOf_eq, Set.mem_compl_iff, mem_finPart]
-  tauto
-
-@[simp] theorem magnitude_lift (y : Set ℕ) : magnitude (lift y) = y := by
-  rw [magnitude_of_pos (none_notMem_lift y), finPart_lift]
-
-@[simp] theorem magnitude_empty : magnitude (∅ : Signed) = ∅ := by
-  rw [magnitude_of_pos (by simp), finPart_empty]
-
-@[simp] theorem magnitude_univ : magnitude (univ : Signed) = ∅ := by
-  rw [magnitude_of_neg (mem_univ _), finPart_univ, compl_univ]
-
-/-- **Negation preserves the magnitude**, on the nose. `|-x| = |x|` is a rewrite,
-not a case split — this is the payoff of the mirrored convention. -/
-@[simp] theorem magnitude_neg (x : Signed) : magnitude (neg x) = magnitude x := by
-  by_cases h : none ∈ x
-  · rw [magnitude_of_pos (by simp [h]), magnitude_of_neg h, finPart_neg]
-  · rw [magnitude_of_neg (by simp [h]), magnitude_of_pos h, finPart_neg, compl_compl]
-
-/-- Reciprocal complements the magnitude, in both signs. -/
-@[simp] theorem magnitude_recipS (x : Signed) : magnitude (recipS x) = (magnitude x)ᶜ := by
-  by_cases h : none ∈ x
-  · rw [magnitude_of_neg (by simp [h]), magnitude_of_neg h, finPart_recipS, compl_compl]
-  · rw [magnitude_of_pos (by simp [h]), magnitude_of_pos h, finPart_recipS]
-
-/-- A point is finite when its magnitude is not `∞`. The two infinities are
-dropped when the field structure goes on, so that reciprocal becomes partial
-at `0`. -/
-def IsFinite (x : Signed) : Prop := magnitude x ≠ univ
-
-theorem isFinite_lift {y : Set ℕ} (h : y ≠ univ) : IsFinite (lift y) := by
-  rwa [IsFinite, magnitude_lift]
-
-@[simp] theorem isFinite_neg {x : Signed} : IsFinite (neg x) ↔ IsFinite x := by
-  rw [IsFinite, IsFinite, magnitude_neg]
 
 /-! ### The signed value map -/
 
@@ -269,5 +220,35 @@ theorem toReal_injective {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
     · exact Or.inl (Or.inl (signed_ext heq (by simp [hxn, hyn])))
     · exact Or.inl (Or.inr (Or.inl ⟨by simp [hxn, hyn], hp⟩))
     · exact Or.inl (Or.inr (Or.inr ⟨by simp [hxn, hyn], hp⟩))
+
+/-- The converse of `toReal_mono`, by trichotomy. Non-strict monotonicity is all
+the two preceding sections give — the quotient is why — but reflecting a
+*strict* inequality needs nothing more.
+
+Together with `toReal_mono` and `toReal_injective` this is what pins the order
+on the quotient to `SLexLt`; see `mk_lt_mk_iff` in `Field.lean`. It used to live
+in `Intrinsic.lean`, far downstream, which is part of why that connection went
+unnoticed for so long. -/
+theorem slexLt_of_toReal_lt {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
+    (h : toReal x < toReal y) : x <ₛ y := by
+  rcases slexLt_trichotomy x y with h1 | rfl | h1
+  · exact h1
+  · exact absurd h (lt_irrefl _)
+  · exact absurd (toReal_mono h1 hy hx) (not_le.2 h)
+
+/-- **`toReal` reflects the strict order, modulo the quotient.** A strict
+inequality of values is exactly "lex-below and not identified".
+
+This is the raw form; `mk_lt_mk_iff` is the statement on `SBReal`. The `¬ SEqv`
+conjunct is not redundant: `SLexLt` is strict on the *nose*, but a tail pair has
+`b <ₛ a` while `toReal a = toReal b`, so lex-below alone does not give a strict
+inequality of values. -/
+theorem toReal_lt_iff {x y : Signed} (hx : IsFinite x) (hy : IsFinite y) :
+    toReal x < toReal y ↔ (x <ₛ y ∧ ¬ SEqv x y) := by
+  constructor
+  · intro h
+    exact ⟨slexLt_of_toReal_lt hx hy h, fun hs => absurd (toReal_of_seqv hs) (ne_of_lt h)⟩
+  · rintro ⟨hlt, hne⟩
+    exact lt_of_le_of_ne (toReal_mono hlt hx hy) fun he => hne (toReal_injective hx hy he)
 
 end SternBrocot

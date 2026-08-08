@@ -10,6 +10,7 @@ import SternBrocot.Bridge
 import SternBrocot.ToReal
 import SternBrocot.SignedToReal
 import SternBrocot.Lagrange
+import SternBrocot.Convergent
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!
@@ -396,5 +397,77 @@ the general theorem, applied to a path that is visibly periodic, gives it. -/
 example : DegLeTwo Real.goldenRatio :=
   toReal₀_goldenPath ▸ degLeTwo_of_eventuallyPeriodic goldenPath_ne_univ
     goldenPath_eventuallyPeriodic
+
+/-! ### The convergents of `φ` are the Fibonacci ratios
+
+`contin` is built from run boundaries of a *bit set*; `Nat.fib` is defined in
+Mathlib with no reference to any of this. That they agree on `{n | Even n}` is
+the check that the run decomposition computes the classical continued fraction
+and not something else. With `toReal₀_goldenPath` it says: the convergents of
+`φ` are `1/1, 2/1, 3/2, 5/3, …`. -/
+
+theorem bitAt_goldenPath_succ_ne (n : ℕ) : bitAt goldenPath (n + 1) ≠ bitAt goldenPath n := by
+  rcases Nat.even_or_odd n with he | ho
+  · rw [bitAt_eq_true.2 (show n ∈ goldenPath from he),
+      bitAt_eq_false.2 (show (n + 1) ∉ goldenPath from fun h => (Nat.even_add_one.1 h) he)]
+    simp
+  · rw [bitAt_eq_false.2 (show n ∉ goldenPath from Nat.not_even_iff_odd.2 ho),
+      bitAt_eq_true.2 (show (n + 1) ∈ goldenPath from Nat.even_add_one.2
+        (Nat.not_even_iff_odd.2 ho))]
+    simp
+
+theorem infFlips_goldenPath : InfFlips goldenPath :=
+  fun n => ⟨n + 1, Nat.lt_succ_self n, bitAt_goldenPath_succ_ne n⟩
+
+/-- `φ` flips at every position, so every run has length one. -/
+theorem nextFlip_goldenPath (n : ℕ) : nextFlip goldenPath n = n + 1 := by
+  have hmem : (n + 1) ∈ {m | n < m ∧ bitAt goldenPath m ≠ bitAt goldenPath n} :=
+    ⟨Nat.lt_succ_self n, bitAt_goldenPath_succ_ne n⟩
+  exact le_antisymm (Nat.sInf_le hmem) (Nat.sInf_mem ⟨n + 1, hmem⟩).1
+
+theorem runBoundary_goldenPath (k : ℕ) : runBoundary goldenPath k = k := by
+  induction k with
+  | zero => rfl
+  | succ k ih => rw [runBoundary_succ, ih, nextFlip_goldenPath]
+
+/-- **Every partial quotient of `φ` is `1`.** -/
+theorem partialQuot_goldenPath (k : ℕ) : partialQuot goldenPath k = 1 := by
+  rw [partialQuot, runBoundary_goldenPath, runBoundary_goldenPath]
+  omega
+
+theorem runBit_goldenPath_zero : runBit goldenPath 0 = true := by
+  rw [runBit, runBoundary_goldenPath]
+  exact bitAt_eq_true.2 (show (0 : ℕ) ∈ goldenPath from ⟨0, rfl⟩)
+
+/-- **The continuants of `φ` are consecutive Fibonacci numbers.** -/
+theorem contin_goldenPath (k : ℕ) :
+    contin goldenPath (k + 1) = ((Nat.fib (k + 1) : ℤ), (Nat.fib k : ℤ)) := by
+  induction k using Nat.strong_induction_on with
+  | _ k ih =>
+    match k with
+    | 0 => rw [contin_one, runBit_goldenPath_zero]; norm_num
+    | 1 =>
+      have h0 : contin goldenPath 0 = (0, 1) := by
+        rw [contin_zero, runBit_goldenPath_zero]; norm_num
+      have h1 : contin goldenPath 1 = (1, 0) := by
+        rw [contin_one, runBit_goldenPath_zero]; norm_num
+      rw [contin_add_two, partialQuot_goldenPath, h0, h1]
+      norm_num
+    | (j + 2) =>
+      have h1 : contin goldenPath (j + 2) = ((Nat.fib (j + 2) : ℤ), (Nat.fib (j + 1) : ℤ)) :=
+        ih (j + 1) (by omega)
+      have h2 : contin goldenPath (j + 1) = ((Nat.fib (j + 1) : ℤ), (Nat.fib j : ℤ)) :=
+        ih j (by omega)
+      have hrec : contin goldenPath (j + 3)
+          = ((partialQuot goldenPath (j + 1) : ℤ) * (contin goldenPath (j + 2)).1
+                + (contin goldenPath (j + 1)).1,
+             (partialQuot goldenPath (j + 1) : ℤ) * (contin goldenPath (j + 2)).2
+                + (contin goldenPath (j + 1)).2) := contin_add_two goldenPath (j + 1)
+      show contin goldenPath (j + 3) = ((Nat.fib (j + 3) : ℤ), (Nat.fib (j + 2) : ℤ))
+      rw [hrec, partialQuot_goldenPath, h1, h2,
+        show Nat.fib (j + 3) = Nat.fib (j + 1) + Nat.fib (j + 2) from Nat.fib_add_two,
+        show Nat.fib (j + 2) = Nat.fib j + Nat.fib (j + 1) from Nat.fib_add_two]
+      simp only [Prod.mk.injEq]
+      constructor <;> · push_cast; ring
 
 end SternBrocot

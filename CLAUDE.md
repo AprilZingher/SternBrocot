@@ -6,19 +6,43 @@ von Neumann ordinals unchanged.
 
 ## Status in one paragraph
 
-**The construction is complete**: `orderIsoReal : SBReal ≃o ℝ`, and `SBReal`
-carries a `Field` instance (`ring` works on it). The *order* is intrinsic — built
-here from the lex order and a bitwise supremum, never mentioning `ℝ`. The *field
-operations* are transported from `ℝ` along the isomorphism. By uniqueness of
-complete ordered fields that transport had no freedom in it (see
-`toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
-settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~5,500 lines, no `sorry`, everything on `propext`,
-`Classical.choice`, `Quot.sound`.
+**The construction is complete**: `SBReal` is a **complete ordered field**,
+stated as such — `Field SBReal`, `IsStrictOrderedRing SBReal` (the order is
+compatible with `+` and `×`) and `exists_isLUB` (every nonempty bounded-above
+set has a least upper bound), with `orderIsoReal : SBReal ≃o ℝ` exhibiting the
+uniqueness. `ring` and `linarith` both work on it. ~8,250 lines, everything on
+`propext`, `Classical.choice`, `Quot.sound`.
 
-The first classical continued-fraction theorem is now in: **Lagrange's theorem,
-forward direction** (`degLeTwo_of_eventuallyPeriodic`), together with the
-degree-one case in both directions (`eventuallyConstant_iff_rat`).
+**The order is the lex order** — `mk_lt_mk_iff`:
+
+> `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`
+
+with no `ℝ` on either side, and `mk_le_mk_iff` for `≤`. Both instances are still
+*built* by transport (`instLinearOrderSBReal` is `LinearOrder.lift' toRealQ`, so
+`le_iff_toRealQ_le` is `Iff.rfl`), but for the order that is now a fact about
+assembly rather than about content: `SLexLt` comes from the bit strings alone,
+so `exists_isLUB` and `instIsStrictOrderedRingSBReal` are statements about a
+relation this development defines, not about `ℝ`'s order under another name.
+
+**Be precise about which half this covers.** The *field operations* have no
+counterpart to `mk_lt_mk_iff` yet. `Intrinsic.lean` gives `ℝ`-free `+` and `×`
+and proves they agree with the transported ones (`add'_eq_add`, `mul'_eq_mul`),
+which is the analogous content, but the axioms are still proved through `toReal`
+and the instance is still `equivReal.field`. So: order — settled; operations —
+defined `ℝ`-free, proved via `ℝ`.
+
+**A caution, from an adversarial review that caught this file lying.** For
+several commits this paragraph said "the order is intrinsic" while
+`instLinearOrderSBReal` was a bare lift and *no theorem anywhere* related `≤` on
+`SBReal` to `SLexLt`. The sentence was true of `toReal` and false of the
+instance, and the gap went unnoticed because the two readings sound identical.
+`mk_lt_mk_iff` is what makes the claim safe to make. If a future refactor
+removes it, remove the claim with it.
+
+**Lagrange's theorem is in, both directions** —
+`eventuallyPeriodic_iff_degLeTwo`: the path of `x` is eventually periodic iff
+`[ℚ(Φ₀x) : ℚ] ≤ 2`. Hurwitz is in too. **Nothing in the repository has a
+`sorry`.**
 
 ## Setup
 
@@ -45,13 +69,19 @@ cases.
 
 ## Next steps
 
-**Recommended order: 5 (convergents) → 6 (Hurwitz) → 2 (intrinsic ops) → the
-hard half of 4.** Item 5 is shared infrastructure that both 6 and the rest of 4
-need, so it is cheapest first; Hurwitz is the smallest theorem on top of it and
-validates that layer before a big proof bets on it. Item 2 is the only item that
-changes what the project *is* — it removes `ℝ` from the definition — and it does
-not invalidate any CF theorem proved before it (nothing in the Lagrange import
-chain reaches `Field.lean`), so deferring it costs exposure, not rework.
+**Items 2, 4, 5 and the Hurwitz half of 6 are done, and nothing has a `sorry`.**
+Remaining recommended order: **the rest of 6 (Legendre, badly approximable) →
+the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
+(`mk_lt_mk_iff`); what is left of the `ℝ`-freeing programme is the operations.
+
+Item 2 is the only item that changes what the project *is* — it removes `ℝ` from
+the definition — and it did not invalidate any CF theorem proved before it
+(nothing in the Lagrange import chain reaches `Field.lean`).
+
+What is left of item 2 is not the definitions, which are already `ℝ`-free, and
+no longer the order, which `mk_lt_mk_iff` pins to `SLexLt`. It is the *proofs*
+of the field axioms, still routed through `toReal`. See the `ℝ`-freeness audit
+in `HANDOFF.md` for which modules are clean by import graph.
 
 **The ordering turns on a question this file has not settled**: is this a
 *construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
@@ -72,12 +102,46 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×` on ℝ by density — closes the independence gap.**
-   Define them as suprema of their values on nodes (`toRealQ_add_eq_sSup` shows
-   the sup-definition lands on the same operation, so nothing is lost), then
-   derive the field axioms from ℚ's by density and continuity. After this the
-   construction never mentions `ℝ`. **This does not need Gosper**, which is the
-   key realisation — Gosper was blocking something it never actually blocked.
+2. **Intrinsic `+` and `×`** — ✅ **done** (`Intrinsic.lean`, no `sorry`). The
+   definitions are `ℝ`-free: `slexSup` (the signed bitwise supremum — one case
+   split off `lexSup`), `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the
+   Euclidean algorithm), and
+   `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
+   inner `+` rational, so no circularity. All ten field axioms are proved, and
+   `add'_eq_add` / `mul'_eq_mul` show they are the operations `Field.lean`
+   transported — so installing them as the instance changes no theorem.
+
+   **Installing them is not, however, "one mechanical swap"** — this file said
+   that and an adversarial review knocked it down. The axiom *statements* use
+   `0`, `1`, `-a`, `a⁻¹` from the transported `Field` instance, and their proofs
+   route through `toRealQ_zero/one/neg/inv`, which are derived from
+   `toRealQ_add`/`toRealQ_mul` — theorems *about that instance*. Swapping needs
+   intrinsic `0`, `1`, `neg`, `inv` plus their `toReal` specs first, and then the
+   ten axioms reproved. Note also that once the two agreement theorems are in
+   hand each of the ten is a one-line appeal to Mathlib: the content lives in
+   `add'_eq_add`/`mul'_eq_mul`, not in the count of axioms.
+
+   **The `ℝ`-free claim is now structural.** `IntrinsicCore.lean` holds
+   `slexSup`, `ratPoint`, `addRaw`, `mulRaw` and the finiteness lemmas, and
+   `Real` is not reachable through its transitive import closure at all — the
+   check is that `Real` does not resolve in a file importing only it. Along
+   with `Density.lean` and `Magnitude.lean` that makes **sixteen** modules
+   `ℝ`-free by import graph rather than by inspection.
+
+   **Probe with `#check Real`, not `Real.pi`.** This file used to specify
+   `Real.pi`, which is unsound as a test: `Real.pi` lives in
+   `Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic`, not in
+   `Mathlib.Data.Real.Basic`, so it fails to resolve even in `ToReal.lean` —
+   a module whose whole purpose is to land in `ℝ`. The `Real.pi` probe reports
+   all 28 modules as `ℝ`-free. `#check Real` gives the real partition, 16/12.
+
+   **A distinction this file forced.** The *definitions* are now `ℝ`-free; the
+   *proofs* of the axioms still go through `toReal`. The density argument is
+   what would make the proofs `ℝ`-free too, and it is a separate step — the
+   statements are already arranged so that swapping it in changes nothing else.
+   Do not claim the strong form until the proofs stop mentioning `ℝ`.
+   **This does not need Gosper**, which is the key realisation — Gosper was
+   blocking something it never actually blocked.
 
 3. **Gosper productivity — the open/paper piece.** Running the machine forever
    on irrational inputs and proving it always eventually emits. Lean 4 has no
@@ -86,8 +150,9 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    arguments cannot supply this** — proving a function continuous presupposes it
    is total, which is what productivity would establish.
 
-4. **Lagrange's theorem** — 🟡 **forward direction done** (`Shift.lean`,
-   `Degree.lean`, `Lagrange.lean`). It did *not* need productivity, as expected:
+4. **Lagrange's theorem** — ✅ **done, both directions** (`Shift.lean`,
+   `Degree.lean`, `Lagrange.lean`, `Reduction.lean`). It did *not* need
+   productivity, as expected:
    every real already *is* a subset of `ω+1` (`exists_toReal_eq`), so
    periodicity is a property of that set.
 
@@ -117,54 +182,74 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    - `Examples.lean` closes the loop concretely: `toReal₀ goldenPath = φ`, where
      `goldenPath = {n | Even n}`. Previously only the truncations were checked.
 
-   **Remaining: the hard direction** — a quadratic *irrational* has an eventually
-   periodic path. This is genuinely classical Lagrange and is a separate
-   development: it needs the reduction theory of binary quadratic forms
-   (bounded transformed coefficients along the path, then pigeonhole).
-   One trap found while scoping it: the naive bound on the transformed form
-   `q(a,c)` is `|A|(1/d² + (c/d)|t - t'|)`, and `c/d` is **not** bounded along a
-   bit path (`L^n` gives `c/d = n`). The classical argument works because
-   convergent denominators satisfy `qₙ ≤ qₙ₊₁`; the bit-path prefixes in the
-   middle of a run do not, so the pigeonhole has to be run on the subsequence of
-   run boundaries, not on every shift.
+   - `eventuallyPeriodic_iff_degLeTwo` — **the theorem**, as an `iff`, with
+     `eventuallyPeriodic_iff_degLeTwo_toReal` the signed version on `ℝ`. The
+     rational case is a third argument, not a corollary of either half: the
+     hard direction assumes irrationality throughout, so "rational ⟹ eventually
+     periodic" goes via `eventuallyConstant_iff_rat`.
+
+   **The hard direction** — ✅ **done, in `Reduction.lean`**. The estimate
+   (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`), the
+   pigeonhole (`finite_range_tailValue`), and the conclusion
+   (`eq_of_toReal₀_eq_of_irrational`, `eventuallyPeriodic_of_finite_range`).
+
+   The pigeonhole is three bounds and a box. `abs_formAt_contin_le` bounds both
+   *outer* coefficients by one constant `⌈|A|(2|Φ₀x|+1) + |B|⌉` uniformly along
+   the path; the fixed discriminant then bounds the *middle* one, since
+   `mid² = D + 4·outer·outer`; and the leading coefficient is never zero
+   because a zero there would make the complete quotient rational. So the
+   triples live in a `Finset` box, each triple has ≤ 2 real roots
+   (`finite_quadratic_roots`, elementary — the root set sits inside
+   `{(−b ± √(b²−4ac))/2a}` because `(2az+b)² = b²−4ac` identically), and the
+   complete quotients are among those roots.
+
+   Worth noting how cheap the back end turned out to be here. Equal values of
+   `Φ₀` at two shifts give tail-equivalence, and a tail pair always has a
+   *rational* common value — so irrationality makes the two shifted points
+   literally **equal**. Periodicity comes out on the nose, with no
+   reconstruction step at all.
+
+   The trap recorded here was real and is now resolved: `c/d` is **not** bounded
+   along a bit path (`L^n` gives `c/d = n`), so the estimate only holds at run
+   boundaries, where both columns are convergents and `qₙ ≤ qₙ₊₁` gives
+   `|t − pₙ/qₙ| < 1/qₙ²`. `Reduction.lean` is indexed by `runBoundary` from the
+   start, so the trap costs nothing there.
 
    Confirmed absent from this Mathlib before starting — `GenContFract` exists,
    this theorem does not.
 
-   **Do item 5 first.** The pigeonhole runs on the convergents, which is exactly
-   what item 5 builds.
+   **Item 5 is now available.** The pigeonhole runs on the convergents, which is
+   exactly what `Convergent.lean` builds: `runBoundary`, `contin`,
+   `contin_den_le_succ` and `abs_sub_contin_lt`.
 
-5. **The convergents — shared infrastructure, and the thing to build next.**
-   Both Hurwitz and the hard half of Lagrange need it, so it is paid for once.
+5. **The convergents** — ✅ **done** (`Convergent.lean`). The run-boundary
+   decomposition, the recurrence, and both estimates, with no `sorry`.
 
-   In this encoding the convergents are **not** the prefixes of the bit path.
-   They are the prefixes at **run boundaries** — the positions where an `R`-run
-   flips to an `L`-run or back. A prefix in the middle of a run is an
-   intermediate mediant, not a convergent, and that distinction is the whole
-   difficulty: the classical estimates hold at run boundaries and fail between
-   them. This is the same fact as the `c/d` trap recorded under item 4.
+   Confirmed while building it: the convergents are the prefixes at **run
+   boundaries**, and `boundaryMat_eq_contin` is where that fact lives — at
+   boundary `k+1` the two columns of `pathMat` of the prefix are `contin x (k+1)`
+   and `contin x (k+2)`, consecutive convergents, in an order alternating with
+   the run's bit. Mid-run one column is an intermediate mediant instead.
 
-   What to build:
-   - **Run-boundary extraction.** From `x : Set ℕ` produce the increasing
-     sequence of indices where the bit flips. The partial quotients are the run
-     lengths. For an irrational `x` this sequence is infinite (the path is not
-     eventually constant, by `eventuallyConstant_iff_rat`); for a rational it
-     terminates, so statements will carry an irrationality hypothesis where
-     classical ones say "infinite continued fraction".
-   - **The recurrence** `pₙ = aₙ pₙ₋₁ + pₙ₋₂`, `qₙ = aₙ qₙ₋₁ + qₙ₋₂`. This
-     should come out of `pathMat` evaluated at run boundaries almost directly —
-     `pathMat` of an `R`-run and of an `L`-run are the two elementary matrices
-     raised to the run length, and `pathMat_det` already gives `pₙqₙ₋₁ − pₙ₋₁qₙ
-     = ±1`.
-   - **The two estimates**: `qₙ ≤ qₙ₊₁` (this is what fails mid-run and is why
-     the subsequence is necessary) and `|Φ₀ x − pₙ/qₙ| < 1/(qₙ qₙ₊₁)`.
+   One correction to what this file previously said. The bound
+   `|Φ₀x − B/D| < 1/(CD)` holds at **every** prefix, not only at run boundaries —
+   it is just `AD − BC = 1` plus `Φ₀x = (As+B)/(Cs+D)`. What the run boundary
+   buys is that `C` and `D` are then consecutive *convergent* denominators, so
+   that the bound reads `1/(qₖqₖ₊₁)` and `qₖ ≤ qₖ₊₁` is available. The estimate
+   was never the hard part; the indexing is.
 
-   Relation to Mathlib: `GenContFract` has continuants, the determinant identity
-   and convergence, but for *its* representation. Whether to bridge to it or
-   rebuild here is an open call — bridging costs a translation between the run-
-   length encoding and `GenContFract.of`, rebuilding costs the estimates. The
-   estimates are probably cheaper than the bridge, and rebuilding keeps the
-   development self-contained, but check before committing.
+   **Indexing trap.** `contin x 0`, `contin x 1` are the seeds `(0,1)`, `(1,0)`,
+   *swapped* when the path starts with a left move. That swap is the classical
+   `a₀ = 0`: for `x < 1` no leading `R`-run is stored, so the sequence shifts by
+   one. It is what lets one recurrence serve both `x ≥ 1` and `x < 1`. The price
+   is that `contin x k` is a convergent only for `k ≥ 2` (and `q₁ = 0`), so every
+   estimate is stated at `k + 2`.
+
+   **Mathlib bridge: decided against, with measurements** — see `HANDOFF.md`.
+   Short version: `GenContFract.of` is built from `⌊·⌋` and `Int.fract`, so
+   bridging still requires identifying the run lengths with its partial
+   quotients, which is the expensive half of the file; and Mathlib's estimate is
+   non-strict where the one here is strict.
 
 6. **Other classical CF theorems Mathlib lacks.** Surveyed against this Mathlib;
    all confirmed absent (beware false positives — the `Hurwitz`, `Legendre` and
@@ -184,13 +269,11 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
    in this project's import closure).
 
-   **Hurwitz is the one to do first**, once item 5 is in place. Only the `√5`
-   refinement is missing — Mathlib supplies the `1/q²` case and `goldenRatio`,
-   and `Examples.toReal₀_goldenPath` now proves `Φ₀ {n | Even n} = φ` outright,
-   which is the extremality witness. The standard proof takes any three
-   consecutive convergents and shows at least one satisfies the bound, so it
-   consumes item 5 and nothing else. It is the smallest theorem that
-   demonstrates the convergent layer works.
+   **Hurwitz is ✅ done** (`Hurwitz.lean`), both the `1/(√5 q²)` statement and
+   the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
+   The remaining rows — Legendre, badly approximable ↔ bounded partial
+   quotients — are now the cheap ones: both are statements about `contin` and
+   `partialQuot`, which exist.
 
    These are *classical results missing from a library*, not open problems. The
    wall at algebraic degree ≥ 3 is real and none of these touch it. But together
@@ -202,12 +285,14 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 |---|---|
 | `Basic.lean` | moves, reciprocal, `TailPair`, **rigidity** |
 | `Tail.lean` | tail classes have ≤ 2 elements; rigidity on the quotient |
+| `Density.lean` | **density of the nodes** — ℝ-free, the input to the ℝ-free program |
 | `Order.lean` | lex order; `≤ₗ`; **tail relation = adjacency**; complement reverses lex |
 | `Completeness.lean` | the bitwise supremum; density of the quotient |
 | `Node.lean` | values of finite paths; unimodularity |
 | `Enumeration.lean` | **the tree enumerates `ℚ≥0` exactly once** |
 | `PathOrder.lean` | `nodeValue` is an order embedding |
 | `Bridge.lean` | paths ↔ finite subsets of `ω`; addition is not Boolean |
+| `Magnitude.lean` | magnitude and `IsFinite` — ℝ-free |
 | `Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** |
 | `SignedOrder.lean` | the mirrored sign order; the full quotient |
 | `ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0`, a Dedekind cut |
@@ -216,7 +301,13 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Shift.lean` | the shift; **the move recursion for `Φ₀`**; prefixes act by Möbius |
 | `Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
+| `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
+| `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
+| `Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
+| `Complete.lean` | **the ordered-field axioms and completeness**, stated |
+| `IntrinsicCore.lean` | **the intrinsic `+`, `×`, and `ratPoint` — ℝ-free** |
+| `Intrinsic.lean` | those operations agree with the transported ones |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
@@ -232,11 +323,37 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
   rests. Tail pairs are exactly adjacent pairs.
 - `nodeValue_bijOn` — the tree enumerates `ℚ≥0` exactly once, in lowest terms.
 - `orderIsoReal : SBReal ≃o ℝ` — the construction.
+- `mk_lt_mk_iff` — **the order on `SBReal` is the signed lex order**,
+  `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, with no `ℝ` on either side. This
+  is what stops `exists_isLUB` and `instIsStrictOrderedRingSBReal` from being
+  facts about `ℝ`'s order under a different name. The `¬ SEqv` conjunct is the
+  content: a tail pair is strictly lex-below on the nose while having equal
+  value, so lex-below alone does not give a strict inequality on the quotient.
+- `instIsStrictOrderedRingSBReal` + `exists_isLUB` — the **complete ordered
+  field** axioms, stated rather than merely implied by the order isomorphism.
+  Neither was in the development before; a `LinearOrder` on a field says nothing
+  about how the order and the operations interact, and nothing had asserted
+  completeness in any form.
+- `toReal_addRaw` / `toReal_mulRaw` — the intrinsic operations, defined as
+  suprema over the rational nodes with no mention of `ℝ`, compute `+` and `×`.
 - `rat_induction` — induction along the tree. Reaches `ℚ`; **not** `ℝ`.
 - `toReal₀_S` / `toReal₀_L` — the move recursion holds for the *supremum* value
   map, not just for `nodeValue` on finite paths. Everything about the shift
   rests on these two.
-- `degLeTwo_of_eventuallyPeriodic` — Lagrange, forward direction.
+- `eventuallyPeriodic_iff_degLeTwo` — **Lagrange's theorem**, both directions:
+  the path of `x` is eventually periodic iff `[ℚ(Φ₀x) : ℚ] ≤ 2`.
+  `degLeTwo_of_eventuallyPeriodic` is the easy half (a Möbius fixed point);
+  `degLeTwo_eventuallyPeriodic` the hard one (reduction theory).
+- `abs_formAt_le` — the reduction estimate: a column approximating `t` to
+  `1/c²` has form value bounded by `|A|(2|t|+1) + |B|`, with nothing
+  column-dependent surviving. The whole hard direction is this plus the
+  invariance of the discriminant.
+- `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
+  **at run boundaries**; the classical recurrence falls out of `pathMat`.
+- `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `abs_sub_contin_eq` — the **exact** error `1/(qₖ(qₖwₖ + qₖ₊₁))`. Hurwitz is
+  this identity plus one relation between consecutive `wₖ + ρₖ`.
+- `exists_hurwitz_approx_real` — Hurwitz on `ℝ`; `sqrt5_optimal` — `√5` is best.
 
 ## Traps
 
@@ -265,6 +382,22 @@ Things that cost time to rediscover.
 - **`below a ⊆ below b` for a tail pair is not immediate** — it fails if `b` is a
   node. It holds because the *right* element of a tail pair is cofinite, hence
   never a node. Load-bearing; I got it wrong first time.
+- **The convergents are at run boundaries, and `contin` is indexed from 2.** The
+  seeds `contin x 0`, `contin x 1` are `(0,1)`, `(1,0)` *swapped* when the path
+  starts with a left move — that swap is the classical `a₀ = 0`, and it is what
+  lets one recurrence serve both `x ≥ 1` and `x < 1`. So `q₁ = 0`, and every
+  estimate is stated at `k + 2`. Do not special-case `x < 1` instead.
+- **`{none}` is `−∞`, not `−0`.** `−0` is `univ` — negative, *all* finite bits
+  set, magnitude `∅`. `{none}` is negative with *no* finite bits, so its
+  magnitude is `univ` and it is the bottom of the order. The empty supremum
+  lands on `{none}`, which is why a Dedekind cut used to define a product must
+  carry an explicit `0` floor (`mulCut`); without it multiplication is infinite
+  exactly at zero. Cost an hour to find.
+- **`neg_neg` inside `namespace SternBrocot` is *not* Mathlib's.** `Signed.neg`
+  brings a `SternBrocot.neg_neg` into scope, which shadows the group lemma, so
+  `rw [neg_neg]` on a goal about `ℝ` fails with "did not find an occurrence" and
+  a pattern printed as `neg (neg ?x)`. Write `_root_.neg_neg`. Same hazard for
+  any short algebraic name this development also defines.
 - **No `LinearOrder` on `Set ℕ`** — it already carries `⊆`. The lex order lives as
   bare relations `<ₗ`, `≤ₗ`. A type synonym was tried and deleted as dead weight:
   the *quotient* carries the order instead, which is the better design.

@@ -13,23 +13,40 @@ pairs. `toReal` descends to a **bijection** onto `ℝ`, so this carrier is the r
 line — not merely a set of the right size, but order-isomorphically the reals,
 with reciprocal and negation given by set complement.
 
-## What is transported and what is not
+## What is transported, and what that does not mean
 
-The order is *intrinsic*: `LinearOrder SBReal` is lifted along `toReal`, and
-`toReal` was built from the lex order and the bitwise supremum, both proved here
-from scratch. The field structure is **transported** from `ℝ` along the
-bijection, which is the honest status of item (A) in the plan: the carrier
-faithfully represents `ℝ`, and `+`, `×` are defined by pullback rather than
-intrinsically.
+Both instances are built by transport. `LinearOrder SBReal` is
+`LinearOrder.lift' toRealQ`, so `a ≤ b` unfolds definitionally to
+`toRealQ a ≤ toRealQ b` — a comparison of two real numbers; `le_iff_toRealQ_le`
+below is literally `Iff.rfl`. The field structure is `equivReal.field`.
 
-Making the operations intrinsic is the Gosper project, and `toReal₀_toSet` is the
-specification it gets proved against: an algorithm on bit streams is correct
-exactly when its output has the value the transported operation gives.
+For the **order** that is now a statement about construction only, not about
+content: `mk_lt_mk_iff` proves
+
+  `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`
+
+with no `ℝ` on either side. `SLexLt` is built in `Order.lean` and
+`SignedOrder.lean` from the bit strings alone, so the order relation on the
+quotient *is* the lex order, however the instance was assembled. This matters
+because `exists_isLUB` and `instIsStrictOrderedRingSBReal` are statements about
+that relation — without `mk_lt_mk_iff` they would be facts about `ℝ`'s order
+wearing a different name.
+
+For the **field operations** the corresponding statement is not proved here.
+`Intrinsic.lean` defines `ℝ`-free `+` and `×` and shows they agree with these
+(`add'_eq_add`, `mul'_eq_mul`), which is the analogous content, but the axioms
+are still proved through `toReal` and the instance is still the transported one.
+
+Do not restore the sentence "the order is intrinsic" as a description of the
+*instance* — it was here for several commits and was false in exactly the way
+`mk_lt_mk_iff` now repairs. Cite the theorem instead.
 
 ## Main results
 
 * `SternBrocot.SBReal` — the carrier.
 * `SternBrocot.orderIsoReal : SBReal ≃o ℝ` — **the order isomorphism.**
+* `SternBrocot.mk_lt_mk_iff` — **the order is the lex order**, `ℝ`-free on both
+  sides of the `iff`.
 * `SternBrocot.instFieldSBReal` — the transported field structure.
 -/
 
@@ -129,8 +146,8 @@ noncomputable def equivReal : SBReal ≃ ℝ := Equiv.ofBijective toRealQ toReal
 
 /-! ### The structure
 
-The order is intrinsic — lifted along `toReal`, which was built from the lex
-order and the bitwise supremum. The field operations are transported from `ℝ`. -/
+Both instances lifted along `toRealQ`. What the resulting order actually *is*
+is settled below by `mk_lt_mk_iff`, not here. -/
 
 noncomputable instance instLinearOrderSBReal : LinearOrder SBReal :=
   LinearOrder.lift' toRealQ toRealQ_injective
@@ -148,6 +165,46 @@ noncomputable def orderIsoReal : SBReal ≃o ℝ where
 theorem le_iff_toRealQ_le {a b : SBReal} : a ≤ b ↔ toRealQ a ≤ toRealQ b := Iff.rfl
 
 theorem lt_iff_toRealQ_lt {a b : SBReal} : a < b ↔ toRealQ a < toRealQ b := Iff.rfl
+
+/-! ### The order is the lex order
+
+The instance above is a lift, so `≤` unfolds to a comparison in `ℝ`. That is a
+statement about how the instance was *built*; the theorems here say what the
+resulting relation *is*, with no mention of `ℝ` on either side of the `iff`.
+
+Without them "complete ordered field" would mean `ℝ`'s structure relabelled
+along a bijection, since `exists_isLUB` and `instIsStrictOrderedRingSBReal` are
+both statements about this order. With them the order is pinned to `SLexLt`,
+which `Order.lean` and `SignedOrder.lean` build from the bit strings alone.
+
+The `¬ SEqv` conjunct is not redundant and is the whole subtlety: a tail pair
+has `b <ₛ a` on the nose while `toReal a = toReal b`, so lex-below by itself
+does not give a strict inequality downstairs. `tailPair_iff_isAdjacent` is why
+the two conditions differ exactly on the pairs the quotient collapses. -/
+
+/-- **The order on `SBReal` is the signed lex order**, modulo the quotient. -/
+theorem mk_lt_mk_iff {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
+    mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b) :=
+  toReal_lt_iff ha hb
+
+/-- The non-strict form: `≤` is "lex-below or identified". -/
+theorem mk_le_mk_iff {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
+    mk a ha ≤ mk b hb ↔ (a <ₛ b ∨ SEqv a b) := by
+  rw [← not_lt, mk_lt_mk_iff hb ha]
+  constructor
+  · intro h
+    rcases slexLt_trichotomy a b with h1 | rfl | h1
+    · exact Or.inl h1
+    · exact Or.inr (SEqv.refl a)
+    · exact Or.inr (not_not.1 fun hne => h ⟨h1, hne⟩).symm
+  · rintro (h1 | h1) ⟨h2, hne⟩
+    · exact slexLt_asymm h1 h2
+    · exact hne h1.symm
+
+/-- Every class is `mk` of a representative, so the two lemmas above determine
+the order outright rather than only on classes presented that way. -/
+theorem exists_mk (a : SBReal) : ∃ (x : Signed) (hx : IsFinite x), mk x hx = a :=
+  Quotient.inductionOn a fun x => ⟨x.1, x.2, rfl⟩
 
 /-! ### The transported operations
 
