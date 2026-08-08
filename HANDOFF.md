@@ -308,8 +308,8 @@ the proof bodies change.
 ## Item 4 — PARTIAL
 
 New file `SternBrocot/Reduction.lean`. **One named `sorry`**,
-`degLeTwo_eventuallyPeriodic` — the theorem itself. Everything it consumes is
-proved.
+`finite_range_tailValue`. Everything else — including the theorem itself,
+`degLeTwo_eventuallyPeriodic`, which is now a one-line consequence — is proved.
 
 ### What was proved
 
@@ -340,30 +340,45 @@ indexed by `runBoundary` from the start, and `boundaryMat_eq_contin` connects
 the matrix columns to the convergents. Nothing in this file is stated for an
 arbitrary prefix.
 
+### Also proved: the back end of the argument
+
+Following the advice to do the last step first, the two steps *after* the
+pigeonhole are done too:
+
+* `eq_of_toReal₀_eq_of_irrational` — **irrational points with the same value are
+  equal.** The tail quotient only ever identifies points of rational value (one
+  side of a tail pair is eventually all `0`s, the other eventually all `1`s), so
+  it is invisible here. This is the step the encoding makes cheap: no algorithm
+  and no reconstruction.
+* `eventuallyPeriodic_of_tailValue_eq` — a repeated complete quotient is
+  literally a repeated *point*, hence `EventuallyPeriodic` on the nose.
+* `eventuallyPeriodic_of_finite_range` — the pigeonhole itself.
+
 ### The remaining `sorry`
 
-`degLeTwo_eventuallyPeriodic {x} (hirr : Irrational (Φ₀ x)) (h : DegLeTwo (Φ₀ x))
- : EventuallyPeriodic x`. Three steps remain, in order of cost:
+Exactly one, and it is now a crisp self-contained statement:
 
-1. **Bounded ⟹ finitely many forms.** `abs_formAt_contin_le` bounds the two outer
-   coefficients uniformly in `k`; `formDisc_transform` then bounds the middle
-   one, since `formMid² = D + 4 formAt formAt` with `D = B² − 4AC` fixed. So the
-   triple lands in a finite subset of `ℤ³`. In Lean this wants an explicit
-   `Finset` (a box of integers) plus `Finset.exists_ne_map_eq_of_card_lt_of_maps_to`,
-   or the range-finiteness route via `Set.Finite`.
-2. **Pigeonhole to a repeated complete quotient.** Each triple has at most two
-   real roots and the `tailValue`s are all roots of their triple's form, so the
-   set `{tailValue x k | k}` is finite; `Set.Infinite.exists_ne_map_eq_of_mapsTo`
-   then gives `k ≠ l` with `tailValue x k = tailValue x l`. Note the form is
-   genuinely quadratic at every `k`: `formAt = 0` would make `tailValue x k`
-   rational, and it is not.
-3. **Repeated quotient ⟹ periodic.** This is the cheap step in this encoding,
-   and worth doing first to check the shape. Equal values of `Φ₀` give
-   `TailEqv` by `toReal₀_injective`; a tail pair has a *rational* common value
-   (one side is a node), and `irrational_toReal₀_iterate_shift` rules that out —
-   so the two shifted points are literally **equal**, which is
-   `EventuallyPeriodic` on the nose.
+```
+finite_range_tailValue : Irrational (Φ₀ x) → DegLeTwo (Φ₀ x) →
+    (Set.range (fun k : ℕ => tailValue x (k + 2))).Finite
+```
 
-Step 3 is a few lines and would de-risk the rest. Do it first.
+*The complete quotients take finitely many values.* Everything it needs is in
+the file: `abs_formAt_contin_le` bounds the outer coefficients uniformly in `k`,
+`formDisc_transform` then bounds the middle one (since
+`formMid² = D + 4 formAt formAt` with `D = B² − 4AC` fixed), and
+`formAt_boundaryMat_root` says each complete quotient is a root of its own
+triple. What is missing is only the packaging:
+
+1. a finite box of integer triples (a `Finset` product, or `Set.Finite` of the
+   range of the triple map);
+2. "a nonzero quadratic has finitely many roots" — either
+   `Polynomial.setOf_isRoot_finite` on `C A * X^2 + C B * X + C C`, or the
+   elementary two-root argument: three distinct roots `z₁, z₂, z₃` of the same
+   `A ≠ 0` quadratic give `z₁ + z₂ = −B/A = z₁ + z₃`, hence `z₂ = z₃`.
+
+The leading coefficient is never zero, which route 2 needs: `formAt = 0` would
+make the complete quotient rational, and `irrational_toReal₀_iterate_shift` says
+it is not.
 
 

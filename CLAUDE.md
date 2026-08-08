@@ -133,11 +133,19 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    - `Examples.lean` closes the loop concretely: `toReal₀ goldenPath = φ`, where
      `goldenPath = {n | Even n}`. Previously only the truncations were checked.
 
-   **The hard direction** — 🟡 **partial, in `Reduction.lean`**: the estimate is
-   done (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`), one
-   named `sorry` left (`degLeTwo_eventuallyPeriodic`) for the pigeonhole and the
-   conclusion. See `HANDOFF.md`; the cheapest place to restart is the *last*
-   step, repeated complete quotient ⟹ periodic, which is a few lines here.
+   **The hard direction** — 🟡 **partial, in `Reduction.lean`**, with **one**
+   named `sorry`: `finite_range_tailValue`, "the complete quotients take
+   finitely many values". Both ends are done — the estimate
+   (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`) and the
+   conclusion (`eq_of_toReal₀_eq_of_irrational`,
+   `eventuallyPeriodic_of_finite_range`). What is left is the packaging: a finite
+   box of integer triples, and "a nonzero quadratic has finitely many roots".
+
+   Worth noting how cheap the back end turned out to be here. Equal values of
+   `Φ₀` at two shifts give tail-equivalence, and a tail pair always has a
+   *rational* common value — so irrationality makes the two shifted points
+   literally **equal**. Periodicity comes out on the nose, with no
+   reconstruction step at all.
 
    The original statement of the remaining work — a quadratic *irrational* has an
    eventually periodic path. This is genuinely classical Lagrange and is a separate
@@ -235,7 +243,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
-| `Reduction.lean` | 🟡 the forms along a path are bounded — Lagrange's hard half |
+| `Reduction.lean` | 🟡 Lagrange's hard half — bounded forms; 1 `sorry` |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Intrinsic.lean` | **intrinsic `+`, `×` as suprema over nodes** |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |

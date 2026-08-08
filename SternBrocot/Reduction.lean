@@ -177,23 +177,95 @@ theorem formAt_boundaryMat_root {x : Set ℕ} (hirr : Irrational (toReal₀ x)) 
   rw [toReal₀_eq_mobius_prefixWord x (runBoundary x j) hne, mobius]
   rfl
 
-/-! ### What remains
+/-! ### From a repeated complete quotient to periodicity
 
-The bound above is uniform in `k`, and the discriminant is fixed, so the triples
-`(formAt (a,c), formMid, formAt (b,d))` along the run boundaries take finitely
-many values. Pigeonhole then repeats a complete quotient, and two equal complete
-quotients make the path periodic — the last step being cheap in this encoding,
-since `toReal₀_injective` turns equal values into equal *points* once
-irrationality rules out the tail pairs. -/
+The last step of the argument, and the one the encoding makes cheap: equal
+values of `Φ₀` at two shifts give tail-equivalence, and a tail pair has a
+*rational* common value — one side of it is eventually all `0`s and the other
+eventually all `1`s — so irrationality forces the two shifted points to be
+literally **equal**, which is `EventuallyPeriodic` on the nose. No algorithm and
+no reconstruction step. -/
+
+theorem eventuallyConstant_of_tailPair_left {a b : Set ℕ} (h : TailPair a b) :
+    EventuallyConstant a := by
+  obtain ⟨n, hn⟩ := h
+  exact ⟨n + 1, Or.inl fun m hm => hn.left_top m (by omega)⟩
+
+theorem eventuallyConstant_of_tailPair_right {a b : Set ℕ} (h : TailPair a b) :
+    EventuallyConstant b := by
+  obtain ⟨n, hn⟩ := h
+  exact ⟨n + 1, Or.inr fun m hm => hn.right_tail m (by omega)⟩
+
+/-- **Irrational points with the same value are equal.** The tail quotient only
+ever identifies points of rational value, so it is invisible here. -/
+theorem eq_of_toReal₀_eq_of_irrational {x y : Set ℕ} (hx : Irrational (toReal₀ x))
+    (h : toReal₀ x = toReal₀ y) : x = y := by
+  have hxu := ne_univ_of_irrational hx
+  have hyu : y ≠ univ := by
+    intro hc
+    rw [hc, toReal₀_univ] at h
+    exact not_irrational_of_eq_rat (q := 0) (by rw [h]; norm_num) hx
+  rcases toReal₀_injective hxu hyu h with rfl | hp | hp
+  · rfl
+  · obtain ⟨q, hq⟩ :=
+      (eventuallyConstant_iff_rat hxu).1 (eventuallyConstant_of_tailPair_left hp)
+    exact absurd hx (not_irrational_of_eq_rat hq)
+  · obtain ⟨q, hq⟩ :=
+      (eventuallyConstant_iff_rat hxu).1 (eventuallyConstant_of_tailPair_right hp)
+    exact absurd hx (not_irrational_of_eq_rat hq)
+
+theorem runBoundary_strictMono {x : Set ℕ} (h : InfFlips x) : StrictMono (runBoundary x) :=
+  strictMono_nat_of_lt_succ (runBoundary_lt_succ h)
+
+/-- **A repeated complete quotient makes the path eventually periodic.** -/
+theorem eventuallyPeriodic_of_tailValue_eq {x : Set ℕ} (hirr : Irrational (toReal₀ x))
+    {k l : ℕ} (hkl : k < l) (h : tailValue x k = tailValue x l) : EventuallyPeriodic x := by
+  have hf := infFlips_of_irrational hirr
+  have hlt : runBoundary x k < runBoundary x l := runBoundary_strictMono hf hkl
+  have heq : shift^[runBoundary x k] x = shift^[runBoundary x l] x :=
+    eq_of_toReal₀_eq_of_irrational (irrational_toReal₀_iterate_shift hirr _) h
+  refine ⟨runBoundary x k, runBoundary x l - runBoundary x k, by omega, ?_⟩
+  rw [← Function.iterate_add_apply,
+    show runBoundary x l - runBoundary x k + runBoundary x k = runBoundary x l from by omega,
+    ← heq]
+
+/-! ### The pigeonhole, and what is left
+
+With the last step in hand the whole theorem reduces to a single statement: the
+complete quotients take only **finitely many values**. That is exactly what
+bounded coefficients plus a fixed discriminant give — the triples
+`(formAt (a,c), formMid, formAt (b,d))` lie in a box, each triple is a genuinely
+quadratic form (its leading coefficient cannot vanish, or the complete quotient
+would be rational), and a quadratic has at most two roots. -/
+
+/-- **The pigeonhole.** Finitely many complete quotients force a repeat, and a
+repeat is periodicity. -/
+theorem eventuallyPeriodic_of_finite_range {x : Set ℕ} (hirr : Irrational (toReal₀ x))
+    (hfin : (Set.range (fun k : ℕ => tailValue x (k + 2))).Finite) : EventuallyPeriodic x := by
+  obtain ⟨k, -, l, -, hne, heq⟩ :=
+    Set.infinite_univ.exists_ne_map_eq_of_mapsTo
+      (f := fun k : ℕ => tailValue x (k + 2)) (fun a _ => Set.mem_range_self a) hfin
+  rcases lt_or_gt_of_ne hne with hlt | hlt
+  · exact eventuallyPeriodic_of_tailValue_eq hirr (by omega : k + 2 < l + 2) heq
+  · exact eventuallyPeriodic_of_tailValue_eq hirr (by omega : l + 2 < k + 2) heq.symm
+
+/-- **The one remaining gap.** The complete quotients of a quadratic irrational
+take finitely many values.
+
+Not proved. Everything it needs is above: `abs_formAt_contin_le` bounds the outer
+coefficients uniformly, `formDisc_transform` then bounds the middle one, and
+`formAt_boundaryMat_root` says each complete quotient is a root of its own
+triple. What is missing is only the packaging — a finite box of integer triples,
+and "a nonzero quadratic has finitely many roots". -/
+theorem finite_range_tailValue {x : Set ℕ} (hirr : Irrational (toReal₀ x))
+    (h : DegLeTwo (toReal₀ x)) :
+    (Set.range (fun k : ℕ => tailValue x (k + 2))).Finite := by
+  sorry
 
 /-- **Lagrange, hard direction.** A quadratic irrational has an eventually
-periodic path.
-
-Not proved. See `HANDOFF.md` for exactly what is left: the pigeonhole over the
-finitely many bounded forms, and the step from a repeated complete quotient to
-`EventuallyPeriodic`. -/
+periodic path. -/
 theorem degLeTwo_eventuallyPeriodic {x : Set ℕ} (hirr : Irrational (toReal₀ x))
-    (h : DegLeTwo (toReal₀ x)) : EventuallyPeriodic x := by
-  sorry
+    (h : DegLeTwo (toReal₀ x)) : EventuallyPeriodic x :=
+  eventuallyPeriodic_of_finite_range hirr (finite_range_tailValue hirr h)
 
 end SternBrocot
