@@ -17,6 +17,7 @@ import SternBrocot.Lagrange
 import SternBrocot.Convergent
 import SternBrocot.Hurwitz
 import SternBrocot.Field
+import SternBrocot.Intrinsic
 import SternBrocot.Gosper
 import SternBrocot.GosperRat
 import SternBrocot.Examples

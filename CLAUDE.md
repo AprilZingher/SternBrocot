@@ -76,12 +76,21 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×` on ℝ by density — closes the independence gap.**
-   Define them as suprema of their values on nodes (`toRealQ_add_eq_sSup` shows
-   the sup-definition lands on the same operation, so nothing is lost), then
-   derive the field axioms from ℚ's by density and continuity. After this the
-   construction never mentions `ℝ`. **This does not need Gosper**, which is the
-   key realisation — Gosper was blocking something it never actually blocked.
+2. **Intrinsic `+` and `×`** — 🟡 **skeleton in `Intrinsic.lean`**, 10 named
+   `sorry`s, all listed in `HANDOFF.md`. The definitions are final and `ℝ`-free:
+   `slexSup` (the signed bitwise supremum — one case split off `lexSup`),
+   `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the Euclidean algorithm),
+   and `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
+   inner `+` rational, so no circularity. All ten field axioms are **proved**
+   off two remaining lemmas, `toRealQ_add'` and `toRealQ_mul'`.
+
+   **A distinction this file forced.** Proving the axioms by pushing through
+   `toRealQ` makes the *definitions* `ℝ`-free but not the *proofs*. The density
+   argument is what makes the proofs `ℝ`-free too, and it is a separate step —
+   the statements are already arranged so that swapping it in changes nothing
+   else. Do not claim the strong form until the proofs stop mentioning `ℝ`.
+   **This does not need Gosper**, which is the key realisation — Gosper was
+   blocking something it never actually blocked.
 
 3. **Gosper productivity — the open/paper piece.** Running the machine forever
    on irrational inputs and proving it always eventually emits. Lean 4 has no
@@ -219,6 +228,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
+| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — skeleton |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |

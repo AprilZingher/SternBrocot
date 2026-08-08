@@ -225,3 +225,66 @@ Nothing here is blocked. `Examples.lean` could cheaply close one more loop:
 `toReal₀_goldenPath ▸ sqrt5_optimal` states the extremality of `φ` directly in
 terms of the golden *path*. It is a two-line corollary and was left out only for
 time.
+
+
+## Item 3 — PARTIAL (skeleton committed, as the queue specified)
+
+New file `SternBrocot/Intrinsic.lean`. **It compiles, and it contains 10 named
+`sorry`s, all listed below.** Nothing else in the repository has a `sorry`.
+
+### The design, in one paragraph
+
+Three intrinsic layers. (1) `slexSup` — a supremum on `P(ω+1)`. `Completeness.lean`
+already has `lexSup` on `P(ω)`, and `SLexLt` is "negatives below positives, same
+sign by forward lex on the stored bits", so one case split suffices: a set with a
+positive member has a positive supremum whose bits are `lexSup` of the positive
+members' bits, and a set of negatives has a negative one whose bits are `lexSup`
+of all of them. No boundedness hypothesis, exactly as for `lexSup`. (2)
+`ratPoint : ℚ → Signed` — `GosperRat.toPath` is the Euclidean algorithm as a
+function, `Bridge.toSet` makes it a point, `neg` extends it across the sign.
+(3) The operations as suprema over the nodes:
+`a + b = sup { ratPoint (p+q) | ratPoint p <ₛ a, ratPoint q <ₛ b }` with `p q : ℚ`
+and the inner `+` **rational** addition, so there is no circularity; `×` is the
+same formula on the nonnegative cone, extended by `neg`, because the supremum
+formula is monotone only there.
+
+### Every remaining `sorry`, by name
+
+| name | what it says | what it needs |
+|---|---|---|
+| `slexSup_upperBound` | `slexSup S` bounds `S` | the two sign cases; each reduces to `lexSup_upperBound` |
+| `slexSup_least` | it is the least such | the two sign cases; each reduces to `lexSup_least`. In the all-negative case a positive `v` is above automatically |
+| `isFinite_ratPoint` | `ratPoint q ≠ ±∞` | `toSet_ne_univ`, plus the mirrored convention on the negative branch |
+| `toReal_ratPoint` | `toReal (ratPoint q) = q` | `nodeValue_toPath` and `toReal₀_toSet`; the only bridge to `ℝ` in the file |
+| `isFinite_addRaw`, `isFinite_mulRaw` | the operations stay finite | the supremum of a set bounded by a node is bounded by that node — `slexSup_least` plus a node above |
+| `addRaw_congr`, `mulRaw_congr` | they respect the quotient | the cut `{ratPoint p \| ratPoint p <ₛ a}` is unchanged when `a` moves to its tail partner, because no *node* lies strictly between adjacent points (`tailPair_iff_isAdjacent`). This is the one that carries real content |
+| `toRealQ_add'`, `toRealQ_mul'` | the intrinsic ops are the transported ones | `toRealQ_add_eq_sSup` is most of the first; what remains is that the supremum `slexSup` takes in `P(ω+1)` is the one `toRealQ` sees, i.e. that `toReal` is continuous for the lex sup |
+
+The field axioms — `add'_comm`, `add'_assoc`, `add'_zero`, `add'_left_neg`,
+`mul'_comm`, `mul'_assoc`, `mul'_one`, `mul'_zero`, `left_distrib'`,
+`mul'_inv_cancel` — are **all proved**, along with `add'_eq_add` and
+`mul'_eq_mul` (the intrinsic operations are the transported ones). They are
+one-liners off `toRealQ_add'`/`toRealQ_mul'`, which is the point: once those two
+land, the field structure is done and can be installed as the instance.
+
+Also proved along the way, and independently useful: `toRealQ_zero`,
+`toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing companions to
+`Field.lean`'s `toRealQ_add`/`toRealQ_mul`, derived by cancellation rather than
+by unfolding the transport.
+
+### An honest limitation of this design
+
+The route taken proves each field axiom by pushing through `toRealQ` and quoting
+`ℝ`. After it, the **definitions** of `+` and `×` never mention `ℝ` — which is
+what "closes the independence gap" was asked for — but the **proofs** still do.
+The stronger result, in which the axioms are also proved without `ℝ` (by density
+of the nodes and continuity, as CLAUDE.md item 2 describes), needs a different
+proof of the axioms and not a different definition. The skeleton is arranged so
+that swapping in those proofs changes nothing else: `add'`/`mul'` and the axiom
+*statements* are already `ℝ`-free.
+
+### What the next person should do first
+
+`slexSup_upperBound` and `slexSup_least`. They are the only sorries with no
+dependencies, they are short (the sign case split plus `lexSup_upperBound` /
+`lexSup_least`), and four of the remaining eight rest on them.
