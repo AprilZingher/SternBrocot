@@ -169,12 +169,6 @@ theorem L_ne_univ (x : Set ℕ) : L x ≠ univ := fun h => zero_notMem_L x (h �
 
 theorem S_ne_empty (x : Set ℕ) : S x ≠ ∅ := fun h => (h ▸ zero_mem_S x : (0 : ℕ) ∈ (∅ : Set ℕ))
 
-/-- `∅` is strictly below anything else. -/
-theorem empty_lexLt {x : Set ℕ} (h : x ≠ ∅) : (∅ : Set ℕ) <ₗ x := by
-  rcases (lexLe_iff ∅ x).1 (empty_lexLe x) with heq | hlt
-  · exact absurd heq.symm h
-  · exact hlt
-
 /-! ### The right move adds one
 
 `Φ₀ (S y) = Φ₀ y + 1`. The nodes below `S y` are the nodes starting with `0`,

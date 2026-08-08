@@ -130,4 +130,12 @@ theorem exists_node_between_points {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ Ta
   · exact hzy
   · exact lexLt_trans hlt' hzy
 
+/-! ### The bottom of the order -/
+
+/-- `∅` is strictly below anything else. -/
+theorem empty_lexLt {x : Set ℕ} (h : x ≠ ∅) : (∅ : Set ℕ) <ₗ x := by
+  rcases (lexLe_iff ∅ x).1 (empty_lexLe x) with heq | hlt
+  · exact absurd heq.symm h
+  · exact hlt
+
 end SternBrocot

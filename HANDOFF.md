@@ -421,3 +421,67 @@ order isomorphism with `ℝ`" and "we have proved the axioms".
 Not done, and worth knowing: there is still no `ConditionallyCompleteLinearOrder
 SBReal` **instance**, so `sSup` notation does not work on `SBReal`.
 `exists_isLUB_of_forall_le` is the form such an instance would be built from.
+
+
+## Follow-up — making the `ℝ`-free claim structural
+
+Prompted by "can you make it independent of `ℝ`". Three files split out, no
+`sorry` added, nothing renamed — every name stayed in `namespace SternBrocot`,
+so no downstream file changed.
+
+* `Density.lean` — `exists_node_above`, `exists_node_ge`, `not_tailEqv_node`,
+  `exists_node_between_points`, `toSet_ne_univ`, `empty_lexLt`. All `ℝ`-free in
+  statement *and* proof; they were stranded in `ToReal.lean` and `Shift.lean`.
+* `Magnitude.lean` — `magnitude`, `IsFinite` and their lemmas, out of
+  `SignedToReal.lean`. `IsFinite` is the side condition on every intrinsic
+  operation, so leaving it downstream of `ℝ` would have forced the operations
+  downstream too.
+* `IntrinsicCore.lean` — `slexSup`, `ratPoint`, `addCut`/`addRaw`,
+  `mulCut`/`mulRawPos`/`mulRaw`, the density and endpoint lemmas, and the three
+  `isFinite_*` lemmas.
+
+### The one new proof
+
+`isFinite_addRaw` used to depend on `ratPoint_le_of_slexLt`, which went through
+`toReal_mono` — i.e. through `ℝ`. It is now proved `ℝ`-free:
+
+* `ratPoint_strictMono` / `ratPoint_slexLt_iff` — **`ratPoint` is an order
+  embedding of `ℚ`**, from `lexLt_toSet_iff` plus the sign split, with
+  `compl_lexLt_compl` handling the negative branch (where the stored bits are
+  the complement, so the order reverses twice).
+
+### How the claim is checked
+
+Not by reading. `Real.pi` fails to resolve in a file importing only the module,
+so `Real` is not in the transitive import closure. By that test **seventeen**
+modules are `ℝ`-free: Basic, Order, Completeness, Node, Enumeration, PathOrder,
+Bridge, Density, Magnitude, Signed, SignedOrder, IntrinsicCore, Gosper,
+GosperRat, Tail, Induction — and anything importing only those.
+
+### What is still not `ℝ`-free, and why
+
+* **The `LinearOrder SBReal` instance.** It is `LinearOrder.lift' toRealQ`, so
+  the order relation on the quotient literally unfolds to a comparison in `ℝ`.
+  Fixing this means descending `SLexLt` through the adjacency quotient —
+  `⟦a⟧ < ⟦b⟧ ↔ a <ₛ b ∧ ¬ SEqv a b` — proving it is a linear order, and swapping
+  the instance. `orderIsoReal`'s `map_rel_iff' := Iff.rfl` would become the
+  agreement theorem instead. This is the next step and the load-bearing one.
+* **The field axioms.** Proved by pushing through `toRealQ`. Making them
+  `ℝ`-free needs the cut characterisation
+  `ratPoint r <ₛ addRaw a b ↔ ∃ p q, ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ r < p + q`,
+  after which each axiom is `ℚ` arithmetic. `slexSup_upperBound`/`slexSup_least`
+  and `exists_node_between_points` are the inputs, and both are now `ℝ`-free, so
+  this is unblocked. Distributivity across signs is the painful one.
+* **`Convergent`, `Hurwitz`, `Lagrange`, `Degree`, `Reduction`** mention `ℝ` and
+  should — they are *about* real numbers. "The construction is `ℝ`-free" is a
+  claim about the construction, not the library.
+
+### A framing correction worth keeping
+
+The natural first instinct is a *convergence* helper — prove something on
+successive rational approximations, transfer it to the limit. That reintroduces
+what it is trying to remove: a limit needs a topology, and a topology on this
+carrier would either come from `ℝ` or have to be built from scratch. The
+Dedekind route needs none of it. `toReal₀ x = sSup (below x)` is already a cut,
+so the transfer principle is *density plus extensionality of cuts*, which is
+pure order theory and is what `Density.lean` supplies.

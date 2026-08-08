@@ -90,6 +90,13 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    transported — so installing them as the instance changes no theorem. That
    swap is the one thing left, and it is mechanical.
 
+   **The `ℝ`-free claim is now structural.** `IntrinsicCore.lean` holds
+   `slexSup`, `ratPoint`, `addRaw`, `mulRaw` and the finiteness lemmas, and
+   `Real` is not reachable through its transitive import closure at all — the
+   check is that `Real.pi` does not resolve in a file importing only it. Along
+   with `Density.lean` and `Magnitude.lean` that makes **seventeen** modules
+   `ℝ`-free by import graph rather than by inspection.
+
    **A distinction this file forced.** The *definitions* are now `ℝ`-free; the
    *proofs* of the axioms still go through `toReal`. The density argument is
    what would make the proofs `ℝ`-free too, and it is a separate step — the
@@ -237,6 +244,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Enumeration.lean` | **the tree enumerates `ℚ≥0` exactly once** |
 | `PathOrder.lean` | `nodeValue` is an order embedding |
 | `Bridge.lean` | paths ↔ finite subsets of `ω`; addition is not Boolean |
+| `Magnitude.lean` | magnitude and `IsFinite` — ℝ-free |
 | `Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** |
 | `SignedOrder.lean` | the mirrored sign order; the full quotient |
 | `ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0`, a Dedekind cut |
@@ -250,7 +258,8 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Reduction.lean` | 🟡 Lagrange's hard half — bounded forms; 1 `sorry` |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Complete.lean` | **the ordered-field axioms and completeness**, stated |
-| `Intrinsic.lean` | **intrinsic `+`, `×` as suprema over nodes** |
+| `IntrinsicCore.lean` | **the intrinsic `+`, `×`, and `ratPoint` — ℝ-free** |
+| `Intrinsic.lean` | those operations agree with the transported ones |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |

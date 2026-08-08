@@ -6,8 +6,10 @@ import SternBrocot.Node
 import SternBrocot.Enumeration
 import SternBrocot.PathOrder
 import SternBrocot.Bridge
+import SternBrocot.Density
 import SternBrocot.Signed
 import SternBrocot.SignedOrder
+import SternBrocot.Magnitude
 import SternBrocot.ToReal
 import SternBrocot.SignedToReal
 import SternBrocot.Induction
@@ -18,6 +20,7 @@ import SternBrocot.Convergent
 import SternBrocot.Hurwitz
 import SternBrocot.Reduction
 import SternBrocot.Field
+import SternBrocot.IntrinsicCore
 import SternBrocot.Intrinsic
 import SternBrocot.Complete
 import SternBrocot.Gosper
