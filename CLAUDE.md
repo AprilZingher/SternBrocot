@@ -13,7 +13,7 @@ operations* are transported from `ℝ` along the isomorphism. By uniqueness of
 complete ordered fields that transport had no freedom in it (see
 `toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
 settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~5,500 lines, no `sorry`, everything on `propext`,
+remaining work. ~6,100 lines, no `sorry`, everything on `propext`,
 `Classical.choice`, `Quot.sound`.
 
 The first classical continued-fraction theorem is now in: **Lagrange's theorem,
@@ -45,13 +45,18 @@ cases.
 
 ## Next steps
 
-**Recommended order: 5 (convergents) → 6 (Hurwitz) → 2 (intrinsic ops) → the
-hard half of 4.** Item 5 is shared infrastructure that both 6 and the rest of 4
-need, so it is cheapest first; Hurwitz is the smallest theorem on top of it and
-validates that layer before a big proof bets on it. Item 2 is the only item that
-changes what the project *is* — it removes `ℝ` from the definition — and it does
-not invalidate any CF theorem proved before it (nothing in the Lagrange import
-chain reaches `Field.lean`), so deferring it costs exposure, not rework.
+**Item 5 is done.** Remaining recommended order: **6 (Hurwitz) → 2 (intrinsic
+ops) → the hard half of 4.** Hurwitz is the smallest theorem on top of the
+convergent layer and validates it before a big proof bets on it. Item 2 is the
+only item that changes what the project *is* — it removes `ℝ` from the
+definition — and it does not invalidate any CF theorem proved before it (nothing
+in the Lagrange import chain reaches `Field.lean`), so deferring it costs
+exposure, not rework.
+
+Both 6 and the hard half of 4 want one thing `Convergent.lean` proves but does
+not export: the **exact** error. `column_errors` (currently `private`) already
+has `t − B/D = s/(D(Cs+D))` and `A/C − t = 1/(C(Cs+D))` on the nose. Exposing
+that is a re-statement, not a new proof.
 
 **The ordering turns on a question this file has not settled**: is this a
 *construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
@@ -131,40 +136,38 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    Confirmed absent from this Mathlib before starting — `GenContFract` exists,
    this theorem does not.
 
-   **Do item 5 first.** The pigeonhole runs on the convergents, which is exactly
-   what item 5 builds.
+   **Item 5 is now available.** The pigeonhole runs on the convergents, which is
+   exactly what `Convergent.lean` builds: `runBoundary`, `contin`,
+   `contin_den_le_succ` and `abs_sub_contin_lt`.
 
-5. **The convergents — shared infrastructure, and the thing to build next.**
-   Both Hurwitz and the hard half of Lagrange need it, so it is paid for once.
+5. **The convergents** — ✅ **done** (`Convergent.lean`). The run-boundary
+   decomposition, the recurrence, and both estimates, with no `sorry`.
 
-   In this encoding the convergents are **not** the prefixes of the bit path.
-   They are the prefixes at **run boundaries** — the positions where an `R`-run
-   flips to an `L`-run or back. A prefix in the middle of a run is an
-   intermediate mediant, not a convergent, and that distinction is the whole
-   difficulty: the classical estimates hold at run boundaries and fail between
-   them. This is the same fact as the `c/d` trap recorded under item 4.
+   Confirmed while building it: the convergents are the prefixes at **run
+   boundaries**, and `boundaryMat_eq_contin` is where that fact lives — at
+   boundary `k+1` the two columns of `pathMat` of the prefix are `contin x (k+1)`
+   and `contin x (k+2)`, consecutive convergents, in an order alternating with
+   the run's bit. Mid-run one column is an intermediate mediant instead.
 
-   What to build:
-   - **Run-boundary extraction.** From `x : Set ℕ` produce the increasing
-     sequence of indices where the bit flips. The partial quotients are the run
-     lengths. For an irrational `x` this sequence is infinite (the path is not
-     eventually constant, by `eventuallyConstant_iff_rat`); for a rational it
-     terminates, so statements will carry an irrationality hypothesis where
-     classical ones say "infinite continued fraction".
-   - **The recurrence** `pₙ = aₙ pₙ₋₁ + pₙ₋₂`, `qₙ = aₙ qₙ₋₁ + qₙ₋₂`. This
-     should come out of `pathMat` evaluated at run boundaries almost directly —
-     `pathMat` of an `R`-run and of an `L`-run are the two elementary matrices
-     raised to the run length, and `pathMat_det` already gives `pₙqₙ₋₁ − pₙ₋₁qₙ
-     = ±1`.
-   - **The two estimates**: `qₙ ≤ qₙ₊₁` (this is what fails mid-run and is why
-     the subsequence is necessary) and `|Φ₀ x − pₙ/qₙ| < 1/(qₙ qₙ₊₁)`.
+   One correction to what this file previously said. The bound
+   `|Φ₀x − B/D| < 1/(CD)` holds at **every** prefix, not only at run boundaries —
+   it is just `AD − BC = 1` plus `Φ₀x = (As+B)/(Cs+D)`. What the run boundary
+   buys is that `C` and `D` are then consecutive *convergent* denominators, so
+   that the bound reads `1/(qₖqₖ₊₁)` and `qₖ ≤ qₖ₊₁` is available. The estimate
+   was never the hard part; the indexing is.
 
-   Relation to Mathlib: `GenContFract` has continuants, the determinant identity
-   and convergence, but for *its* representation. Whether to bridge to it or
-   rebuild here is an open call — bridging costs a translation between the run-
-   length encoding and `GenContFract.of`, rebuilding costs the estimates. The
-   estimates are probably cheaper than the bridge, and rebuilding keeps the
-   development self-contained, but check before committing.
+   **Indexing trap.** `contin x 0`, `contin x 1` are the seeds `(0,1)`, `(1,0)`,
+   *swapped* when the path starts with a left move. That swap is the classical
+   `a₀ = 0`: for `x < 1` no leading `R`-run is stored, so the sequence shifts by
+   one. It is what lets one recurrence serve both `x ≥ 1` and `x < 1`. The price
+   is that `contin x k` is a convergent only for `k ≥ 2` (and `q₁ = 0`), so every
+   estimate is stated at `k + 2`.
+
+   **Mathlib bridge: decided against, with measurements** — see `HANDOFF.md`.
+   Short version: `GenContFract.of` is built from `⌊·⌋` and `Int.fract`, so
+   bridging still requires identifying the run lengths with its partial
+   quotients, which is the expensive half of the file; and Mathlib's estimate is
+   non-strict where the one here is strict.
 
 6. **Other classical CF theorems Mathlib lacks.** Surveyed against this Mathlib;
    all confirmed absent (beware false positives — the `Hurwitz`, `Legendre` and
@@ -184,7 +187,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
    in this project's import closure).
 
-   **Hurwitz is the one to do first**, once item 5 is in place. Only the `√5`
+   **Hurwitz is the one to do first**, and item 5 is now in place. Only the `√5`
    refinement is missing — Mathlib supplies the `1/q²` case and `goldenRatio`,
    and `Examples.toReal₀_goldenPath` now proves `Φ₀ {n | Even n} = φ` outright,
    which is the extremality witness. The standard proof takes any three
@@ -216,6 +219,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Shift.lean` | the shift; **the move recursion for `Φ₀`**; prefixes act by Möbius |
 | `Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
+| `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
@@ -237,6 +241,9 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
   map, not just for `nodeValue` on finite paths. Everything about the shift
   rests on these two.
 - `degLeTwo_of_eventuallyPeriodic` — Lagrange, forward direction.
+- `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
+  **at run boundaries**; the classical recurrence falls out of `pathMat`.
+- `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
 
 ## Traps
 
@@ -265,6 +272,11 @@ Things that cost time to rediscover.
 - **`below a ⊆ below b` for a tail pair is not immediate** — it fails if `b` is a
   node. It holds because the *right* element of a tail pair is cofinite, hence
   never a node. Load-bearing; I got it wrong first time.
+- **The convergents are at run boundaries, and `contin` is indexed from 2.** The
+  seeds `contin x 0`, `contin x 1` are `(0,1)`, `(1,0)` *swapped* when the path
+  starts with a left move — that swap is the classical `a₀ = 0`, and it is what
+  lets one recurrence serve both `x ≥ 1` and `x < 1`. So `q₁ = 0`, and every
+  estimate is stated at `k + 2`. Do not special-case `x < 1` instead.
 - **No `LinearOrder` on `Set ℕ`** — it already carries `⊆`. The lex order lives as
   bare relations `<ₗ`, `≤ₗ`. A type synonym was tried and deleted as dead weight:
   the *quotient* carries the order instead, which is the better design.
