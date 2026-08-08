@@ -71,11 +71,27 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
    arguments cannot supply this** — proving a function continuous presupposes it
    is total, which is what productivity would establish.
 
-4. **Lagrange's theorem** (independent, Mathlib-contribution-shaped). CF
-   expansion is eventually periodic iff quadratic irrational. Periodicity of the
-   `L`/`S` sequence is immediate in this encoding; route is `SL₂(ℤ)`
-   eigenvectors. Verify against current Mathlib first — `GenContFract` exists,
-   this theorem did not as of writing.
+4. **Lagrange's theorem** — independent, Mathlib-shaped, and **available now**:
+   it does *not* need productivity. Productivity is about computing a path; every
+   real already *is* a subset of `ω+1` (`exists_toReal_eq`), so periodicity is
+   just a property of that set and needs no algorithm. What it needs: the shift
+   on paths and its effect on values (drop bit `0`: `x ↦ x - 1` after `S`,
+   `x ↦ x/(1-x)` after `L`), then periodicity ⟺ `x` is a fixed point of a Möbius
+   map in `SL₂(ℤ)`, giving a quadratic. The `SL₂` half is already built —
+   `pathMat`, `pathMat_det`.
+
+   **State it correctly.** In this encoding a *rational* has an eventually
+   **constant** path, hence an eventually periodic one. Classical Lagrange
+   excludes rationals via "infinite continued fraction", and that exclusion does
+   not survive translation. The true statement is
+
+   > the path of `x` is eventually periodic **iff** `[ℚ(x) : ℚ] ≤ 2`
+
+   — rational *or* quadratic irrational. "iff quadratic irrational" is **false**
+   here and would compile fine as a skeleton.
+
+   Verify against current Mathlib before starting — `GenContFract` exists, this
+   theorem did not as of writing.
 
 ## Files
 
