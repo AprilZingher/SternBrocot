@@ -6,8 +6,11 @@ von Neumann ordinals unchanged.
 
 ## Status in one paragraph
 
-**The construction is complete**: `orderIsoReal : SBReal ≃o ℝ`, and `SBReal`
-carries a `Field` instance (`ring` works on it). The *order* is intrinsic — built
+**The construction is complete**: `SBReal` is a **complete ordered field**,
+stated as such — `Field SBReal`, `IsStrictOrderedRing SBReal` (the order is
+compatible with `+` and `×`) and `exists_isLUB` (every nonempty bounded-above
+set has a least upper bound), with `orderIsoReal : SBReal ≃o ℝ` exhibiting the
+uniqueness. `ring` and `linarith` both work on it. The *order* is intrinsic — built
 here from the lex order and a bitwise supremum, never mentioning `ℝ`. The *field
 operations* are transported from `ℝ` along the isomorphism. By uniqueness of
 complete ordered fields that transport had no freedom in it (see
@@ -245,6 +248,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Reduction.lean` | 🟡 Lagrange's hard half — bounded forms; 1 `sorry` |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
+| `Complete.lean` | **the ordered-field axioms and completeness**, stated |
 | `Intrinsic.lean` | **intrinsic `+`, `×` as suprema over nodes** |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
@@ -261,6 +265,11 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
   rests. Tail pairs are exactly adjacent pairs.
 - `nodeValue_bijOn` — the tree enumerates `ℚ≥0` exactly once, in lowest terms.
 - `orderIsoReal : SBReal ≃o ℝ` — the construction.
+- `instIsStrictOrderedRingSBReal` + `exists_isLUB` — the **complete ordered
+  field** axioms, stated rather than merely implied by the order isomorphism.
+  Neither was in the development before; a `LinearOrder` on a field says nothing
+  about how the order and the operations interact, and nothing had asserted
+  completeness in any form.
 - `toReal_addRaw` / `toReal_mulRaw` — the intrinsic operations, defined as
   suprema over the rational nodes with no mention of `ℝ`, compute `+` and `×`.
 - `rat_induction` — induction along the tree. Reaches `ℚ`; **not** `ℝ`.

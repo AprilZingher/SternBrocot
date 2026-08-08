@@ -382,3 +382,42 @@ make the complete quotient rational, and `irrational_toReal₀_iterate_shift` sa
 it is not.
 
 
+
+
+## Follow-up — the complete ordered field axioms, stated
+
+New file `SternBrocot/Complete.lean`, no `sorry`.
+
+Prompted by the question "are the Stern–Brocot reals now proven as a complete
+ordered field?", I audited what was actually registered and the answer was
+**no** — not as stated in the Lean. What existed was `Field SBReal`,
+`LinearOrder SBReal` and `orderIsoReal : SBReal ≃o ℝ`. That combination
+*implies* the result, but none of the defining clauses had been written down:
+
+* nothing said the order is compatible with the operations — there was no
+  `IsStrictOrderedRing`, no `add_le_add`, no `mul_pos`;
+* nothing said the order is complete — no `sSup`, no `IsLUB`, no
+  `ConditionallyCompleteLinearOrder`, in any form.
+
+Both are now stated and proved:
+
+* `instIsStrictOrderedRingSBReal` — pulled back along `toRealQ` with
+  `Function.Injective.isStrictOrderedRing`, using `toRealQ_zero/one/add/mul` and
+  the fact that `≤` on `SBReal` is `toRealQ`-reflecting by construction.
+* `exists_isLUB` — every nonempty bounded-above set has a least upper bound,
+  via `isLUB_iff_isLUB_image` and `Real.exists_isLUB`.
+
+Three `example`s check that the instance genuinely fires, by using Mathlib's
+*generic* order-algebra API rather than restating the theorem: `gcongr`,
+`mul_pos`, `sq_nonneg`, and `linarith` — the last of which needs the full
+ordered-field structure to run at all.
+
+Note the honest reading: these proofs are pullbacks along `toRealQ`, so they are
+short, and the content lives in the theorems that made `toRealQ` available
+(`toRealQ_injective`, `toRealQ_surjective`, and the intrinsic order). What the
+file adds is not depth but the *statements* — the difference between "we have an
+order isomorphism with `ℝ`" and "we have proved the axioms".
+
+Not done, and worth knowing: there is still no `ConditionallyCompleteLinearOrder
+SBReal` **instance**, so `sSup` notation does not work on `SBReal`.
+`exists_isLUB_of_forall_le` is the form such an instance would be built from.

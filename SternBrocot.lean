@@ -19,6 +19,7 @@ import SternBrocot.Hurwitz
 import SternBrocot.Reduction
 import SternBrocot.Field
 import SternBrocot.Intrinsic
+import SternBrocot.Complete
 import SternBrocot.Gosper
 import SternBrocot.GosperRat
 import SternBrocot.Examples
