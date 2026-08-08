@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Bridge
+import SternBrocot.Core.Bridge
 
 /-!
 # Induction along the tree

@@ -1,0 +1,16 @@
+name: Core is ℝ-free
+
+# Deliberately does not build Lean. The whole point of the Core/ split is that
+# ℝ-freeness became a property of the import graph, so checking it costs a grep
+# rather than a Mathlib build.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core-closed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-core-closed.sh

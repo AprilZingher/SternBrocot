@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Tail
+import SternBrocot.Core.Tail
 import Mathlib.Order.PiLex
 import Mathlib.Order.PropInstances
 import Mathlib.Data.Nat.Find

@@ -25,7 +25,7 @@ gets all 8639.
 
 ## Item 1 — COMPLETED
 
-New file `SternBrocot/Convergent.lean` (781 lines, no `sorry`), plus a section
+New file `CF/Convergent.lean` (781 lines, no `sorry`), plus a section
 at the end of `Examples.lean`. Wired into `SternBrocot.lean`.
 
 ### What was proved
@@ -161,8 +161,8 @@ Nothing is blocked.
 
 ## Item 2 — COMPLETED
 
-New file `SternBrocot/Hurwitz.lean` (no `sorry`), plus the exact-error layer
-added to `Convergent.lean` and listed under item 1 above. Wired into
+New file `CF/Hurwitz.lean` (no `sorry`), plus the exact-error layer
+added to `CF/Convergent.lean` and listed under item 1 above. Wired into
 `SternBrocot.lean`.
 
 ### What was proved
@@ -229,14 +229,14 @@ time.
 
 ## Item 3 — COMPLETED
 
-New file `SternBrocot/Intrinsic.lean`, **no `sorry`**. Nothing in the repository
+New file `Real/IntrinsicAgreement.lean`, **no `sorry`**. Nothing in the repository
 has a `sorry`. The skeleton was committed first with ten, as the queue
 specified, and all ten were then discharged.
 
 ### The design
 
 Three intrinsic layers. (1) `slexSup` — a supremum on `P(ω+1)`.
-`Completeness.lean` already has `lexSup` on `P(ω)`, and `SLexLt` is "negatives
+`Core/Completeness.lean` already has `lexSup` on `P(ω)`, and `SLexLt` is "negatives
 below positives, same sign by forward lex on the stored bits", so one case split
 suffices: a set with a positive member has a positive supremum whose bits are
 `lexSup` of the positive members' bits, and a set of negatives has a negative one
@@ -269,7 +269,7 @@ formula is monotone only there.
 * `addRaw_congr`, `mulRaw_congr`, `toRealQ_add'`, `toRealQ_mul'`, all ten field
   axioms, and `add'_eq_add` / `mul'_eq_mul`.
 * `toRealQ_zero`, `toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing
-  companions to `Field.lean`'s transport lemmas, derived by cancellation.
+  companions to `Real/Field.lean`'s transport lemmas, derived by cancellation.
 
 ### Two things I got wrong, and the fixes
 
@@ -296,7 +296,7 @@ made `toRealQ_add'`/`toRealQ_mul'` immediate, collapsing four sorries into two.
 
 ### What the next person should do first
 
-Install `add'`/`mul'` as the `Field` instance in `Field.lean`, replacing
+Install `add'`/`mul'` as the `Field` instance in `Real/Field.lean`, replacing
 `equivReal.field`. `add'_eq_add` and `mul'_eq_mul` guarantee no theorem changes;
 it is a mechanical edit, deliberately left undone so that this commit adds
 nothing and breaks nothing.
@@ -307,7 +307,7 @@ the proof bodies change.
 
 ## Item 4 — COMPLETE
 
-New file `SternBrocot/Reduction.lean`, **no `sorry`**. Lagrange's theorem holds
+New file `CF/Reduction.lean`, **no `sorry`**. Lagrange's theorem holds
 in both directions, and `eventuallyPeriodic_iff_degLeTwo` states it as an `iff`.
 **The whole repository is now `sorry`-free.**
 
@@ -409,7 +409,7 @@ needs `formAt ≠ 0`). It is instead `eventuallyConstant_iff_rat` composed with
 
 ## Follow-up — the complete ordered field axioms, stated
 
-New file `SternBrocot/Complete.lean`, no `sorry`.
+New file `Real/Complete.lean`, no `sorry`.
 
 Prompted by the question "are the Stern–Brocot reals now proven as a complete
 ordered field?", I audited what was actually registered and the answer was
@@ -452,14 +452,14 @@ Prompted by "can you make it independent of `ℝ`". Three files split out, no
 `sorry` added, nothing renamed — every name stayed in `namespace SternBrocot`,
 so no downstream file changed.
 
-* `Density.lean` — `exists_node_above`, `exists_node_ge`, `not_tailEqv_node`,
+* `Core/Density.lean` — `exists_node_above`, `exists_node_ge`, `not_tailEqv_node`,
   `exists_node_between_points`, `toSet_ne_univ`, `empty_lexLt`. All `ℝ`-free in
-  statement *and* proof; they were stranded in `ToReal.lean` and `Shift.lean`.
-* `Magnitude.lean` — `magnitude`, `IsFinite` and their lemmas, out of
-  `SignedToReal.lean`. `IsFinite` is the side condition on every intrinsic
+  statement *and* proof; they were stranded in `Real/ToReal.lean` and `CF/Shift.lean`.
+* `Core/Magnitude.lean` — `magnitude`, `IsFinite` and their lemmas, out of
+  `Real/SignedToReal.lean`. `IsFinite` is the side condition on every intrinsic
   operation, so leaving it downstream of `ℝ` would have forced the operations
   downstream too.
-* `IntrinsicCore.lean` — `slexSup`, `ratPoint`, `addCut`/`addRaw`,
+* `Core/IntrinsicCore.lean` — `slexSup`, `ratPoint`, `addCut`/`addRaw`,
   `mulCut`/`mulRawPos`/`mulRaw`, the density and endpoint lemmas, and the three
   `isFinite_*` lemmas.
 
@@ -491,7 +491,7 @@ Convergent, Hurwitz, Reduction, Field, Intrinsic, Complete, Examples.
 specified `Real.pi`, which does not test what it claims: `Real.pi` is in
 `Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic`, which no module here
 imports, so the probe fails everywhere and reports all 28 modules `ℝ`-free —
-including `ToReal.lean`. Re-run with:
+including `Real/ToReal.lean`. Re-run with:
 
 ```
 for f in SternBrocot/*.lean; do m=$(basename $f .lean);
@@ -504,19 +504,19 @@ for f in SternBrocot/*.lean; do m=$(basename $f .lean);
 * **The `LinearOrder SBReal` instance** — still `LinearOrder.lift' toRealQ`, so
   the relation unfolds to a comparison in `ℝ`. But this is now a statement about
   how the instance was *assembled*, not about what it means: `mk_lt_mk_iff`
-  (`Field.lean`) proves `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, with no `ℝ`
+  (`Real/Field.lean`) proves `mk a ha < mk b hb ↔ (a <ₛ b ∧ ¬ SEqv a b)`, with no `ℝ`
   on either side, and `mk_le_mk_iff` does the same for `≤`. `SLexLt` is built
   from the bit strings alone, so the order *is* the lex order.
 
   Swapping the instance to be defined that way is now cosmetic — it would make
-  `Field.lean` itself `ℝ`-free by import graph, but proves nothing new, and
+  `Real/Field.lean` itself `ℝ`-free by import graph, but proves nothing new, and
   `orderIsoReal`'s `map_rel_iff' := Iff.rfl` would have to become
   `mk_lt_mk_iff`-shaped work. Worth doing only as part of a larger `ℝ`-freeing
   pass, not on its own.
 
   The ingredient that made this cheap, `slexLt_of_toReal_lt`, was sitting in
-  `Intrinsic.lean` — three files *downstream* of `Field.lean`, where nothing
-  about the quotient order could see it. It now lives in `SignedToReal.lean`
+  `Real/IntrinsicAgreement.lean` — three files *downstream* of `Real/Field.lean`, where nothing
+  about the quotient order could see it. It now lives in `Real/SignedToReal.lean`
   next to `toReal_mono` and `toReal_injective`, with `toReal_lt_iff` the raw
   form. Misplacement, not difficulty, is why this gap survived as long as it
   did.
@@ -538,4 +538,4 @@ what it is trying to remove: a limit needs a topology, and a topology on this
 carrier would either come from `ℝ` or have to be built from scratch. The
 Dedekind route needs none of it. `toReal₀ x = sSup (below x)` is already a cut,
 so the transfer principle is *density plus extensionality of cuts*, which is
-pure order theory and is what `Density.lean` supplies.
+pure order theory and is what `Core/Density.lean` supplies.

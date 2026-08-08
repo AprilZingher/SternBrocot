@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Induction
-import SternBrocot.ToReal
+import SternBrocot.Core.Induction
+import SternBrocot.Real.ToReal
 
 /-!
 # The shift, and what the moves do to values

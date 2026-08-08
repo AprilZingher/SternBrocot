@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Signed
-import SternBrocot.Order
+import SternBrocot.Core.Signed
+import SternBrocot.Core.Order
 
 /-!
 # The signed order, and the full quotient

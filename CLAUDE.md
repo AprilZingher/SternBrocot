@@ -25,7 +25,7 @@ so `exists_isLUB` and `instIsStrictOrderedRingSBReal` are statements about a
 relation this development defines, not about `ℝ`'s order under another name.
 
 **Be precise about which half this covers.** The *field operations* have no
-counterpart to `mk_lt_mk_iff` yet. `Intrinsic.lean` gives `ℝ`-free `+` and `×`
+counterpart to `mk_lt_mk_iff` yet. `Real/IntrinsicAgreement.lean` gives `ℝ`-free `+` and `×`
 and proves they agree with the transported ones (`add'_eq_add`, `mul'_eq_mul`),
 which is the analogous content, but the axioms are still proved through `toReal`
 and the instance is still `equivReal.field`. So: order — settled; operations —
@@ -76,7 +76,7 @@ the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is don
 
 Item 2 is the only item that changes what the project *is* — it removes `ℝ` from
 the definition — and it did not invalidate any CF theorem proved before it
-(nothing in the Lagrange import chain reaches `Field.lean`).
+(nothing in the Lagrange import chain reaches `Real/Field.lean`).
 
 What is left of item 2 is not the definitions, which are already `ℝ`-free, and
 no longer the order, which `mk_lt_mk_iff` pins to `SLexLt`. It is the *proofs*
@@ -89,7 +89,7 @@ thesis and belongs before the library — or a *CF library* ("classical theorems
 Mathlib lacks"), in which case the theorems are the thesis and item 2 can wait?
 The status paragraph above claims the first, item 6 pitches the second. Decide.
 
-1. **Gosper on ℚ** — ✅ **the loop is closed** (`GosperRat.lean`).
+1. **Gosper on ℚ** — ✅ **the loop is closed** (`Core/GosperRat.lean`).
    `Tensor.absorbLeftPath`/`Tensor.absorbRightPath` feed whole paths in; `pathOf` is the
    Euclidean algorithm as a *function* (well-founded on `a + b`); `gosperAdd`
    and `gosperMul` take two paths and return a canonical path, with
@@ -102,13 +102,13 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×`** — ✅ **done** (`Intrinsic.lean`, no `sorry`). The
+2. **Intrinsic `+` and `×`** — ✅ **done** (`Real/IntrinsicAgreement.lean`, no `sorry`). The
    definitions are `ℝ`-free: `slexSup` (the signed bitwise supremum — one case
    split off `lexSup`), `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the
    Euclidean algorithm), and
    `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
    inner `+` rational, so no circularity. All ten field axioms are proved, and
-   `add'_eq_add` / `mul'_eq_mul` show they are the operations `Field.lean`
+   `add'_eq_add` / `mul'_eq_mul` show they are the operations `Real/Field.lean`
    transported — so installing them as the instance changes no theorem.
 
    **Installing them is not, however, "one mechanical swap"** — this file said
@@ -121,17 +121,17 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    hand each of the ten is a one-line appeal to Mathlib: the content lives in
    `add'_eq_add`/`mul'_eq_mul`, not in the count of axioms.
 
-   **The `ℝ`-free claim is now structural.** `IntrinsicCore.lean` holds
+   **The `ℝ`-free claim is now structural.** `Core/IntrinsicCore.lean` holds
    `slexSup`, `ratPoint`, `addRaw`, `mulRaw` and the finiteness lemmas, and
    `Real` is not reachable through its transitive import closure at all — the
    check is that `Real` does not resolve in a file importing only it. Along
-   with `Density.lean` and `Magnitude.lean` that makes **sixteen** modules
+   with `Core/Density.lean` and `Core/Magnitude.lean` that makes **sixteen** modules
    `ℝ`-free by import graph rather than by inspection.
 
    **Probe with `#check Real`, not `Real.pi`.** This file used to specify
    `Real.pi`, which is unsound as a test: `Real.pi` lives in
    `Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic`, not in
-   `Mathlib.Data.Real.Basic`, so it fails to resolve even in `ToReal.lean` —
+   `Mathlib.Data.Real.Basic`, so it fails to resolve even in `Real/ToReal.lean` —
    a module whose whole purpose is to land in `ℝ`. The `Real.pi` probe reports
    all 28 modules as `ℝ`-free. `#check Real` gives the real partition, 16/12.
 
@@ -150,8 +150,8 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    arguments cannot supply this** — proving a function continuous presupposes it
    is total, which is what productivity would establish.
 
-4. **Lagrange's theorem** — ✅ **done, both directions** (`Shift.lean`,
-   `Degree.lean`, `Lagrange.lean`, `Reduction.lean`). It did *not* need
+4. **Lagrange's theorem** — ✅ **done, both directions** (`CF/Shift.lean`,
+   `CF/Degree.lean`, `CF/Lagrange.lean`, `CF/Reduction.lean`). It did *not* need
    productivity, as expected:
    every real already *is* a subset of `ω+1` (`exists_toReal_eq`), so
    periodicity is a property of that set.
@@ -188,7 +188,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
      hard direction assumes irrationality throughout, so "rational ⟹ eventually
      periodic" goes via `eventuallyConstant_iff_rat`.
 
-   **The hard direction** — ✅ **done, in `Reduction.lean`**. The estimate
+   **The hard direction** — ✅ **done, in `CF/Reduction.lean`**. The estimate
    (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`), the
    pigeonhole (`finite_range_tailValue`), and the conclusion
    (`eq_of_toReal₀_eq_of_irrational`, `eventuallyPeriodic_of_finite_range`).
@@ -212,17 +212,17 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    The trap recorded here was real and is now resolved: `c/d` is **not** bounded
    along a bit path (`L^n` gives `c/d = n`), so the estimate only holds at run
    boundaries, where both columns are convergents and `qₙ ≤ qₙ₊₁` gives
-   `|t − pₙ/qₙ| < 1/qₙ²`. `Reduction.lean` is indexed by `runBoundary` from the
+   `|t − pₙ/qₙ| < 1/qₙ²`. `CF/Reduction.lean` is indexed by `runBoundary` from the
    start, so the trap costs nothing there.
 
    Confirmed absent from this Mathlib before starting — `GenContFract` exists,
    this theorem does not.
 
    **Item 5 is now available.** The pigeonhole runs on the convergents, which is
-   exactly what `Convergent.lean` builds: `runBoundary`, `contin`,
+   exactly what `CF/Convergent.lean` builds: `runBoundary`, `contin`,
    `contin_den_le_succ` and `abs_sub_contin_lt`.
 
-5. **The convergents** — ✅ **done** (`Convergent.lean`). The run-boundary
+5. **The convergents** — ✅ **done** (`CF/Convergent.lean`). The run-boundary
    decomposition, the recurrence, and both estimates, with no `sorry`.
 
    Confirmed while building it: the convergents are the prefixes at **run
@@ -269,7 +269,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
    in this project's import closure).
 
-   **Hurwitz is ✅ done** (`Hurwitz.lean`), both the `1/(√5 q²)` statement and
+   **Hurwitz is ✅ done** (`CF/Hurwitz.lean`), both the `1/(√5 q²)` statement and
    the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
    The remaining rows — Legendre, badly approximable ↔ bounded partial
    quotients — are now the cheap ones: both are statements about `contin` and
@@ -281,35 +281,58 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 
 ## Files
 
+Three directories, and the split is load-bearing rather than cosmetic:
+
+```
+SternBrocot/
+  Core/     the construction — ℝ-free, imports nothing outside Core/
+  Real/     the map to ℝ
+  CF/       the continued-fraction library, built on Real/
+  Examples.lean
+```
+
+**`Core/` is closed under imports**, which is what makes its ℝ-freeness a
+property of the import graph rather than something you have to probe for.
+`scripts/check-core-closed.sh` checks it with a grep and needs no Lean build;
+CI runs it on every push. The check exists because the probe-based version of
+this claim was got wrong twice — once in the module count, once by probing for
+`Real.pi`, which resolves nowhere here and so reported every module ℝ-free.
+
+If `Core/` ever needs something from `Real/`, the dependency is backwards: move
+the definition **down** into `Core/`, do not relax the check. The whole ℝ-free
+programme is that boundary.
+
+The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
+
 | file | contents |
 |---|---|
-| `Basic.lean` | moves, reciprocal, `TailPair`, **rigidity** |
-| `Tail.lean` | tail classes have ≤ 2 elements; rigidity on the quotient |
-| `Density.lean` | **density of the nodes** — ℝ-free, the input to the ℝ-free program |
-| `Order.lean` | lex order; `≤ₗ`; **tail relation = adjacency**; complement reverses lex |
-| `Completeness.lean` | the bitwise supremum; density of the quotient |
-| `Node.lean` | values of finite paths; unimodularity |
-| `Enumeration.lean` | **the tree enumerates `ℚ≥0` exactly once** |
-| `PathOrder.lean` | `nodeValue` is an order embedding |
-| `Bridge.lean` | paths ↔ finite subsets of `ω`; addition is not Boolean |
-| `Magnitude.lean` | magnitude and `IsFinite` — ℝ-free |
-| `Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** |
-| `SignedOrder.lean` | the mirrored sign order; the full quotient |
-| `ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0`, a Dedekind cut |
-| `SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`; monotone, bijective |
-| `Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
-| `Shift.lean` | the shift; **the move recursion for `Φ₀`**; prefixes act by Möbius |
-| `Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
-| `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
-| `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
-| `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
-| `Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
-| `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
-| `Complete.lean` | **the ordered-field axioms and completeness**, stated |
-| `IntrinsicCore.lean` | **the intrinsic `+`, `×`, and `ratPoint` — ℝ-free** |
-| `Intrinsic.lean` | those operations agree with the transported ones |
-| `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
-| `GosperRat.lean` | the machine on rational inputs: paths in, path out |
+| `Core/Basic.lean` | moves, reciprocal, `TailPair`, **rigidity** |
+| `Core/Tail.lean` | tail classes have ≤ 2 elements; rigidity on the quotient |
+| `Core/Density.lean` | **density of the nodes** — ℝ-free, the input to the ℝ-free program |
+| `Core/Order.lean` | lex order; `≤ₗ`; **tail relation = adjacency**; complement reverses lex |
+| `Core/Completeness.lean` | the bitwise supremum; density of the quotient |
+| `Core/Node.lean` | values of finite paths; unimodularity |
+| `Core/Enumeration.lean` | **the tree enumerates `ℚ≥0` exactly once** |
+| `Core/PathOrder.lean` | `nodeValue` is an order embedding |
+| `Core/Bridge.lean` | paths ↔ finite subsets of `ω`; addition is not Boolean |
+| `Core/Magnitude.lean` | magnitude and `IsFinite` — ℝ-free |
+| `Core/Signed.lean` | `P(ω+1)`; negation = complement; **signed rigidity** |
+| `Core/SignedOrder.lean` | the mirrored sign order; the full quotient |
+| `Real/ToReal.lean` | `Φ₀ = toReal₀ : P(ω) → ℝ≥0`, a Dedekind cut |
+| `Real/SignedToReal.lean` | `Φ = toReal : P(ω+1) → ℝ`; monotone, bijective |
+| `Core/Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
+| `CF/Shift.lean` | the shift; **the move recursion for `Φ₀`**; prefixes act by Möbius |
+| `CF/Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
+| `CF/Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
+| `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
+| `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
+| `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
+| `Real/Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
+| `Real/Complete.lean` | **the ordered-field axioms and completeness**, stated |
+| `Core/IntrinsicCore.lean` | **the intrinsic `+`, `×`, and `ratPoint` — ℝ-free** |
+| `Real/IntrinsicAgreement.lean` | those operations agree with the transported ones |
+| `Core/Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
+| `Core/GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
 
 ## Headline results

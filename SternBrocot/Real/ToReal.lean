@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Density
+import SternBrocot.Core.Density
 import Mathlib.Algebra.Order.Archimedean.Real.Basic
 
 /-!

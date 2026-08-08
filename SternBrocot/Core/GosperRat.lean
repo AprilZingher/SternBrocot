@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Gosper
-import SternBrocot.Enumeration
+import SternBrocot.Core.Gosper
+import SternBrocot.Core.Enumeration
 
 /-!
 # Gosper on the rationals

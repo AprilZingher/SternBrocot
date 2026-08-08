@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Bridge
-import SternBrocot.Completeness
+import SternBrocot.Core.Bridge
+import SternBrocot.Core.Completeness
 
 /-!
 # Density of the nodes

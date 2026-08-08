@@ -1,28 +1,35 @@
-import SternBrocot.Basic
-import SternBrocot.Tail
-import SternBrocot.Order
-import SternBrocot.Completeness
-import SternBrocot.Node
-import SternBrocot.Enumeration
-import SternBrocot.PathOrder
-import SternBrocot.Bridge
-import SternBrocot.Density
-import SternBrocot.Signed
-import SternBrocot.SignedOrder
-import SternBrocot.Magnitude
-import SternBrocot.ToReal
-import SternBrocot.SignedToReal
-import SternBrocot.Induction
-import SternBrocot.Degree
-import SternBrocot.Shift
-import SternBrocot.Lagrange
-import SternBrocot.Convergent
-import SternBrocot.Hurwitz
-import SternBrocot.Reduction
-import SternBrocot.Field
-import SternBrocot.IntrinsicCore
-import SternBrocot.Intrinsic
-import SternBrocot.Complete
-import SternBrocot.Gosper
-import SternBrocot.GosperRat
+-- Core — the construction, ℝ-free
+import SternBrocot.Core.Basic
+import SternBrocot.Core.Tail
+import SternBrocot.Core.Order
+import SternBrocot.Core.Completeness
+import SternBrocot.Core.Node
+import SternBrocot.Core.Enumeration
+import SternBrocot.Core.PathOrder
+import SternBrocot.Core.Bridge
+import SternBrocot.Core.Density
+import SternBrocot.Core.Signed
+import SternBrocot.Core.SignedOrder
+import SternBrocot.Core.Magnitude
+import SternBrocot.Core.Induction
+import SternBrocot.Core.Gosper
+import SternBrocot.Core.GosperRat
+import SternBrocot.Core.IntrinsicCore
+
+-- Real — the map to ℝ
+import SternBrocot.Real.ToReal
+import SternBrocot.Real.SignedToReal
+import SternBrocot.Real.Field
+import SternBrocot.Real.IntrinsicAgreement
+import SternBrocot.Real.Complete
+
+-- CF — the continued-fraction library
+import SternBrocot.CF.Degree
+import SternBrocot.CF.Shift
+import SternBrocot.CF.Lagrange
+import SternBrocot.CF.Convergent
+import SternBrocot.CF.Hurwitz
+import SternBrocot.CF.Reduction
+
+-- Machine-checked checks that the definitions mean what is claimed
 import SternBrocot.Examples

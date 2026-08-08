@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.SignedOrder
-import SternBrocot.Density
+import SternBrocot.Core.SignedOrder
+import SternBrocot.Core.Density
 
 /-!
 # Magnitude and finiteness

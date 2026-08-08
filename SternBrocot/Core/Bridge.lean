@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.PathOrder
-import SternBrocot.Order
+import SternBrocot.Core.PathOrder
+import SternBrocot.Core.Order
 import Mathlib.Data.Set.Finite.Basic
 import Mathlib.Data.Set.Finite.Lattice
 

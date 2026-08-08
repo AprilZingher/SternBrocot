@@ -2,15 +2,15 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Order
-import SternBrocot.Node
-import SternBrocot.Enumeration
-import SternBrocot.PathOrder
-import SternBrocot.Bridge
-import SternBrocot.ToReal
-import SternBrocot.SignedToReal
-import SternBrocot.Lagrange
-import SternBrocot.Convergent
+import SternBrocot.Core.Order
+import SternBrocot.Core.Node
+import SternBrocot.Core.Enumeration
+import SternBrocot.Core.PathOrder
+import SternBrocot.Core.Bridge
+import SternBrocot.Real.ToReal
+import SternBrocot.Real.SignedToReal
+import SternBrocot.CF.Lagrange
+import SternBrocot.CF.Convergent
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!

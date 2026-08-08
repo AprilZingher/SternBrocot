@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Order
+import SternBrocot.Core.Order
 
 /-!
 # Completeness of the lex order, and density of the quotient

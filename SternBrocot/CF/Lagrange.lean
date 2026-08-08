@@ -2,9 +2,9 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Degree
-import SternBrocot.Shift
-import SternBrocot.SignedToReal
+import SternBrocot.CF.Degree
+import SternBrocot.CF.Shift
+import SternBrocot.Real.SignedToReal
 
 /-!
 # Lagrange: eventually periodic paths and algebraic degree two

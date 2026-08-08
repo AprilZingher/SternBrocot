@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Magnitude
-import SternBrocot.GosperRat
+import SternBrocot.Core.Magnitude
+import SternBrocot.Core.GosperRat
 
 /-!
 # Intrinsic `+` and `×`: the definitions

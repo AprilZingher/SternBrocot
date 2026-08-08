@@ -2,7 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Convergent
+import SternBrocot.CF.Convergent
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!

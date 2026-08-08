@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Magnitude
-import SternBrocot.ToReal
+import SternBrocot.Core.Magnitude
+import SternBrocot.Real.ToReal
 
 /-!
 # `Φ : P(ω + 1) → ℝ`
