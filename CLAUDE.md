@@ -45,7 +45,7 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
 3 and 4 are independent.
 
 1. **Gosper on ℚ** — ✅ **the loop is closed** (`GosperRat.lean`).
-   `absorbLeftPath`/`absorbRightPath` feed whole paths in; `pathOf` is the
+   `Tensor.absorbLeftPath`/`Tensor.absorbRightPath` feed whole paths in; `pathOf` is the
    Euclidean algorithm as a *function* (well-founded on `a + b`); `gosperAdd`
    and `gosperMul` take two paths and return a canonical path, with
    `nodeValue_gosperAdd`/`nodeValue_gosperMul` proving the values are the sum and
@@ -107,7 +107,9 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
 
    Mathlib *has*: CF basics, continuants, determinant, convergence,
    `TerminatesIffRat`, Dirichlet approximation, and
-   `infinite_rat_abs_sub_lt_one_div_den_sq_of_irrational` (the `1/q²` version).
+   `Real.infinite_rat_abs_sub_lt_one_div_den_sq_of_irrational` (the `1/q²` version;
+   needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
+   in this project's import closure).
    Hurwitz is the natural next one — the `1/q²` case and `goldenRatio` are both
    already there, so it is the √5 refinement that is missing.
 
@@ -134,6 +136,7 @@ In the order they should be done. Items 1 and 2 are the real remaining work;
 | `Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
+| `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
 
 ## Headline results
