@@ -76,8 +76,10 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×`** — 🟡 **skeleton in `Intrinsic.lean`**, 10 named
-   `sorry`s, all listed in `HANDOFF.md`. The definitions are final and `ℝ`-free:
+2. **Intrinsic `+` and `×`** — 🟡 **partial, in `Intrinsic.lean`**: 6 named
+   `sorry`s, all listed in `HANDOFF.md`. The supremum layer (`slexSup` and its
+   two LUB lemmas) and the rational embedding (`ratPoint`, with
+   `toReal (ratPoint q) = q`) are **done**. The definitions are final and `ℝ`-free:
    `slexSup` (the signed bitwise supremum — one case split off `lexSup`),
    `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the Euclidean algorithm),
    and `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
@@ -228,7 +230,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
-| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — skeleton |
+| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — 6 `sorry`s |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |

@@ -15,8 +15,9 @@ order alone. But the *definition* still mentions `ℝ`. This file closes that: i
 defines `+` and `×` on the carrier itself, with no `ℝ` anywhere in the
 definitions.
 
-**Status: skeleton.** The definitions below are final and the field axioms are
-all stated. The proofs are `sorry` and are listed by name in `HANDOFF.md`.
+**Status: partial.** The definitions below are final and all ten field axioms
+are proved. Six lemmas are still `sorry`, listed by name in `HANDOFF.md`; the
+supremum layer and the rational embedding are complete.
 
 ## The design
 
@@ -97,12 +98,50 @@ noncomputable def slexSup (S : Set Signed) : Signed :=
 
 /-- `slexSup S` is an upper bound for `S`. -/
 theorem slexSup_upperBound (S : Set Signed) : ∀ x ∈ S, ¬ (slexSup S <ₛ x) := by
-  sorry
+  classical
+  intro x hx
+  unfold slexSup
+  split_ifs with hpos
+  · rintro (⟨hc, -⟩ | ⟨hs, hf⟩)
+    · exact none_notMem_lift _ hc
+    · have hxpos : none ∉ x := fun hc => none_notMem_lift _ (hs.2 hc)
+      rw [finPart_lift] at hf
+      exact lexSup_upperBound (posBits S) (finPart x) ⟨x, hx, hxpos, rfl⟩ hf
+  · have hxneg : none ∈ x := by
+      by_contra hcx
+      exact hpos ⟨x, hx, hcx⟩
+    rintro (⟨-, hc⟩ | ⟨-, hf⟩)
+    · exact hc hxneg
+    · rw [finPart_negLift] at hf
+      exact lexSup_upperBound (allBits S) (finPart x) ⟨x, hx, rfl⟩ hf
 
-/-- `slexSup S` is the least upper bound. -/
+/-- `slexSup S` is the least upper bound. In the all-negative case a positive
+`v` is above it for free, which is the only place the sign split does any work. -/
 theorem slexSup_least (S : Set Signed) (v : Signed) (hv : ∀ x ∈ S, ¬ (v <ₛ x)) :
     ¬ (v <ₛ slexSup S) := by
-  sorry
+  classical
+  unfold slexSup
+  split_ifs with hpos
+  · obtain ⟨x₀, hx₀S, hx₀⟩ := hpos
+    rintro (⟨hvneg, -⟩ | ⟨hs, hf⟩)
+    · exact hv x₀ hx₀S (Or.inl ⟨hvneg, hx₀⟩)
+    · have hvpos : none ∉ v := fun hc => none_notMem_lift _ (hs.1 hc)
+      rw [finPart_lift] at hf
+      refine lexSup_least (posBits S) (finPart v) ?_ hf
+      rintro y ⟨x, hxS, hxpos, rfl⟩
+      intro hlt
+      exact hv x hxS (Or.inr ⟨iff_of_false hvpos hxpos, hlt⟩)
+  · rintro (⟨-, hc⟩ | ⟨hs, hf⟩)
+    · exact hc (none_mem_negLift _)
+    · have hvneg : none ∈ v := hs.2 (none_mem_negLift _)
+      rw [finPart_negLift] at hf
+      refine lexSup_least (allBits S) (finPart v) ?_ hf
+      rintro y ⟨x, hxS, rfl⟩
+      intro hlt
+      have hxneg : none ∈ x := by
+        by_contra hcx
+        exact hpos ⟨x, hxS, hcx⟩
+      exact hv x hxS (Or.inr ⟨iff_of_true hvneg hxneg, hlt⟩)
 
 /-! ### The rationals as points, intrinsically
 
@@ -115,12 +154,29 @@ noncomputable def ratPoint (q : ℚ) : Signed :=
   if 0 ≤ q then lift (toSet (toPath q)) else neg (lift (toSet (toPath (-q))))
 
 theorem isFinite_ratPoint (q : ℚ) : IsFinite (ratPoint q) := by
-  sorry
+  classical
+  unfold ratPoint
+  split_ifs with hq
+  · show magnitude (lift (toSet (toPath q))) ≠ univ
+    rw [magnitude_of_pos (none_notMem_lift _), finPart_lift]
+    exact toSet_ne_univ _
+  · show magnitude (neg (lift (toSet (toPath (-q))))) ≠ univ
+    rw [magnitude_of_neg (by simp), finPart_neg, finPart_lift, compl_compl]
+    exact toSet_ne_univ _
 
 /-- **The specification of `ratPoint`.** Not used in any definition — it is the
 bridge that lets the rest of the file be checked against `ℝ`. -/
 theorem toReal_ratPoint (q : ℚ) : toReal (ratPoint q) = (q : ℝ) := by
-  sorry
+  classical
+  unfold ratPoint
+  split_ifs with hq
+  · rw [toReal_of_pos (none_notMem_lift _), magnitude_of_pos (none_notMem_lift _), finPart_lift,
+      toReal₀_toSet, nodeValue_toPath hq]
+  · have hq' : (0 : ℚ) ≤ -q := by linarith [not_le.1 hq]
+    rw [toReal_of_neg (by simp), magnitude_of_neg (by simp), finPart_neg, finPart_lift,
+      compl_compl, toReal₀_toSet, nodeValue_toPath hq']
+    push_cast
+    ring
 
 /-! ### The operations -/
 
