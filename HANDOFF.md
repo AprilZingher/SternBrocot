@@ -229,9 +229,9 @@ time.
 
 ## Item 3 — PARTIAL
 
-New file `SternBrocot/Intrinsic.lean`. **It compiles. Six named `sorry`s remain,
+New file `SternBrocot/Intrinsic.lean`. **It compiles. Four named `sorry`s remain,
 all listed below.** Nothing else in the repository has a `sorry`. The skeleton
-was committed first with ten, as the queue specified; four were then discharged.
+was committed first with ten, as the queue specified; six were then discharged.
 
 ### The design, in one paragraph
 
@@ -261,14 +261,48 @@ formula is monotone only there.
 * `toRealQ_zero`, `toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing
   companions to `Field.lean`'s `toRealQ_add`/`toRealQ_mul`, derived by
   cancellation from those two rather than by unfolding the transport.
+* `eq_top_or_bot_of_not_isFinite`, `slexLt_top`, `bot_slexLt` — the two points
+  `IsFinite` excludes, and that everything finite lies strictly between them.
+  They do not look alike: `+∞` is `lift univ` and `−∞` is `{none}`, because a
+  negative point stores the *complement* of its magnitude.
+* `exists_lt_ratPoint`, `exists_ratPoint_lt` — **density of the rational
+  points**, the two lemmas flagged as missing in the previous commit. Each has a
+  trivial branch (any negative point is below any positive one) and one real
+  branch that is `exists_node_above` plus, on the negative side,
+  `compl_lexLt_compl`.
+* `isFinite_slexSup`, `isFinite_addRaw`, `isFinite_mulRawPos`, `isFinite_mulRaw`
+  — **finiteness of both operations.** `ratPoint_le_of_slexLt` (via
+  `toReal_mono`) is all the monotonicity these need; no order-embedding property
+  of `ratPoint` is required, because the bounds close by antisymmetry rather
+  than by strictness.
 * All ten field axioms, plus `add'_eq_add` and `mul'_eq_mul`.
+
+### A design bug found while proving, and fixed
+
+`mulCut` as first written was
+
+    {z | ∃ p q, 0 ≤ p ∧ 0 ≤ q ∧ ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ z = ratPoint (p*q)}
+
+and it is **wrong at zero**. When either argument is `+0` the cut is empty, and
+`slexSup ∅` is not `+0`: with no positive member it takes the negative branch and
+returns `negLift (lexSup ∅) = {none}`, which is `−∞`. So `mulRawPos` was infinite
+exactly where the product is zero, and `isFinite_mulRaw` was false as stated.
+
+The fix is the standard Dedekind floor: `ratPoint 0` is now a member of `mulCut`
+unconditionally. It costs nothing — `ratPoint 0 = ∅` is already the bottom of the
+cone — and it makes the cut nonempty for every argument. `addCut` needed no such
+fix: `exists_ratPoint_lt` makes it nonempty for any finite argument.
+
+Worth keeping in mind for the remaining proofs: `{none}` and `univ` are *not* the
+same point and mean very different things. `univ` is `−0` (negative, all finite
+bits set, magnitude `∅`); `{none}` is `−∞` (negative, no finite bits, magnitude
+`univ`). The empty supremum lands on the second.
 
 ### Every remaining `sorry`, by name
 
 | name | what it says | what it needs |
 |---|---|---|
-| `isFinite_addRaw`, `isFinite_mulRaw` | the operations stay finite | see the analysis below — two signed density lemmas, then `slexSup_least` |
-| `addRaw_congr`, `mulRaw_congr` | they respect the quotient | the cut `{ratPoint p : ratPoint p <ₛ a}` is unchanged when `a` moves to its tail partner, because no *node* lies strictly between adjacent points (`tailPair_iff_isAdjacent`). This is the one carrying real content |
+| `addRaw_congr`, `mulRaw_congr` | they respect the quotient | see the correction below — **not** cut equality |
 | `toRealQ_add'`, `toRealQ_mul'` | the intrinsic ops are the transported ones | `toRealQ_add_eq_sSup` is most of the first; what remains is that the supremum `slexSup` takes in `P(ω+1)` is the one `toRealQ` sees, i.e. that `toReal` carries lex suprema to real suprema |
 
 ### The two lemmas the finiteness proofs are missing
@@ -314,7 +348,28 @@ that swapping in those proofs changes nothing else: `add'`/`mul'` and the axiom
 
 ### What the next person should do first
 
-The two density lemmas in the previous section, then `isFinite_addRaw` and
-`isFinite_mulRaw`. After that `addRaw_congr` is the one with real content, and
-`toRealQ_add'` is the payoff — it turns all ten already-proved field axioms from
-conditional into unconditional.
+`addRaw_congr`, with the density argument described above, then `mulRaw_congr`
+(same argument, plus the sign wrapper, which is mechanical given
+`isFinite_mulRaw`'s case split as a template). `toRealQ_add'` is the payoff — it
+turns all ten already-proved field axioms from conditional into unconditional,
+at which point `add'`/`mul'` can be installed as the `Field` instance and
+`add'_eq_add`/`mul'_eq_mul` guarantee no existing theorem changes.
+
+## Item 4 — NOT STARTED
+
+The gate says an item may not begin until the previous one is COMPLETED or
+BLOCKED, and item 3 is neither — it is partial with four named sorries. Item 4
+(the hard direction of Lagrange: a quadratic irrational has an eventually
+periodic path) is also the largest item in the queue, needing the reduction
+theory of binary quadratic forms, and it is not something to open with a
+fraction of a night left.
+
+It is, however, unblocked and better supplied than the queue assumed.
+`Convergent.lean` provides everything CLAUDE.md item 4 says the pigeonhole needs
+— `runBoundary`, `contin`, `contin_den_le_succ`, `abs_sub_contin_lt` — and item
+2 added the exact-error layer (`tailQuot`, `inv_tailQuot`, `denRatio`,
+`denRatio_succ`, `abs_sub_contin_eq`) which is what bounds the transformed
+coefficients along the path. The trap CLAUDE.md records — that `c/d` is not
+bounded along a bit path, so the pigeonhole must run on run boundaries rather
+than on every shift — is exactly what `runBoundary` indexes, so the shape of the
+argument now matches the shape of the available API.

@@ -76,10 +76,12 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×`** — 🟡 **partial, in `Intrinsic.lean`**: 6 named
+2. **Intrinsic `+` and `×`** — 🟡 **partial, in `Intrinsic.lean`**: 4 named
    `sorry`s, all listed in `HANDOFF.md`. The supremum layer (`slexSup` and its
-   two LUB lemmas) and the rational embedding (`ratPoint`, with
-   `toReal (ratPoint q) = q`) are **done**. The definitions are final and `ℝ`-free:
+   two LUB lemmas), the rational embedding (`ratPoint`, with
+   `toReal (ratPoint q) = q`) and finiteness of both operations are **done**.
+   What remains is that the operations respect the quotient, and the two
+   agreement theorems. The definitions are final and `ℝ`-free:
    `slexSup` (the signed bitwise supremum — one case split off `lexSup`),
    `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the Euclidean algorithm),
    and `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
@@ -230,7 +232,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
-| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — 6 `sorry`s |
+| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — 4 `sorry`s |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
@@ -290,6 +292,12 @@ Things that cost time to rediscover.
   starts with a left move — that swap is the classical `a₀ = 0`, and it is what
   lets one recurrence serve both `x ≥ 1` and `x < 1`. So `q₁ = 0`, and every
   estimate is stated at `k + 2`. Do not special-case `x < 1` instead.
+- **`{none}` is `−∞`, not `−0`.** `−0` is `univ` — negative, *all* finite bits
+  set, magnitude `∅`. `{none}` is negative with *no* finite bits, so its
+  magnitude is `univ` and it is the bottom of the order. The empty supremum
+  lands on `{none}`, which is why a Dedekind cut used to define a product must
+  carry an explicit `0` floor (`mulCut`); without it multiplication is infinite
+  exactly at zero. Cost an hour to find.
 - **No `LinearOrder` on `Set ℕ`** — it already carries `⊆`. The lex order lives as
   bare relations `<ₗ`, `≤ₗ`. A type synonym was tried and deleted as dead weight:
   the *quotient* carries the order instead, which is the better design.

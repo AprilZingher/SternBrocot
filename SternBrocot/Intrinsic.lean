@@ -4,6 +4,7 @@ Released under Apache 2.0 license.
 -/
 import SternBrocot.Field
 import SternBrocot.GosperRat
+import SternBrocot.Shift
 
 /-!
 # Intrinsic `+` and `×`
@@ -16,8 +17,9 @@ defines `+` and `×` on the carrier itself, with no `ℝ` anywhere in the
 definitions.
 
 **Status: partial.** The definitions below are final and all ten field axioms
-are proved. Six lemmas are still `sorry`, listed by name in `HANDOFF.md`; the
-supremum layer and the rational embedding are complete.
+are proved. Four lemmas are still `sorry`, listed by name in `HANDOFF.md`; the
+supremum layer, the rational embedding and finiteness of both operations are
+complete.
 
 ## The design
 
@@ -188,9 +190,16 @@ def addCut (a b : Signed) : Set Signed :=
 below the two arguments. -/
 noncomputable def addRaw (a b : Signed) : Signed := slexSup (addCut a b)
 
-/-- The nonnegative part of the product cut. -/
+/-- The nonnegative part of the product cut.
+
+**`ratPoint 0` has to be in it.** Without that disjunct the cut is empty when
+either argument is `+0`, and the supremum of the empty set is `−∞`, not `+0` —
+`slexSup ∅` takes the negative branch and lands on `{none}`. That would make
+`mulRawPos` infinite exactly at zero. Adding the floor is the standard Dedekind
+fix and costs nothing: `ratPoint 0 = ∅` is already the bottom of the cone. -/
 def mulCut (a b : Signed) : Set Signed :=
-  {z | ∃ p q : ℚ, 0 ≤ p ∧ 0 ≤ q ∧ ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ z = ratPoint (p * q)}
+  {z | z = ratPoint 0 ∨
+    ∃ p q : ℚ, 0 ≤ p ∧ 0 ≤ q ∧ ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ z = ratPoint (p * q)}
 
 /-- Multiplication on the nonnegative cone. -/
 noncomputable def mulRawPos (a b : Signed) : Signed := slexSup (mulCut a b)
@@ -211,13 +220,170 @@ Two obligations: the operations preserve finiteness, and they respect the
 adjacency quotient. Both are statements about `slexSup`, and neither mentions
 `ℝ`. -/
 
+/-! ### The endpoints, and density of the rational points
+
+`IsFinite` excludes exactly two points, and they do not look alike: `+∞` is
+`lift univ` and `−∞` is `{none}`. That asymmetry is the mirrored convention
+again — a negative point stores the *complement* of its magnitude, so the
+negative infinity is the point with no finite bits at all. -/
+
+theorem ratPoint_of_nonneg {q : ℚ} (hq : 0 ≤ q) : ratPoint q = lift (toSet (toPath q)) := by
+  classical
+  unfold ratPoint; rw [if_pos hq]
+
+theorem ratPoint_of_neg {q : ℚ} (hq : ¬ 0 ≤ q) :
+    ratPoint q = neg (lift (toSet (toPath (-q)))) := by
+  classical
+  unfold ratPoint; rw [if_neg hq]
+
+/-- The two points `IsFinite` excludes. -/
+theorem eq_top_or_bot_of_not_isFinite {x : Signed} (h : ¬ IsFinite x) :
+    x = lift univ ∨ x = ({none} : Signed) := by
+  rw [IsFinite, not_not] at h
+  by_cases hs : none ∈ x
+  · right
+    rw [magnitude_of_neg hs] at h
+    have hfp : finPart x = ∅ := by
+      rw [← compl_univ, ← h, compl_compl]
+    ext o
+    cases o with
+    | none => simpa using hs
+    | some n =>
+      have : n ∉ finPart x := by rw [hfp]; exact notMem_empty n
+      simpa using this
+  · left
+    rw [magnitude_of_pos hs] at h
+    ext o
+    cases o with
+    | none => simpa using hs
+    | some n =>
+      have : n ∈ finPart x := by rw [h]; exact mem_univ n
+      simp only [mem_finPart] at this
+      simp [lift, this]
+
+/-- Everything finite is strictly below `+∞`. -/
+theorem slexLt_top {x : Signed} (hx : IsFinite x) : x <ₛ lift (univ : Set ℕ) := by
+  by_cases hs : none ∈ x
+  · exact Or.inl ⟨hs, none_notMem_lift _⟩
+  · refine Or.inr ⟨iff_of_false hs (none_notMem_lift _), ?_⟩
+    rw [finPart_lift]
+    rw [IsFinite, magnitude_of_pos hs] at hx
+    exact lexLt_univ_of_ne hx
+
+/-- Everything finite is strictly above `−∞`. -/
+theorem bot_slexLt {x : Signed} (hx : IsFinite x) : ({none} : Signed) <ₛ x := by
+  by_cases hs : none ∈ x
+  · refine Or.inr ⟨iff_of_true rfl hs, ?_⟩
+    rw [finPart_singleton_none]
+    rw [IsFinite, magnitude_of_neg hs] at hx
+    exact empty_lexLt fun hc => hx (by rw [hc, compl_empty])
+  · exact Or.inl ⟨rfl, hs⟩
+
+/-- **A rational point above any finite point.** -/
+theorem exists_lt_ratPoint {a : Signed} (ha : IsFinite a) : ∃ p : ℚ, a <ₛ ratPoint p := by
+  by_cases hs : none ∈ a
+  · exact ⟨0, Or.inl ⟨hs, by rw [ratPoint_of_nonneg le_rfl]; exact none_notMem_lift _⟩⟩
+  · rw [IsFinite, magnitude_of_pos hs] at ha
+    obtain ⟨w, hw⟩ := exists_node_above ha
+    refine ⟨nodeValue w + 1, ?_⟩
+    have hp : (0 : ℚ) ≤ nodeValue w + 1 := by linarith [nodeValue_nonneg w]
+    rw [ratPoint_of_nonneg hp]
+    refine Or.inr ⟨iff_of_false hs (none_notMem_lift _), ?_⟩
+    rw [finPart_lift]
+    refine lexLt_trans hw ((lexLt_toSet_iff w _).2 ?_)
+    rw [nodeValue_toPath hp]
+    linarith
+
+/-- **A rational point below any finite point.** -/
+theorem exists_ratPoint_lt {a : Signed} (ha : IsFinite a) : ∃ p : ℚ, ratPoint p <ₛ a := by
+  by_cases hs : none ∈ a
+  · rw [IsFinite, magnitude_of_neg hs] at ha
+    obtain ⟨w, hw⟩ := exists_node_above ha
+    have hp : (0 : ℚ) ≤ nodeValue w + 1 := by linarith [nodeValue_nonneg w]
+    refine ⟨-(nodeValue w + 1), ?_⟩
+    have hneg : ¬ (0 : ℚ) ≤ -(nodeValue w + 1) := by
+      have := nodeValue_nonneg w; linarith
+    rw [ratPoint_of_neg hneg, _root_.neg_neg]
+    refine Or.inr ⟨iff_of_true (by simp) hs, ?_⟩
+    rw [finPart_neg, finPart_lift]
+    have hlt : (finPart a)ᶜ <ₗ toSet (toPath (nodeValue w + 1)) :=
+      lexLt_trans hw ((lexLt_toSet_iff w _).2 (by rw [nodeValue_toPath hp]; linarith))
+    have := compl_lexLt_compl (x := toSet (toPath (nodeValue w + 1))) (y := (finPart a)ᶜ)
+    rw [compl_compl] at this
+    exact this.2 hlt
+  · exact ⟨-1, Or.inl ⟨by rw [ratPoint_of_neg (by norm_num)]; simp, hs⟩⟩
+
+/-! ### Finiteness of the operations -/
+
+/-- A supremum of finite points with a finite upper bound is finite. -/
+theorem isFinite_slexSup {S : Set Signed} {z u : Signed} (hz : z ∈ S) (hzf : IsFinite z)
+    (hu : IsFinite u) (hub : ∀ x ∈ S, ¬ (u <ₛ x)) : IsFinite (slexSup S) := by
+  by_contra hbad
+  rcases eq_top_or_bot_of_not_isFinite hbad with htop | hbot
+  · refine slexSup_least S u hub ?_
+    rw [htop]
+    exact slexLt_top hu
+  · refine slexSup_upperBound S z hz ?_
+    rw [hbot]
+    exact bot_slexLt hzf
+
+/-- `ratPoint` reflects the order, via `toReal_mono` — enough for the bounds
+below, which never need strictness. -/
+theorem ratPoint_le_of_slexLt {p q : ℚ} (h : ratPoint p <ₛ ratPoint q) : p ≤ q := by
+  have := toReal_mono h (isFinite_ratPoint p) (isFinite_ratPoint q)
+  rw [toReal_ratPoint, toReal_ratPoint] at this
+  exact_mod_cast this
+
 theorem isFinite_addRaw {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
     IsFinite (addRaw a b) := by
-  sorry
+  obtain ⟨p₀, hp₀⟩ := exists_ratPoint_lt ha
+  obtain ⟨q₀, hq₀⟩ := exists_ratPoint_lt hb
+  obtain ⟨P, hP⟩ := exists_lt_ratPoint ha
+  obtain ⟨Q, hQ⟩ := exists_lt_ratPoint hb
+  refine isFinite_slexSup (z := ratPoint (p₀ + q₀)) ⟨p₀, q₀, hp₀, hq₀, rfl⟩
+    (isFinite_ratPoint _) (u := ratPoint (P + Q)) (isFinite_ratPoint _) ?_
+  rintro x ⟨p, q, hpa, hqb, rfl⟩ hlt
+  have hp : p ≤ P := ratPoint_le_of_slexLt (slexLt_trans hpa hP)
+  have hq : q ≤ Q := ratPoint_le_of_slexLt (slexLt_trans hqb hQ)
+  have hge : P + Q ≤ p + q := ratPoint_le_of_slexLt hlt
+  have heq : p + q = P + Q := le_antisymm (by linarith) hge
+  rw [heq] at hlt
+  exact slexLt_irrefl _ hlt
+
+theorem isFinite_mulRawPos {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
+    IsFinite (mulRawPos a b) := by
+  obtain ⟨P, hP⟩ := exists_lt_ratPoint ha
+  obtain ⟨Q, hQ⟩ := exists_lt_ratPoint hb
+  -- the bounds may as well be nonnegative
+  refine isFinite_slexSup (z := ratPoint 0) (Or.inl rfl) (isFinite_ratPoint _)
+    (u := ratPoint (max P 0 * max Q 0)) (isFinite_ratPoint _) ?_
+  have hP0 : (0 : ℚ) ≤ max P 0 := le_max_right _ _
+  have hQ0 : (0 : ℚ) ≤ max Q 0 := le_max_right _ _
+  rintro x (rfl | ⟨p, q, hp0, hq0, hpa, hqb, rfl⟩) hlt
+  · have := ratPoint_le_of_slexLt hlt
+    have hzero : max P 0 * max Q 0 = 0 := le_antisymm this (by positivity)
+    rw [hzero] at hlt
+    exact slexLt_irrefl _ hlt
+  · have hp : p ≤ max P 0 := le_trans (ratPoint_le_of_slexLt (slexLt_trans hpa hP))
+      (le_max_left _ _)
+    have hq : q ≤ max Q 0 := le_trans (ratPoint_le_of_slexLt (slexLt_trans hqb hQ))
+      (le_max_left _ _)
+    have hge : max P 0 * max Q 0 ≤ p * q := ratPoint_le_of_slexLt hlt
+    have hle : p * q ≤ max P 0 * max Q 0 := by nlinarith
+    rw [le_antisymm hle hge] at hlt
+    exact slexLt_irrefl _ hlt
 
 theorem isFinite_mulRaw {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
     IsFinite (mulRaw a b) := by
-  sorry
+  classical
+  have ha' : IsFinite (neg a) := isFinite_neg.2 ha
+  have hb' : IsFinite (neg b) := isFinite_neg.2 hb
+  unfold mulRaw
+  split_ifs
+  · exact isFinite_mulRawPos ha' hb'
+  · exact isFinite_neg.2 (isFinite_mulRawPos ha' hb)
+  · exact isFinite_neg.2 (isFinite_mulRawPos ha hb')
+  · exact isFinite_mulRawPos ha hb
 
 theorem addRaw_congr {a a' b b' : Signed} (ha : SEqv a a') (hb : SEqv b b') :
     SEqv (addRaw a b) (addRaw a' b') := by
