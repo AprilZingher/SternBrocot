@@ -305,21 +305,65 @@ Then, if the strong form is wanted: reprove the ten field axioms without
 `toRealQ`, by density of the nodes. The statements are already `ℝ`-free, so only
 the proof bodies change.
 
-## Item 4 — NOT STARTED
+## Item 4 — PARTIAL
 
-The gate says an item may not begin until the previous one is COMPLETED or
-BLOCKED, and item 3 is neither — it is partial with four named sorries. Item 4
-(the hard direction of Lagrange: a quadratic irrational has an eventually
-periodic path) is also the largest item in the queue, needing the reduction
-theory of binary quadratic forms, and it is not something to open with a
-fraction of a night left.
+New file `SternBrocot/Reduction.lean`. **One named `sorry`**,
+`degLeTwo_eventuallyPeriodic` — the theorem itself. Everything it consumes is
+proved.
 
-It is, however, unblocked and better supplied than the queue assumed.
-`Convergent.lean` provides everything CLAUDE.md item 4 says the pigeonhole needs
-— `runBoundary`, `contin`, `contin_den_le_succ`, `abs_sub_contin_lt` — and item
-2 added the exact-error layer (`tailQuot`, `inv_tailQuot`, `denRatio`,
-`denRatio_succ`, `abs_sub_contin_eq`) which is what bounds the transformed
-coefficients along the path. The trap CLAUDE.md records — that `c/d` is not
-bounded along a bit path, so the pigeonhole must run on run boundaries rather
-than on every shift — is exactly what `runBoundary` indexes, so the shape of the
-argument now matches the shape of the available API.
+### What was proved
+
+* `formAt`, `formMid` — the binary quadratic form and the middle coefficient of
+  its transform, as the usual `SL₂(ℤ)` action.
+* `formAt_transform` — if `t` is a root of `A X² + B X + C` and
+  `t = (a s + b)/(c s + d)`, then `s` is a root of the transformed form.
+* `formDisc_transform` — **the discriminant is invariant**,
+  `formMid² − 4 formAt(a,c) formAt(b,d) = (B² − 4AC)(ad − bc)²`. Unimodularity
+  is what makes the second factor `1`.
+* **`abs_formAt_le`** — the estimate, and the point of the file. A column with
+  `|a/c − t| ≤ 1/c²` has `|formAt A B C a c| ≤ |A|(2|t| + 1) + |B|`, a bound
+  depending on the original quadratic and `t` only. The proof is the
+  factorisation `formAt (a,c) = c² (a/c − t) (A(a/c + t) + B)`: the `c²` cancels
+  against the approximation quality and nothing column-dependent survives.
+* `contin_est`, `abs_formAt_contin_le` — the estimate applied at the convergents.
+* `formAt_boundaryMat_root` — the form carried to run boundary `j` has
+  `tailValue x j` as a root. This is the concrete shape the pigeonhole meets.
+
+### The trap, resolved
+
+`CLAUDE.md` records that the naive bound fails because `c/d` is unbounded along
+a bit path — `Lⁿ` has `c/d = n`. That is exactly right, and the resolution is
+that the estimate is only ever applied at **run boundaries**, where both columns
+are convergents and `qₖ ≤ qₖ₊₁` gives `|t − pₖ/qₖ| < 1/qₖ²`
+(`abs_sub_contin_lt_one_div_sq`). So the trap costs nothing here: the file is
+indexed by `runBoundary` from the start, and `boundaryMat_eq_contin` connects
+the matrix columns to the convergents. Nothing in this file is stated for an
+arbitrary prefix.
+
+### The remaining `sorry`
+
+`degLeTwo_eventuallyPeriodic {x} (hirr : Irrational (Φ₀ x)) (h : DegLeTwo (Φ₀ x))
+ : EventuallyPeriodic x`. Three steps remain, in order of cost:
+
+1. **Bounded ⟹ finitely many forms.** `abs_formAt_contin_le` bounds the two outer
+   coefficients uniformly in `k`; `formDisc_transform` then bounds the middle
+   one, since `formMid² = D + 4 formAt formAt` with `D = B² − 4AC` fixed. So the
+   triple lands in a finite subset of `ℤ³`. In Lean this wants an explicit
+   `Finset` (a box of integers) plus `Finset.exists_ne_map_eq_of_card_lt_of_maps_to`,
+   or the range-finiteness route via `Set.Finite`.
+2. **Pigeonhole to a repeated complete quotient.** Each triple has at most two
+   real roots and the `tailValue`s are all roots of their triple's form, so the
+   set `{tailValue x k | k}` is finite; `Set.Infinite.exists_ne_map_eq_of_mapsTo`
+   then gives `k ≠ l` with `tailValue x k = tailValue x l`. Note the form is
+   genuinely quadratic at every `k`: `formAt = 0` would make `tailValue x k`
+   rational, and it is not.
+3. **Repeated quotient ⟹ periodic.** This is the cheap step in this encoding,
+   and worth doing first to check the shape. Equal values of `Φ₀` give
+   `TailEqv` by `toReal₀_injective`; a tail pair has a *rational* common value
+   (one side is a node), and `irrational_toReal₀_iterate_shift` rules that out —
+   so the two shifted points are literally **equal**, which is
+   `EventuallyPeriodic` on the nose.
+
+Step 3 is a few lines and would de-risk the rest. Do it first.
+
+

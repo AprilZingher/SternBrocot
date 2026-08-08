@@ -13,7 +13,7 @@ operations* are transported from `ℝ` along the isomorphism. By uniqueness of
 complete ordered fields that transport had no freedom in it (see
 `toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
 settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~7,000 lines, no `sorry`, everything on `propext`,
+remaining work. ~7,500 lines, everything on `propext`,
 `Classical.choice`, `Quot.sound`.
 
 The first classical continued-fraction theorem is now in: **Lagrange's theorem,
@@ -45,8 +45,9 @@ cases.
 
 ## Next steps
 
-**Items 2, 5 and the Hurwitz half of 6 are done.** Remaining recommended order:
-**the hard half of 4 → the rest of 6 → 3 (productivity).** Item 2 is the
+**Items 2, 5 and the Hurwitz half of 6 are done, and the hard half of 4 is
+started.** Remaining recommended order: **finish 4 → the rest of 6 → 3
+(productivity).** Item 2 is the
 only item that changes what the project *is* — it removes `ℝ` from the
 definition — and it does not invalidate any CF theorem proved before it (nothing
 in the Lagrange import chain reaches `Field.lean`), so deferring it costs
@@ -132,16 +133,21 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    - `Examples.lean` closes the loop concretely: `toReal₀ goldenPath = φ`, where
      `goldenPath = {n | Even n}`. Previously only the truncations were checked.
 
-   **Remaining: the hard direction** — a quadratic *irrational* has an eventually
-   periodic path. This is genuinely classical Lagrange and is a separate
+   **The hard direction** — 🟡 **partial, in `Reduction.lean`**: the estimate is
+   done (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`), one
+   named `sorry` left (`degLeTwo_eventuallyPeriodic`) for the pigeonhole and the
+   conclusion. See `HANDOFF.md`; the cheapest place to restart is the *last*
+   step, repeated complete quotient ⟹ periodic, which is a few lines here.
+
+   The original statement of the remaining work — a quadratic *irrational* has an
+   eventually periodic path. This is genuinely classical Lagrange and is a separate
    development: it needs the reduction theory of binary quadratic forms
    (bounded transformed coefficients along the path, then pigeonhole).
-   One trap found while scoping it: the naive bound on the transformed form
-   `q(a,c)` is `|A|(1/d² + (c/d)|t - t'|)`, and `c/d` is **not** bounded along a
-   bit path (`L^n` gives `c/d = n`). The classical argument works because
-   convergent denominators satisfy `qₙ ≤ qₙ₊₁`; the bit-path prefixes in the
-   middle of a run do not, so the pigeonhole has to be run on the subsequence of
-   run boundaries, not on every shift.
+   The trap recorded here was real and is now resolved: `c/d` is **not** bounded
+   along a bit path (`L^n` gives `c/d = n`), so the estimate only holds at run
+   boundaries, where both columns are convergents and `qₙ ≤ qₙ₊₁` gives
+   `|t − pₙ/qₙ| < 1/qₙ²`. `Reduction.lean` is indexed by `runBoundary` from the
+   start, so the trap costs nothing there.
 
    Confirmed absent from this Mathlib before starting — `GenContFract` exists,
    this theorem does not.
@@ -229,6 +235,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
+| `Reduction.lean` | 🟡 the forms along a path are bounded — Lagrange's hard half |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Intrinsic.lean` | **intrinsic `+`, `×` as suprema over nodes** |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |

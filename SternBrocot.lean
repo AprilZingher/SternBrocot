@@ -16,6 +16,7 @@ import SternBrocot.Shift
 import SternBrocot.Lagrange
 import SternBrocot.Convergent
 import SternBrocot.Hurwitz
+import SternBrocot.Reduction
 import SternBrocot.Field
 import SternBrocot.Intrinsic
 import SternBrocot.Gosper
