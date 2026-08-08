@@ -19,9 +19,10 @@ settled — but the *definition* still mentions `ℝ`, and closing that is the m
 remaining work. ~7,500 lines, everything on `propext`,
 `Classical.choice`, `Quot.sound`.
 
-The first classical continued-fraction theorem is now in: **Lagrange's theorem,
-forward direction** (`degLeTwo_of_eventuallyPeriodic`), together with the
-degree-one case in both directions (`eventuallyConstant_iff_rat`).
+**Lagrange's theorem is in, both directions** —
+`eventuallyPeriodic_iff_degLeTwo`: the path of `x` is eventually periodic iff
+`[ℚ(Φ₀x) : ℚ] ≤ 2`. Hurwitz is in too. **Nothing in the repository has a
+`sorry`.**
 
 ## Setup
 
@@ -48,18 +49,17 @@ cases.
 
 ## Next steps
 
-**Items 2, 5 and the Hurwitz half of 6 are done, and the hard half of 4 is
-started.** Remaining recommended order: **finish 4 → the rest of 6 → 3
-(productivity).** Item 2 is the
-only item that changes what the project *is* — it removes `ℝ` from the
-definition — and it does not invalidate any CF theorem proved before it (nothing
-in the Lagrange import chain reaches `Field.lean`), so deferring it costs
-exposure, not rework.
+**Items 2, 4, 5 and the Hurwitz half of 6 are done, and nothing has a `sorry`.**
+Remaining recommended order: **the rest of 6 (Legendre, badly approximable) →
+the intrinsic order → 3 (productivity).** Item 2 is the only item that changes
+what the project *is* — it removes `ℝ` from the definition — and it did not
+invalidate any CF theorem proved before it (nothing in the Lagrange import chain
+reaches `Field.lean`).
 
-The exact-error layer that Hurwitz needed is now in `Convergent.lean` and the
-hard half of 4 should reuse it: `tailQuot` (`= [0; aⱼ, aⱼ₊₁, …]`, with
-`inv_tailQuot : 1/wⱼ = aⱼ + wⱼ₊₁`), `denRatio` (with
-`denRatio_succ : ρⱼ₊₁ = aⱼ + 1/ρⱼ`), and `abs_sub_contin_eq`.
+What is left of item 2 is not the definitions, which are already `ℝ`-free, but
+the `LinearOrder SBReal` instance (still `LinearOrder.lift' toRealQ`) and the
+proofs of the field axioms (still routed through `toReal`). See the `ℝ`-freeness
+audit in `HANDOFF.md` for which modules are already clean by import graph.
 
 **The ordering turns on a question this file has not settled**: is this a
 *construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
@@ -112,8 +112,9 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    arguments cannot supply this** — proving a function continuous presupposes it
    is total, which is what productivity would establish.
 
-4. **Lagrange's theorem** — 🟡 **forward direction done** (`Shift.lean`,
-   `Degree.lean`, `Lagrange.lean`). It did *not* need productivity, as expected:
+4. **Lagrange's theorem** — ✅ **done, both directions** (`Shift.lean`,
+   `Degree.lean`, `Lagrange.lean`, `Reduction.lean`). It did *not* need
+   productivity, as expected:
    every real already *is* a subset of `ω+1` (`exists_toReal_eq`), so
    periodicity is a property of that set.
 
@@ -143,13 +144,26 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    - `Examples.lean` closes the loop concretely: `toReal₀ goldenPath = φ`, where
      `goldenPath = {n | Even n}`. Previously only the truncations were checked.
 
-   **The hard direction** — 🟡 **partial, in `Reduction.lean`**, with **one**
-   named `sorry`: `finite_range_tailValue`, "the complete quotients take
-   finitely many values". Both ends are done — the estimate
-   (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`) and the
-   conclusion (`eq_of_toReal₀_eq_of_irrational`,
-   `eventuallyPeriodic_of_finite_range`). What is left is the packaging: a finite
-   box of integer triples, and "a nonzero quadratic has finitely many roots".
+   - `eventuallyPeriodic_iff_degLeTwo` — **the theorem**, as an `iff`, with
+     `eventuallyPeriodic_iff_degLeTwo_toReal` the signed version on `ℝ`. The
+     rational case is a third argument, not a corollary of either half: the
+     hard direction assumes irrationality throughout, so "rational ⟹ eventually
+     periodic" goes via `eventuallyConstant_iff_rat`.
+
+   **The hard direction** — ✅ **done, in `Reduction.lean`**. The estimate
+   (`abs_formAt_le`, `formDisc_transform`, `formAt_boundaryMat_root`), the
+   pigeonhole (`finite_range_tailValue`), and the conclusion
+   (`eq_of_toReal₀_eq_of_irrational`, `eventuallyPeriodic_of_finite_range`).
+
+   The pigeonhole is three bounds and a box. `abs_formAt_contin_le` bounds both
+   *outer* coefficients by one constant `⌈|A|(2|Φ₀x|+1) + |B|⌉` uniformly along
+   the path; the fixed discriminant then bounds the *middle* one, since
+   `mid² = D + 4·outer·outer`; and the leading coefficient is never zero
+   because a zero there would make the complete quotient rational. So the
+   triples live in a `Finset` box, each triple has ≤ 2 real roots
+   (`finite_quadratic_roots`, elementary — the root set sits inside
+   `{(−b ± √(b²−4ac))/2a}` because `(2az+b)² = b²−4ac` identically), and the
+   complete quotients are among those roots.
 
    Worth noting how cheap the back end turned out to be here. Equal values of
    `Φ₀` at two shifts give tail-equivalence, and a tail pair always has a
@@ -157,10 +171,6 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    literally **equal**. Periodicity comes out on the nose, with no
    reconstruction step at all.
 
-   The original statement of the remaining work — a quadratic *irrational* has an
-   eventually periodic path. This is genuinely classical Lagrange and is a separate
-   development: it needs the reduction theory of binary quadratic forms
-   (bounded transformed coefficients along the path, then pigeonhole).
    The trap recorded here was real and is now resolved: `c/d` is **not** bounded
    along a bit path (`L^n` gives `c/d = n`), so the estimate only holds at run
    boundaries, where both columns are convergents and `qₙ ≤ qₙ₊₁` gives
@@ -255,7 +265,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
-| `Reduction.lean` | 🟡 Lagrange's hard half — bounded forms; 1 `sorry` |
+| `Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Complete.lean` | **the ordered-field axioms and completeness**, stated |
 | `IntrinsicCore.lean` | **the intrinsic `+`, `×`, and `ratPoint` — ℝ-free** |
@@ -286,7 +296,14 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 - `toReal₀_S` / `toReal₀_L` — the move recursion holds for the *supremum* value
   map, not just for `nodeValue` on finite paths. Everything about the shift
   rests on these two.
-- `degLeTwo_of_eventuallyPeriodic` — Lagrange, forward direction.
+- `eventuallyPeriodic_iff_degLeTwo` — **Lagrange's theorem**, both directions:
+  the path of `x` is eventually periodic iff `[ℚ(Φ₀x) : ℚ] ≤ 2`.
+  `degLeTwo_of_eventuallyPeriodic` is the easy half (a Möbius fixed point);
+  `degLeTwo_eventuallyPeriodic` the hard one (reduction theory).
+- `abs_formAt_le` — the reduction estimate: a column approximating `t` to
+  `1/c²` has form value bounded by `|A|(2|t|+1) + |B|`, with nothing
+  column-dependent surviving. The whole hard direction is this plus the
+  invariance of the discriminant.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
@@ -332,6 +349,11 @@ Things that cost time to rediscover.
   lands on `{none}`, which is why a Dedekind cut used to define a product must
   carry an explicit `0` floor (`mulCut`); without it multiplication is infinite
   exactly at zero. Cost an hour to find.
+- **`neg_neg` inside `namespace SternBrocot` is *not* Mathlib's.** `Signed.neg`
+  brings a `SternBrocot.neg_neg` into scope, which shadows the group lemma, so
+  `rw [neg_neg]` on a goal about `ℝ` fails with "did not find an occurrence" and
+  a pattern printed as `neg (neg ?x)`. Write `_root_.neg_neg`. Same hazard for
+  any short algebraic name this development also defines.
 - **No `LinearOrder` on `Set ℕ`** — it already carries `⊆`. The lex order lives as
   bare relations `<ₗ`, `≤ₗ`. A type synonym was tried and deleted as dead weight:
   the *quotient* carries the order instead, which is the better design.

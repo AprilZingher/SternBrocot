@@ -305,11 +305,11 @@ Then, if the strong form is wanted: reprove the ten field axioms without
 `toRealQ`, by density of the nodes. The statements are already `ℝ`-free, so only
 the proof bodies change.
 
-## Item 4 — PARTIAL
+## Item 4 — COMPLETE
 
-New file `SternBrocot/Reduction.lean`. **One named `sorry`**,
-`finite_range_tailValue`. Everything else — including the theorem itself,
-`degLeTwo_eventuallyPeriodic`, which is now a one-line consequence — is proved.
+New file `SternBrocot/Reduction.lean`, **no `sorry`**. Lagrange's theorem holds
+in both directions, and `eventuallyPeriodic_iff_degLeTwo` states it as an `iff`.
+**The whole repository is now `sorry`-free.**
 
 ### What was proved
 
@@ -354,32 +354,55 @@ pigeonhole are done too:
   literally a repeated *point*, hence `EventuallyPeriodic` on the nose.
 * `eventuallyPeriodic_of_finite_range` — the pigeonhole itself.
 
-### The remaining `sorry`
+### The pigeonhole, closed
 
-Exactly one, and it is now a crisp self-contained statement:
+`finite_range_tailValue` is now proved:
 
 ```
 finite_range_tailValue : Irrational (Φ₀ x) → DegLeTwo (Φ₀ x) →
     (Set.range (fun k : ℕ => tailValue x (k + 2))).Finite
 ```
 
-*The complete quotients take finitely many values.* Everything it needs is in
-the file: `abs_formAt_contin_le` bounds the outer coefficients uniformly in `k`,
-`formDisc_transform` then bounds the middle one (since
-`formMid² = D + 4 formAt formAt` with `D = B² − 4AC` fixed), and
-`formAt_boundaryMat_root` says each complete quotient is a root of its own
-triple. What is missing is only the packaging:
+*The complete quotients take finitely many values.* The argument, in the order
+the Lean does it:
 
-1. a finite box of integer triples (a `Finset` product, or `Set.Finite` of the
-   range of the triple map);
-2. "a nonzero quadratic has finitely many roots" — either
-   `Polynomial.setOf_isRoot_finite` on `C A * X^2 + C B * X + C C`, or the
-   elementary two-root argument: three distinct roots `z₁, z₂, z₃` of the same
-   `A ≠ 0` quadratic give `z₁ + z₂ = −B/A = z₁ + z₃`, hence `z₂ = z₃`.
+1. `abs_formAt_contin_le` bounds both outer coefficients by the single real
+   constant `Kr = |A|(2|Φ₀x| + 1) + |B|`, uniformly in `k`; `N := ⌈Kr⌉` makes
+   that an integer bound.
+2. `formDisc_transform` fixes the discriminant, so
+   `formMid² = D + 4·formAt·formAt ≤ |D| + 4N²`, which bounds the middle
+   coefficient by `Mb := |D| + 4N² + 1`. This is the only place the
+   invariance of the discriminant is *used* rather than merely stated.
+3. `degLeTwo_leading_ne_zero` (via `htirr`/`hlead`) rules out a vanishing
+   leading coefficient: `formAt = 0` would make the complete quotient rational,
+   and `irrational_toReal₀_iterate_shift` says it is not. Note this needs the
+   middle coefficient to be nonzero too, which comes from `D ≠ 0` —
+   `degLeTwo_disc_ne_zero`, itself an irrationality argument (a zero
+   discriminant gives a rational double root).
+4. So every triple lands in the `Finset` box
+   `Icc (-NB) NB ×ˢ Icc (-NB) NB ×ˢ Icc (-NB) NB` filtered to nonzero leading
+   coefficient, and `finite_quadratic_roots` gives each triple at most two
+   roots. `formAt_boundaryMat_root` puts each complete quotient in its own
+   triple's root set, so the range is a subset of a finite union of finite sets.
 
-The leading coefficient is never zero, which route 2 needs: `formAt = 0` would
-make the complete quotient rational, and `irrational_toReal₀_iterate_shift` says
-it is not.
+`finite_quadratic_roots` is the elementary version, not `Polynomial`: the root
+set is contained in `{(-b ± √(b²−4ac))/(2a)}` because
+`(2az + b)² = b² − 4ac` identically, so `√(b²−4ac) = |2az + b|` and the two
+sign cases give the two candidates. Going through `Polynomial.setOf_isRoot_finite`
+would have meant building the polynomial and its `≠ 0` proof, which is more work
+than this.
+
+### Lagrange, both directions
+
+`eventuallyPeriodic_iff_degLeTwo (hx : x ≠ univ) :
+EventuallyPeriodic x ↔ DegLeTwo (Φ₀ x)`, with the signed version
+`eventuallyPeriodic_iff_degLeTwo_toReal` on all of `ℝ`.
+
+The rational case is not a degenerate edge and does not follow from the hard
+direction — that one assumes irrationality throughout (the whole pigeonhole
+needs `formAt ≠ 0`). It is instead `eventuallyConstant_iff_rat` composed with
+`eventuallyPeriodic_of_eventuallyConstant`: a rational has an eventually
+*constant* path, which is periodic with period 1.
 
 
 
