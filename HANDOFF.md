@@ -539,3 +539,78 @@ carrier would either come from `ℝ` or have to be built from scratch. The
 Dedekind route needs none of it. `toReal₀ x = sSup (below x)` is already a cut,
 so the transfer principle is *density plus extensionality of cuts*, which is
 pure order theory and is what `Core/Density.lean` supplies.
+
+
+## Item 6 continued — consecutive convergents (`CF/Legendre.lean`)
+
+New file, no `sorry`. **Legendre's theorem itself is not in it yet** — this is
+the layer underneath, and the name is aspirational. Say so out loud rather than
+letting the filename imply more than it holds.
+
+### What was proved
+
+* `contin_det` — `pₖ qₖ₊₁ − pₖ₊₁ qₖ = ±1`, sign alternating with `runBit`.
+* `abs_contin_det` — the sign-free form.
+* `contin_coprime` — every convergent is already in lowest terms.
+* `contin_straddle` — `Φ₀x` lies strictly *between* consecutive convergents,
+  sides alternating with `runBit`; `toReal₀_strictly_between_contin` is the
+  `runBit`-free disjunction.
+* `contin_ne_toReal₀` — a convergent never equals the value.
+* `cassini` (in `Examples.lean`) — the determinant read at the golden path is
+  Cassini's identity for `Nat.fib`.
+
+### Why these were missing
+
+`Convergent.lean` only ever needed *one* convergent at a time, so it never
+stated anything about a pair. Both facts here were already implicit in it:
+`pathMat_det` gives the determinant and `column_errors` gives both signed
+differences as manifestly positive quantities. The only new content is reading
+`boundaryMat_eq_contin` to see *which* column is which convergent — and that
+assignment swaps with `runBit`, which is why every statement here is a
+conjunction of two implications rather than an `if`.
+
+So this file is cheap by construction. It is not evidence that Legendre is
+cheap.
+
+### The trap that cost a build cycle
+
+`boundaryMat_eq_contin h (k+1)` produces terms indexed `k+1+1` and `k+1+2`,
+which are *definitionally* `k+2` and `k+3` but not syntactically, so `rw` fails
+with "did not find an occurrence". `Convergent.lean` already works around this
+by writing `have hm : pathMat (prefixWord …) = … := hT hb` with the indices
+spelled the way the goal wants, letting defeq do the work at elaboration. Copy
+that pattern; do not fight it with `omega` or `simp_arith`.
+
+### What Legendre still needs
+
+> `|α − p/q| < 1/(2q²)` with `0 < q` and `gcd(p,q) = 1` implies `p/q` is a
+> convergent.
+
+The classical route, and what each step needs from here:
+
+1. **Best approximation of the second kind** — for `0 < q < qₖ₊₁`,
+   `|qₖ α − pₖ| ≤ |q α − p|`. This is the lattice argument: `abs_contin_det`
+   makes `(pₖ, qₖ)`, `(pₖ₊₁, qₖ₊₁)` a basis of `ℤ²`, so `(p, q) = u(pₖ, qₖ) +
+   v(pₖ₊₁, qₖ₊₁)` with `u, v ∈ ℤ`; `contin_straddle` makes `qₖα − pₖ` and
+   `qₖ₊₁α − pₖ₊₁` opposite in sign, so if `u, v` are both nonzero and of the
+   same sign the two contributions cannot cancel. Both inputs now exist.
+2. **Choosing the index** — needs `qₖ` unbounded, i.e. strictly increasing at
+   run boundaries. `contin_den_le_succ` gives `≤`; the strict version is not
+   stated and will be needed.
+3. **The conclusion** — from `|α − p/q| < 1/(2q²)` and step 1, derive
+   `|q α − p| < 1/(2q)`, compare against `|qₖ α − pₖ|`, and conclude `p/q` is
+   the `k`-th convergent by uniqueness of the coprime representative.
+
+Step 2 is the one I would check first — if `qₖ` can repeat, the indexing in
+step 1 needs care, and this development's `a₀ = 0` seed swap is exactly the kind
+of thing that makes the first few terms misbehave.
+
+### Then badly approximable
+
+`badly approximable ↔ bounded partial quotients` consumes Legendre for the `→`
+direction — bounded partial quotients bound the error from below at the
+convergents via `abs_sub_contin_eq`, and Legendre is what says non-convergents
+cannot do better. The `←` direction needs an unbounded partial quotient to
+produce arbitrarily good approximations, which is `abs_sub_contin_eq` again with
+`wₖ + ρₖ` large. Neither direction needs anything not now present *except*
+Legendre.

@@ -11,6 +11,7 @@ import SternBrocot.Real.ToReal
 import SternBrocot.Real.SignedToReal
 import SternBrocot.CF.Lagrange
 import SternBrocot.CF.Convergent
+import SternBrocot.CF.Legendre
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!
@@ -469,5 +470,18 @@ theorem contin_goldenPath (k : ℕ) :
         show Nat.fib (j + 2) = Nat.fib j + Nat.fib (j + 1) from Nat.fib_add_two]
       simp only [Prod.mk.injEq]
       constructor <;> · push_cast; ring
+
+/-! ### Unimodularity of consecutive convergents, concretely
+
+`abs_contin_det` says consecutive convergents have determinant `±1`. Read at the
+golden path, where the convergents are consecutive Fibonacci numbers, it becomes
+**Cassini's identity**. Nothing in `Legendre.lean` mentions `Nat.fib`, and
+`Nat.fib` is defined in Mathlib with no reference to the Stern–Brocot tree, so
+this is a real check on the determinant lemma rather than a restatement of it. -/
+theorem cassini (k : ℕ) :
+    |(Nat.fib (k + 2) : ℤ) * (Nat.fib (k + 2) : ℤ)
+      - (Nat.fib (k + 3) : ℤ) * (Nat.fib (k + 1) : ℤ)| = 1 := by
+  have h := abs_contin_det infFlips_goldenPath k
+  rwa [contin_goldenPath (k + 1), contin_goldenPath (k + 2)] at h
 
 end SternBrocot

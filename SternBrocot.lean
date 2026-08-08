@@ -30,6 +30,7 @@ import SternBrocot.CF.Lagrange
 import SternBrocot.CF.Convergent
 import SternBrocot.CF.Hurwitz
 import SternBrocot.CF.Reduction
+import SternBrocot.CF.Legendre
 
 -- Machine-checked checks that the definitions mean what is claimed
 import SternBrocot.Examples
