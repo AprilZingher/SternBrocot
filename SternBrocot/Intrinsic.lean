@@ -16,10 +16,10 @@ order alone. But the *definition* still mentions `ℝ`. This file closes that: i
 defines `+` and `×` on the carrier itself, with no `ℝ` anywhere in the
 definitions.
 
-**Status: partial.** The definitions below are final and all ten field axioms
-are proved. Four lemmas are still `sorry`, listed by name in `HANDOFF.md`; the
-supremum layer, the rational embedding and finiteness of both operations are
-complete.
+**Status: complete, no `sorry`.** `+` and `×` are defined without mentioning
+`ℝ`, all ten field axioms are proved, and `add'_eq_add` / `mul'_eq_mul` show they
+are the operations `Field.lean` transported — so installing them as the instance
+would change no existing theorem.
 
 ## The design
 
@@ -54,19 +54,28 @@ Three layers, each intrinsic.
    supremum characterisation lands on the transported operation, so nothing is
    lost by taking it as the definition.
 
-## What the remaining proofs need
+## How the proofs go
 
-Everything reduces to two theorems, `toRealQ_add'` and `toRealQ_mul'`, saying
-the intrinsic operations agree with the transported ones. Given those, every
-field axiom follows in one line by `toRealQ_injective`, because `ℝ` satisfies
-it. That is the cheap route and the one taken below.
+Everything rests on two theorems, `toReal_addRaw` and `toReal_mulRaw`, stated at
+the *raw* level: the supremum has the value it should. Each is proved by
+antisymmetry, and both halves are the same move — a rational strictly on the
+wrong side of the supremum is exhibited either as an upper bound of the cut
+(contradicting `slexSup_least`) or as a member of it (contradicting
+`slexSup_upperBound`).
 
-It is worth being precise about what that does and does not achieve. After it,
-the **definitions** of `+` and `×` never mention `ℝ`; the **proofs** of the
-axioms still do, via the bridge. The stronger statement — that the axioms
-themselves are provable without `ℝ`, by density of the nodes and continuity — is
-a further step, and the honest way to describe the result of this file is the
-weaker one. See `HANDOFF.md`.
+Stating them raw rather than on the quotient is what makes the rest collapse.
+The congruence lemmas are `toReal_injective` applied to them — **not** a
+comparison of cuts, which genuinely fails: when the lower element of an adjacent
+pair happens to be a rational point, the two cuts differ by exactly that point.
+And the quotient versions are `Quotient.inductionOn`. From there every field
+axiom is one line.
+
+It is worth being precise about what this does and does not achieve. The
+**definitions** of `+` and `×` never mention `ℝ`; the **proofs** of the axioms
+do, via `toReal`. The stronger statement — that the axioms are provable without
+`ℝ` at all, by density of the nodes and continuity — is a further step, and it
+needs different proofs, not different definitions. Everything below is already
+arranged so that swapping them in changes nothing else.
 -/
 
 open Set
@@ -385,23 +394,233 @@ theorem isFinite_mulRaw {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
   · exact isFinite_neg.2 (isFinite_mulRawPos ha hb')
   · exact isFinite_mulRawPos ha hb
 
-theorem addRaw_congr {a a' b b' : Signed} (ha : SEqv a a') (hb : SEqv b b') :
-    SEqv (addRaw a b) (addRaw a' b') := by
-  sorry
+/-! ### The agreement theorem for addition
 
-theorem mulRaw_congr {a a' b b' : Signed} (ha : SEqv a a') (hb : SEqv b b') :
-    SEqv (mulRaw a b) (mulRaw a' b') := by
-  sorry
+This is the load-bearing lemma, and it is stated at the *raw* level rather than
+on the quotient because everything else falls out of it: the congruence is
+`toReal_injective`, and the quotient version is `Quotient.induction`. -/
+
+/-- The converse of `toReal_mono`, by trichotomy. Non-strict monotonicity is all
+`SignedToReal` gives — the quotient is why — but reflecting a *strict*
+inequality needs nothing more. -/
+theorem slexLt_of_toReal_lt {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
+    (h : toReal x < toReal y) : x <ₛ y := by
+  rcases slexLt_trichotomy x y with h1 | rfl | h1
+  · exact h1
+  · exact absurd h (lt_irrefl _)
+  · exact absurd (toReal_mono h1 hy hx) (not_le.2 h)
+
+/-- A rational strictly below a point sits strictly below it. -/
+theorem ratPoint_slexLt {p : ℚ} {a : Signed} (ha : IsFinite a) (h : (p : ℝ) < toReal a) :
+    ratPoint p <ₛ a :=
+  slexLt_of_toReal_lt (isFinite_ratPoint p) ha (by rw [toReal_ratPoint]; exact h)
+
+/-- ...and conversely its value does not exceed the point's. Only `≤`, because
+the rational point may *be* the point. -/
+theorem le_toReal_of_ratPoint_slexLt {p : ℚ} {a : Signed} (ha : IsFinite a)
+    (h : ratPoint p <ₛ a) : (p : ℝ) ≤ toReal a := by
+  have := toReal_mono h (isFinite_ratPoint p) ha
+  rwa [toReal_ratPoint] at this
+
+/-- **Intrinsic addition computes addition.** Both halves are the same move: a
+rational strictly on the wrong side of the supremum is exhibited either as an
+upper bound of the cut (contradicting leastness) or as a member of it
+(contradicting upper-boundedness). -/
+theorem toReal_addRaw {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
+    toReal (addRaw a b) = toReal a + toReal b := by
+  have hfin := isFinite_addRaw ha hb
+  refine le_antisymm ?_ ?_
+  · by_contra hcon
+    obtain ⟨r, hr1, hr2⟩ := exists_rat_btwn (not_le.1 hcon)
+    have hub : ∀ z ∈ addCut a b, ¬ (ratPoint r <ₛ z) := by
+      rintro z ⟨p, q, hp, hq, rfl⟩ hlt
+      have hpA := le_toReal_of_ratPoint_slexLt ha hp
+      have hqB := le_toReal_of_ratPoint_slexLt hb hq
+      have hr' := le_toReal_of_ratPoint_slexLt (isFinite_ratPoint (p + q)) hlt
+      rw [toReal_ratPoint] at hr'
+      push_cast at hr'
+      linarith
+    exact slexSup_least (addCut a b) (ratPoint r) hub
+      (slexLt_of_toReal_lt (isFinite_ratPoint r) hfin (by rw [toReal_ratPoint]; exact hr2))
+  · by_contra hcon
+    obtain ⟨r, hr1, hr2⟩ := exists_rat_btwn (not_le.1 hcon)
+    obtain ⟨r₁, hr₁1, hr₁2⟩ :=
+      exists_rat_btwn (show toReal a - (toReal a + toReal b - (r : ℝ)) < toReal a by linarith)
+    have hmem : ratPoint r ∈ addCut a b := by
+      refine ⟨r₁, r - r₁, ratPoint_slexLt ha hr₁2, ratPoint_slexLt hb ?_, by congr 1; ring⟩
+      push_cast
+      linarith
+    exact slexSup_upperBound (addCut a b) (ratPoint r) hmem
+      (slexLt_of_toReal_lt hfin (isFinite_ratPoint r) (by rw [toReal_ratPoint]; exact hr1))
+
+/-- **Addition respects the quotient.** Not by comparing cuts — those genuinely
+differ, by one point, when the lower element of an adjacent pair happens to be a
+rational point. It is `toReal_injective` applied to `toReal_addRaw`. -/
+theorem addRaw_congr {a a' b b' : Signed} (ha : IsFinite a) (ha' : IsFinite a')
+    (hb : IsFinite b) (hb' : IsFinite b') (hea : SEqv a a') (heb : SEqv b b') :
+    SEqv (addRaw a b) (addRaw a' b') :=
+  toReal_injective (isFinite_addRaw ha hb) (isFinite_addRaw ha' hb')
+    (by rw [toReal_addRaw ha hb, toReal_addRaw ha' hb', toReal_of_seqv hea,
+      toReal_of_seqv heb])
+
+/-! ### The agreement theorem for multiplication
+
+The supremum formula is monotone only on the nonnegative cone, so `mulRaw`
+splits on the signs and hands `mulRawPos` two arguments of nonnegative value.
+That is all `toReal_mulRawPos` ever needs to assume. -/
+
+theorem toReal_le_of_not_slexLt {x y : Signed} (hx : IsFinite x) (hy : IsFinite y)
+    (h : ¬ (x <ₛ y)) : toReal y ≤ toReal x := by
+  rcases slexLt_trichotomy x y with h1 | rfl | h1
+  · exact absurd h1 h
+  · exact le_rfl
+  · exact toReal_mono h1 hy hx
+
+/-- **On the nonnegative cone, the supremum formula computes the product.** -/
+theorem toReal_mulRawPos {a b : Signed} (ha : IsFinite a) (hb : IsFinite b)
+    (hA : 0 ≤ toReal a) (hB : 0 ≤ toReal b) :
+    toReal (mulRawPos a b) = toReal a * toReal b := by
+  have hfin := isFinite_mulRawPos ha hb
+  have hmem0 : ratPoint 0 ∈ mulCut a b := Or.inl rfl
+  have hlow0 : 0 ≤ toReal (mulRawPos a b) := by
+    have h1 := toReal_le_of_not_slexLt hfin (isFinite_ratPoint 0)
+      (slexSup_upperBound (mulCut a b) (ratPoint 0) hmem0)
+    rw [toReal_ratPoint] at h1
+    push_cast at h1
+    exact h1
+  -- the degenerate cases: one factor is zero, and then so is the supremum
+  have hzero : ∀ {c d : Signed}, IsFinite c → IsFinite d → toReal c = 0 →
+      toReal (mulRawPos c d) = 0 := by
+    intro c d hc hd hc0
+    have hfin' := isFinite_mulRawPos hc hd
+    have hub : ∀ z ∈ mulCut c d, ¬ (ratPoint 0 <ₛ z) := by
+      rintro z (rfl | ⟨p, q, hp0, hq0, hpa, hqb, rfl⟩) hlt
+      · exact slexLt_irrefl _ hlt
+      · have hpA := le_toReal_of_ratPoint_slexLt hc hpa
+        rw [hc0] at hpA
+        have hp0' : (0 : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp0
+        have hp : p = 0 := by
+          have : (p : ℝ) = 0 := le_antisymm hpA hp0'
+          exact_mod_cast this
+        rw [hp, zero_mul] at hlt
+        exact slexLt_irrefl _ hlt
+    have h2 := toReal_le_of_not_slexLt (isFinite_ratPoint 0) hfin'
+      (slexSup_least (mulCut c d) (ratPoint 0) hub)
+    rw [toReal_ratPoint] at h2
+    push_cast at h2
+    have h3 : 0 ≤ toReal (mulRawPos c d) := by
+      have h4 := toReal_le_of_not_slexLt hfin' (isFinite_ratPoint 0)
+        (slexSup_upperBound (mulCut c d) (ratPoint 0) (Or.inl rfl))
+      rw [toReal_ratPoint] at h4
+      push_cast at h4
+      exact h4
+    linarith
+  rcases eq_or_lt_of_le hA with hA0 | hApos
+  · rw [hzero ha hb hA0.symm, ← hA0, zero_mul]
+  rcases eq_or_lt_of_le hB with hB0 | hBpos
+  · -- symmetric, but `mulCut` is not symmetric in form, so redo the bound
+    have hub : ∀ z ∈ mulCut a b, ¬ (ratPoint 0 <ₛ z) := by
+      rintro z (rfl | ⟨p, q, hp0, hq0, hpa, hqb, rfl⟩) hlt
+      · exact slexLt_irrefl _ hlt
+      · have hqB := le_toReal_of_ratPoint_slexLt hb hqb
+        rw [← hB0] at hqB
+        have hq0' : (0 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq0
+        have hq : q = 0 := by
+          have : (q : ℝ) = 0 := le_antisymm hqB hq0'
+          exact_mod_cast this
+        rw [hq, mul_zero] at hlt
+        exact slexLt_irrefl _ hlt
+    have h2 := toReal_le_of_not_slexLt (isFinite_ratPoint 0) hfin
+      (slexSup_least (mulCut a b) (ratPoint 0) hub)
+    rw [toReal_ratPoint] at h2
+    push_cast at h2
+    rw [← hB0, mul_zero]
+    linarith
+  -- both values strictly positive
+  refine le_antisymm ?_ ?_
+  · by_contra hcon
+    obtain ⟨r, hr1, hr2⟩ := exists_rat_btwn (not_le.1 hcon)
+    have hub : ∀ z ∈ mulCut a b, ¬ (ratPoint r <ₛ z) := by
+      rintro z (rfl | ⟨p, q, hp0, hq0, hpa, hqb, rfl⟩) hlt
+      · have h1 := le_toReal_of_ratPoint_slexLt (isFinite_ratPoint 0) hlt
+        rw [toReal_ratPoint] at h1
+        push_cast at h1
+        nlinarith [mul_pos hApos hBpos]
+      · have hpA := le_toReal_of_ratPoint_slexLt ha hpa
+        have hqB := le_toReal_of_ratPoint_slexLt hb hqb
+        have hr' := le_toReal_of_ratPoint_slexLt (isFinite_ratPoint (p * q)) hlt
+        rw [toReal_ratPoint] at hr'
+        push_cast at hr'
+        have hp0' : (0 : ℝ) ≤ (p : ℝ) := by exact_mod_cast hp0
+        have hq0' : (0 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq0
+        nlinarith
+    exact slexSup_least (mulCut a b) (ratPoint r) hub
+      (slexLt_of_toReal_lt (isFinite_ratPoint r) hfin (by rw [toReal_ratPoint]; exact hr2))
+  · by_contra hcon
+    obtain ⟨r, hr1, hr2⟩ := exists_rat_btwn (not_le.1 hcon)
+    have hr0 : (0 : ℝ) ≤ (r : ℝ) := le_trans hlow0 (le_of_lt hr1)
+    obtain ⟨p, hp1, hp2⟩ := exists_rat_btwn
+      (show (r : ℝ) / toReal b < toReal a by rw [div_lt_iff₀ hBpos]; exact hr2)
+    have hppos : (0 : ℝ) < (p : ℝ) :=
+      lt_of_le_of_lt (div_nonneg hr0 (le_of_lt hBpos)) hp1
+    obtain ⟨q, hq1, hq2⟩ := exists_rat_btwn
+      (show (r : ℝ) / (p : ℝ) < toReal b by
+        rw [div_lt_iff₀ hppos]
+        rw [div_lt_iff₀ hBpos] at hp1
+        linarith)
+    have hqpos : (0 : ℝ) < (q : ℝ) :=
+      lt_of_le_of_lt (div_nonneg hr0 (le_of_lt hppos)) hq1
+    have hmem : ratPoint (p * q) ∈ mulCut a b :=
+      Or.inr ⟨p, q, by exact_mod_cast hppos.le, by exact_mod_cast hqpos.le,
+        ratPoint_slexLt ha hp2, ratPoint_slexLt hb hq2, rfl⟩
+    refine slexSup_upperBound (mulCut a b) (ratPoint (p * q)) hmem
+      (slexLt_of_toReal_lt hfin (isFinite_ratPoint (p * q)) ?_)
+    rw [toReal_ratPoint]
+    show toReal (mulRawPos a b) < ((p * q : ℚ) : ℝ)
+    rw [div_lt_iff₀ hppos] at hq1
+    have hstep : (r : ℝ) < ((p * q : ℚ) : ℝ) := by push_cast; nlinarith [hq1]
+    linarith
+
+/-- **Intrinsic multiplication computes multiplication.** -/
+theorem toReal_mulRaw {a b : Signed} (ha : IsFinite a) (hb : IsFinite b) :
+    toReal (mulRaw a b) = toReal a * toReal b := by
+  classical
+  have ha' : IsFinite (neg a) := isFinite_neg.2 ha
+  have hb' : IsFinite (neg b) := isFinite_neg.2 hb
+  unfold mulRaw
+  split_ifs with hsa hsb hsb
+  · have hA := toReal_nonpos_of_neg hsa
+    have hB := toReal_nonpos_of_neg hsb
+    rw [toReal_mulRawPos ha' hb' (by rw [toReal_neg]; linarith) (by rw [toReal_neg]; linarith),
+      toReal_neg, toReal_neg]
+    ring
+  · have hA := toReal_nonpos_of_neg hsa
+    have hB := toReal_nonneg_of_pos hsb
+    rw [toReal_neg, toReal_mulRawPos ha' hb (by rw [toReal_neg]; linarith) hB, toReal_neg]
+    ring
+  · have hA := toReal_nonneg_of_pos hsa
+    have hB := toReal_nonpos_of_neg hsb
+    rw [toReal_neg, toReal_mulRawPos ha hb' hA (by rw [toReal_neg]; linarith), toReal_neg]
+    ring
+  · exact toReal_mulRawPos ha hb (toReal_nonneg_of_pos hsa) (toReal_nonneg_of_pos hsb)
+
+/-- **Multiplication respects the quotient**, for the same reason addition does. -/
+theorem mulRaw_congr {a a' b b' : Signed} (ha : IsFinite a) (ha' : IsFinite a')
+    (hb : IsFinite b) (hb' : IsFinite b') (hea : SEqv a a') (heb : SEqv b b') :
+    SEqv (mulRaw a b) (mulRaw a' b') :=
+  toReal_injective (isFinite_mulRaw ha hb) (isFinite_mulRaw ha' hb')
+    (by rw [toReal_mulRaw ha hb, toReal_mulRaw ha' hb', toReal_of_seqv hea,
+      toReal_of_seqv heb])
 
 /-- **Intrinsic addition on `SBReal`.** -/
 noncomputable def add' : SBReal → SBReal → SBReal :=
   Quotient.lift₂ (fun a b : FinitePoint => mk (addRaw a.1 b.1) (isFinite_addRaw a.2 b.2))
-    (fun _ _ _ _ h₁ h₂ => Quotient.sound (addRaw_congr h₁ h₂))
+    (fun a b a' b' h₁ h₂ => Quotient.sound (addRaw_congr a.2 a'.2 b.2 b'.2 h₁ h₂))
 
 /-- **Intrinsic multiplication on `SBReal`.** -/
 noncomputable def mul' : SBReal → SBReal → SBReal :=
   Quotient.lift₂ (fun a b : FinitePoint => mk (mulRaw a.1 b.1) (isFinite_mulRaw a.2 b.2))
-    (fun _ _ _ _ h₁ h₂ => Quotient.sound (mulRaw_congr h₁ h₂))
+    (fun a b a' b' h₁ h₂ => Quotient.sound (mulRaw_congr a.2 a'.2 b.2 b'.2 h₁ h₂))
 
 @[simp] theorem add'_mk (a b : Signed) (ha : IsFinite a) (hb : IsFinite b) :
     add' (mk a ha) (mk b hb) = mk (addRaw a b) (isFinite_addRaw ha hb) := rfl
@@ -417,10 +636,16 @@ one — it proves the supremum characterisation is correct; what is left is that
 the supremum taken in `P(ω+1)` by `slexSup` is the supremum `toRealQ` sees. -/
 
 theorem toRealQ_add' (a b : SBReal) : toRealQ (add' a b) = toRealQ a + toRealQ b := by
-  sorry
+  induction a using Quotient.inductionOn with
+  | _ a =>
+    induction b using Quotient.inductionOn with
+    | _ b => exact toReal_addRaw a.2 b.2
 
 theorem toRealQ_mul' (a b : SBReal) : toRealQ (mul' a b) = toRealQ a * toRealQ b := by
-  sorry
+  induction a using Quotient.inductionOn with
+  | _ a =>
+    induction b using Quotient.inductionOn with
+    | _ b => exact toReal_mulRaw a.2 b.2
 
 /-! ### `toRealQ` on the transported constants
 

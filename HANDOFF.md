@@ -227,133 +227,83 @@ terms of the golden *path*. It is a two-line corollary and was left out only for
 time.
 
 
-## Item 3 — PARTIAL
+## Item 3 — COMPLETED
 
-New file `SternBrocot/Intrinsic.lean`. **It compiles. Four named `sorry`s remain,
-all listed below.** Nothing else in the repository has a `sorry`. The skeleton
-was committed first with ten, as the queue specified; six were then discharged.
+New file `SternBrocot/Intrinsic.lean`, **no `sorry`**. Nothing in the repository
+has a `sorry`. The skeleton was committed first with ten, as the queue
+specified, and all ten were then discharged.
 
-### The design, in one paragraph
+### The design
 
-Three intrinsic layers. (1) `slexSup` — a supremum on `P(ω+1)`. `Completeness.lean`
-already has `lexSup` on `P(ω)`, and `SLexLt` is "negatives below positives, same
-sign by forward lex on the stored bits", so one case split suffices: a set with a
-positive member has a positive supremum whose bits are `lexSup` of the positive
-members' bits, and a set of negatives has a negative one whose bits are `lexSup`
-of all of them. No boundedness hypothesis, exactly as for `lexSup`. (2)
-`ratPoint : ℚ → Signed` — `GosperRat.toPath` is the Euclidean algorithm as a
-function, `Bridge.toSet` makes it a point, `neg` extends it across the sign.
-(3) The operations as suprema over the nodes:
+Three intrinsic layers. (1) `slexSup` — a supremum on `P(ω+1)`.
+`Completeness.lean` already has `lexSup` on `P(ω)`, and `SLexLt` is "negatives
+below positives, same sign by forward lex on the stored bits", so one case split
+suffices: a set with a positive member has a positive supremum whose bits are
+`lexSup` of the positive members' bits, and a set of negatives has a negative one
+whose bits are `lexSup` of all of them. No boundedness hypothesis, exactly as for
+`lexSup`. (2) `ratPoint : ℚ → Signed` — `GosperRat.toPath` is the Euclidean
+algorithm as a function, `Bridge.toSet` makes it a point, `neg` extends it across
+the sign. (3) The operations as suprema over the nodes:
 `a + b = sup { ratPoint (p+q) | ratPoint p <ₛ a, ratPoint q <ₛ b }` with `p q : ℚ`
 and the inner `+` **rational** addition, so there is no circularity; `×` is the
 same formula on the nonnegative cone, extended by `neg`, because the supremum
 formula is monotone only there.
 
-### Proved
+### What was proved
 
-* `slexSup_upperBound`, `slexSup_least` — **the supremum layer is done.** Each is
-  the sign case split followed by `lexSup_upperBound` / `lexSup_least`. Worth
-  knowing: in the all-negative case a *positive* upper bound `v` dominates the
-  supremum for free, which is the only place the sign split does any work.
-* `isFinite_ratPoint`, `toReal_ratPoint` — **the rational embedding is done.**
-  `toReal (ratPoint q) = q`, from `nodeValue_toPath` and `toReal₀_toSet`. This is
-  the only bridge to `ℝ` in the file and it is a theorem, not a definition.
-* `toRealQ_zero`, `toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing
-  companions to `Field.lean`'s `toRealQ_add`/`toRealQ_mul`, derived by
-  cancellation from those two rather than by unfolding the transport.
+* `slexSup_upperBound`, `slexSup_least` — the supremum layer. Each is the sign
+  case split followed by `lexSup_upperBound` / `lexSup_least`. In the
+  all-negative case a *positive* upper bound dominates the supremum for free,
+  which is the only place the sign split does any work.
+* `isFinite_ratPoint`, `toReal_ratPoint` — the rational embedding.
 * `eq_top_or_bot_of_not_isFinite`, `slexLt_top`, `bot_slexLt` — the two points
-  `IsFinite` excludes, and that everything finite lies strictly between them.
-  They do not look alike: `+∞` is `lift univ` and `−∞` is `{none}`, because a
-  negative point stores the *complement* of its magnitude.
-* `exists_lt_ratPoint`, `exists_ratPoint_lt` — **density of the rational
-  points**, the two lemmas flagged as missing in the previous commit. Each has a
-  trivial branch (any negative point is below any positive one) and one real
-  branch that is `exists_node_above` plus, on the negative side,
-  `compl_lexLt_compl`.
-* `isFinite_slexSup`, `isFinite_addRaw`, `isFinite_mulRawPos`, `isFinite_mulRaw`
-  — **finiteness of both operations.** `ratPoint_le_of_slexLt` (via
-  `toReal_mono`) is all the monotonicity these need; no order-embedding property
-  of `ratPoint` is required, because the bounds close by antisymmetry rather
-  than by strictness.
-* All ten field axioms, plus `add'_eq_add` and `mul'_eq_mul`.
+  `IsFinite` excludes and that everything finite lies strictly between them.
+* `exists_lt_ratPoint`, `exists_ratPoint_lt` — density of the rational points.
+* `slexLt_of_toReal_lt`, `toReal_le_of_not_slexLt` — the converses of
+  `toReal_mono`, by trichotomy. `SignedToReal` only gives non-strict
+  monotonicity (the quotient is why), but reflecting a *strict* inequality needs
+  nothing more.
+* `isFinite_addRaw`, `isFinite_mulRawPos`, `isFinite_mulRaw` — finiteness.
+* **`toReal_addRaw`, `toReal_mulRawPos`, `toReal_mulRaw`** — the agreement
+  theorems, and the whole mathematical content of the file.
+* `addRaw_congr`, `mulRaw_congr`, `toRealQ_add'`, `toRealQ_mul'`, all ten field
+  axioms, and `add'_eq_add` / `mul'_eq_mul`.
+* `toRealQ_zero`, `toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing
+  companions to `Field.lean`'s transport lemmas, derived by cancellation.
 
-### A design bug found while proving, and fixed
+### Two things I got wrong, and the fixes
 
-`mulCut` as first written was
-
-    {z | ∃ p q, 0 ≤ p ∧ 0 ≤ q ∧ ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ z = ratPoint (p*q)}
-
-and it is **wrong at zero**. When either argument is `+0` the cut is empty, and
-`slexSup ∅` is not `+0`: with no positive member it takes the negative branch and
+**A design bug in `mulCut`.** As first written it was
+`{z | ∃ p q, 0 ≤ p ∧ 0 ≤ q ∧ ratPoint p <ₛ a ∧ ratPoint q <ₛ b ∧ z = ratPoint (p*q)}`,
+and that is **wrong at zero**: when either argument is `+0` the cut is empty, and
+`slexSup ∅` is not `+0` — with no positive member it takes the negative branch and
 returns `negLift (lexSup ∅) = {none}`, which is `−∞`. So `mulRawPos` was infinite
-exactly where the product is zero, and `isFinite_mulRaw` was false as stated.
+exactly where the product is zero. Fixed with the standard Dedekind floor:
+`ratPoint 0` is now unconditionally a member. `addCut` needed no such fix.
 
-The fix is the standard Dedekind floor: `ratPoint 0` is now a member of `mulCut`
-unconditionally. It costs nothing — `ratPoint 0 = ∅` is already the bottom of the
-cone — and it makes the cut nonempty for every argument. `addCut` needed no such
-fix: `exists_ratPoint_lt` makes it nonempty for any finite argument.
+The underlying trap, now in CLAUDE.md: `{none}` and `univ` are both negative
+points and mean opposite things. `univ` is `−0` (all finite bits set, magnitude
+`∅`); `{none}` is `−∞` (no finite bits, magnitude `univ`). The empty supremum
+lands on the second.
 
-Worth keeping in mind for the remaining proofs: `{none}` and `univ` are *not* the
-same point and mean very different things. `univ` is `−0` (negative, all finite
-bits set, magnitude `∅`); `{none}` is `−∞` (negative, no finite bits, magnitude
-`univ`). The empty supremum lands on the second.
-
-### Every remaining `sorry`, by name
-
-| name | what it says | what it needs |
-|---|---|---|
-| `addRaw_congr`, `mulRaw_congr` | they respect the quotient | see the correction below — **not** cut equality |
-| `toRealQ_add'`, `toRealQ_mul'` | the intrinsic ops are the transported ones | `toRealQ_add_eq_sSup` is most of the first; what remains is that the supremum `slexSup` takes in `P(ω+1)` is the one `toRealQ` sees, i.e. that `toReal` carries lex suprema to real suprema |
-
-### The two lemmas the finiteness proofs are missing
-
-Worked out but not written, because they are the next person's cheapest start:
-
-```
-exists_ratPoint_lt : IsFinite a → ∃ p : ℚ, ratPoint p <ₛ a
-exists_lt_ratPoint : IsFinite a → ∃ p : ℚ, a <ₛ ratPoint p
-```
-
-Given those, `isFinite_addRaw` goes: `±∞` are the two endpoints of the signed
-order (`+∞` is `lift univ`, `-∞` is `{none}` — note the asymmetry in how they
-look, which is the mirrored convention again). Bounding `addRaw a b` away from
-`+∞` is `slexSup_least` applied to `ratPoint (P + Q)` for `P, Q` above `a, b`;
-bounding it away from `-∞` is `slexSup_upperBound` applied to any single element
-of the cut, which is nonempty by `exists_ratPoint_lt`, together with
-`isFinite_ratPoint`. The unsigned halves already exist as `exists_node_above`
-and `exists_node_between`; what is missing is only the sign bookkeeping.
-
-The field axioms — `add'_comm`, `add'_assoc`, `add'_zero`, `add'_left_neg`,
-`mul'_comm`, `mul'_assoc`, `mul'_one`, `mul'_zero`, `left_distrib'`,
-`mul'_inv_cancel` — are **all proved**, along with `add'_eq_add` and
-`mul'_eq_mul` (the intrinsic operations are the transported ones). They are
-one-liners off `toRealQ_add'`/`toRealQ_mul'`, which is the point: once those two
-land, the field structure is done and can be installed as the instance.
-
-Also proved along the way, and independently useful: `toRealQ_zero`,
-`toRealQ_one`, `toRealQ_neg`, `toRealQ_inv` — the missing companions to
-`Field.lean`'s `toRealQ_add`/`toRealQ_mul`, derived by cancellation rather than
-by unfolding the transport.
-
-### An honest limitation of this design
-
-The route taken proves each field axiom by pushing through `toRealQ` and quoting
-`ℝ`. After it, the **definitions** of `+` and `×` never mention `ℝ` — which is
-what "closes the independence gap" was asked for — but the **proofs** still do.
-The stronger result, in which the axioms are also proved without `ℝ` (by density
-of the nodes and continuity, as CLAUDE.md item 2 describes), needs a different
-proof of the axioms and not a different definition. The skeleton is arranged so
-that swapping in those proofs changes nothing else: `add'`/`mul'` and the axiom
-*statements* are already `ℝ`-free.
+**A wrong plan for the congruence lemmas.** An earlier handoff said they would
+follow because the cut of rational points below `a` is unchanged when `a` moves
+to its tail partner. That is false: if the lower element of the adjacent pair is
+itself a rational point, the two cuts differ by exactly that point. The fix was
+not a density argument but a restructuring — prove the agreement theorem at the
+**raw** level first, and the congruence is then `toReal_injective`. That also
+made `toRealQ_add'`/`toRealQ_mul'` immediate, collapsing four sorries into two.
 
 ### What the next person should do first
 
-`addRaw_congr`, with the density argument described above, then `mulRaw_congr`
-(same argument, plus the sign wrapper, which is mechanical given
-`isFinite_mulRaw`'s case split as a template). `toRealQ_add'` is the payoff — it
-turns all ten already-proved field axioms from conditional into unconditional,
-at which point `add'`/`mul'` can be installed as the `Field` instance and
-`add'_eq_add`/`mul'_eq_mul` guarantee no existing theorem changes.
+Install `add'`/`mul'` as the `Field` instance in `Field.lean`, replacing
+`equivReal.field`. `add'_eq_add` and `mul'_eq_mul` guarantee no theorem changes;
+it is a mechanical edit, deliberately left undone so that this commit adds
+nothing and breaks nothing.
+
+Then, if the strong form is wanted: reprove the ten field axioms without
+`toRealQ`, by density of the nodes. The statements are already `ℝ`-free, so only
+the proof bodies change.
 
 ## Item 4 — NOT STARTED
 

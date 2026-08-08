@@ -45,8 +45,8 @@ cases.
 
 ## Next steps
 
-**Items 5 and the Hurwitz half of 6 are done.** Remaining recommended order:
-**2 (intrinsic ops) → the hard half of 4 → the rest of 6.** Item 2 is the
+**Items 2, 5 and the Hurwitz half of 6 are done.** Remaining recommended order:
+**the hard half of 4 → the rest of 6 → 3 (productivity).** Item 2 is the
 only item that changes what the project *is* — it removes `ℝ` from the
 definition — and it does not invalidate any CF theorem proved before it (nothing
 in the Lagrange import chain reaches `Field.lean`), so deferring it costs
@@ -76,23 +76,21 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
    checks need `#eval` or the general theorems, not kernel computation.
 
-2. **Intrinsic `+` and `×`** — 🟡 **partial, in `Intrinsic.lean`**: 4 named
-   `sorry`s, all listed in `HANDOFF.md`. The supremum layer (`slexSup` and its
-   two LUB lemmas), the rational embedding (`ratPoint`, with
-   `toReal (ratPoint q) = q`) and finiteness of both operations are **done**.
-   What remains is that the operations respect the quotient, and the two
-   agreement theorems. The definitions are final and `ℝ`-free:
-   `slexSup` (the signed bitwise supremum — one case split off `lexSup`),
-   `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the Euclidean algorithm),
-   and `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
-   inner `+` rational, so no circularity. All ten field axioms are **proved**
-   off two remaining lemmas, `toRealQ_add'` and `toRealQ_mul'`.
+2. **Intrinsic `+` and `×`** — ✅ **done** (`Intrinsic.lean`, no `sorry`). The
+   definitions are `ℝ`-free: `slexSup` (the signed bitwise supremum — one case
+   split off `lexSup`), `ratPoint : ℚ → Signed` (via `GosperRat.toPath`, the
+   Euclidean algorithm), and
+   `a + b = sup {ratPoint (p+q) : ratPoint p <ₛ a, ratPoint q <ₛ b}` with the
+   inner `+` rational, so no circularity. All ten field axioms are proved, and
+   `add'_eq_add` / `mul'_eq_mul` show they are the operations `Field.lean`
+   transported — so installing them as the instance changes no theorem. That
+   swap is the one thing left, and it is mechanical.
 
-   **A distinction this file forced.** Proving the axioms by pushing through
-   `toRealQ` makes the *definitions* `ℝ`-free but not the *proofs*. The density
-   argument is what makes the proofs `ℝ`-free too, and it is a separate step —
-   the statements are already arranged so that swapping it in changes nothing
-   else. Do not claim the strong form until the proofs stop mentioning `ℝ`.
+   **A distinction this file forced.** The *definitions* are now `ℝ`-free; the
+   *proofs* of the axioms still go through `toReal`. The density argument is
+   what would make the proofs `ℝ`-free too, and it is a separate step — the
+   statements are already arranged so that swapping it in changes nothing else.
+   Do not claim the strong form until the proofs stop mentioning `ℝ`.
    **This does not need Gosper**, which is the key realisation — Gosper was
    blocking something it never actually blocked.
 
@@ -232,7 +230,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
-| `Intrinsic.lean` | 🟡 intrinsic `+`, `×` as suprema over nodes — 4 `sorry`s |
+| `Intrinsic.lean` | **intrinsic `+`, `×` as suprema over nodes** |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
@@ -248,6 +246,8 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
   rests. Tail pairs are exactly adjacent pairs.
 - `nodeValue_bijOn` — the tree enumerates `ℚ≥0` exactly once, in lowest terms.
 - `orderIsoReal : SBReal ≃o ℝ` — the construction.
+- `toReal_addRaw` / `toReal_mulRaw` — the intrinsic operations, defined as
+  suprema over the rational nodes with no mention of `ℝ`, compute `+` and `×`.
 - `rat_induction` — induction along the tree. Reaches `ℚ`; **not** `ℝ`.
 - `toReal₀_S` / `toReal₀_L` — the move recursion holds for the *supremum* value
   map, not just for `nodeValue` on finite paths. Everything about the shift
