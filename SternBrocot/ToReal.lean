@@ -2,8 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license.
 -/
-import SternBrocot.Bridge
-import SternBrocot.Completeness
+import SternBrocot.Density
 import Mathlib.Algebra.Order.Archimedean.Real.Basic
 
 /-!
@@ -45,37 +44,6 @@ open Set
 namespace SternBrocot
 
 /-! ### A node above any non-`∞` point -/
-
-/-- Any point other than `∞` has a tree node strictly above it: truncate at a
-missing bit and set that bit. -/
-theorem exists_node_above {x : Set ℕ} (h : x ≠ univ) : ∃ p : List Bool, x <ₗ toSet p := by
-  have hex : ∃ n, n ∉ x := by
-    by_contra hc
-    rw [not_exists] at hc
-    exact h (eq_univ_of_forall fun n => not_not.1 (hc n))
-  obtain ⟨n, hn⟩ := hex
-  have hfin : ((x ∩ Iio n) ∪ {n}).Finite := by
-    apply Set.Finite.subset (Set.finite_lt_nat (n + 1))
-    rintro k (⟨-, hk⟩ | hk)
-    · exact Nat.lt_succ_of_lt (mem_Iio.1 hk)
-    · rw [mem_singleton_iff] at hk
-      exact hk ▸ Nat.lt_succ_self n
-  obtain ⟨p, hp⟩ := exists_path_of_finite hfin
-  refine ⟨p, n, fun k hk => ?_, hn, ?_⟩
-  · rw [hp]
-    simp only [Set.mem_union, Set.mem_inter_iff, mem_Iio, mem_singleton_iff]
-    constructor
-    · intro hkx; exact Or.inl ⟨hkx, hk⟩
-    · rintro (⟨hkx, -⟩ | rfl)
-      · exact hkx
-      · exact absurd hk (lt_irrefl k)
-  · rw [hp]; exact Or.inr rfl
-
-/-- A node is a finite set, so it is never `∞`. -/
-theorem toSet_ne_univ (bs : List Bool) : toSet bs ≠ univ := by
-  intro hc
-  have hmem : bs.length ∈ toSet bs := hc ▸ mem_univ _
-  exact absurd (mem_Iio.1 (toSet_subset_Iio bs hmem)) (lt_irrefl _)
 
 /-! ### The cut below a point -/
 
@@ -290,57 +258,6 @@ theorem exists_toReal₀_eq {r : ℝ} (hr : 0 ≤ r) : ∃ x : Set ℕ, x ≠ un
 `Φ₀` separates points that the tail rule does not identify. The work is finding
 *two* nodes strictly between them: one bounds `Φ₀ x` from above, the second makes
 the comparison with `Φ₀ y` strict. -/
-
-/-- Truncating `y` at the first place it exceeds `x` gives a node above `x` and
-no higher than `y`. -/
-theorem exists_node_ge {x y : Set ℕ} (h : x <ₗ y) : ∃ p, x <ₗ toSet p ∧ toSet p ≤ₗ y := by
-  obtain ⟨n, hagree, hnx, hny⟩ := h
-  have hfin : ((x ∩ Iio n) ∪ {n}).Finite := by
-    apply Set.Finite.subset (Set.finite_lt_nat (n + 1))
-    rintro k (⟨-, hk⟩ | hk)
-    · exact Nat.lt_succ_of_lt (mem_Iio.1 hk)
-    · rw [mem_singleton_iff] at hk
-      exact hk ▸ Nat.lt_succ_self n
-  obtain ⟨p, hp⟩ := exists_path_of_finite hfin
-  refine ⟨p, ⟨n, fun k hk => ?_, hnx, ?_⟩, ?_⟩
-  · rw [hp]
-    simp only [Set.mem_union, Set.mem_inter_iff, mem_Iio, mem_singleton_iff]
-    exact ⟨fun hkx => Or.inl ⟨hkx, hk⟩, by
-      rintro (⟨hkx, -⟩ | rfl)
-      · exact hkx
-      · exact absurd hk (lt_irrefl k)⟩
-  · rw [hp]; exact Or.inr rfl
-  · -- nothing in the truncation can push it past `y`
-    rintro ⟨m, hagree', hmy, hmp⟩
-    rw [hp] at hmp
-    rcases hmp with ⟨hmx, hmlt⟩ | hmn
-    · exact hmy ((hagree m (mem_Iio.1 hmlt)).1 hmx)
-    · rw [mem_singleton_iff] at hmn
-      exact hmy (hmn ▸ hny)
-
-/-- A node is finite, but the lower side of a tail pair is cofinite, so a node is
-never tail-equivalent to something strictly above it. -/
-theorem not_tailEqv_node {p : List Bool} {y : Set ℕ} (h : toSet p <ₗ y) :
-    ¬ TailEqv (toSet p) y := by
-  rintro (rfl | hpair | hpair)
-  · exact lexLt_irrefl _ h
-  · exact lexLt_asymm h (lexLt_of_tailPair hpair)
-  · -- `TailPair y (toSet p)` makes `toSet p` the cofinite side, yet it is finite
-    obtain ⟨n, hn⟩ := hpair
-    obtain ⟨N, hN⟩ := (toSet_finite p).bddAbove
-    have hmem : max n N + 1 ∈ toSet p := hn.right_tail _ (by omega)
-    have := hN hmem
-    omega
-
-/-- **A node lies strictly between any two tail-inequivalent points.** -/
-theorem exists_node_between_points {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y) :
-    ∃ p, x <ₗ toSet p ∧ toSet p <ₗ y := by
-  obtain ⟨z, hxz, hzy⟩ := exists_between_of_not_tailEqv hlt hne
-  obtain ⟨p, hp1, hp2⟩ := exists_node_ge hxz
-  refine ⟨p, hp1, ?_⟩
-  rcases (lexLe_iff (toSet p) z).1 hp2 with rfl | hlt'
-  · exact hzy
-  · exact lexLt_trans hlt' hzy
 
 /-- **Strict monotonicity modulo the tail rule.** -/
 theorem toReal₀_lt_of_not_tailEqv {x y : Set ℕ} (hlt : x <ₗ y) (hne : ¬ TailEqv x y)

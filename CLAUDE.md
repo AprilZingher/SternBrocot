@@ -230,6 +230,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 |---|---|
 | `Basic.lean` | moves, reciprocal, `TailPair`, **rigidity** |
 | `Tail.lean` | tail classes have ≤ 2 elements; rigidity on the quotient |
+| `Density.lean` | **density of the nodes** — ℝ-free, the input to the ℝ-free program |
 | `Order.lean` | lex order; `≤ₗ`; **tail relation = adjacency**; complement reverses lex |
 | `Completeness.lean` | the bitwise supremum; density of the quotient |
 | `Node.lean` | values of finite paths; unimodularity |
