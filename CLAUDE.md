@@ -13,7 +13,7 @@ operations* are transported from `ℝ` along the isomorphism. By uniqueness of
 complete ordered fields that transport had no freedom in it (see
 `toRealQ_add_eq_sSup`: the order alone determines `+`), so the mathematics is
 settled — but the *definition* still mentions `ℝ`, and closing that is the main
-remaining work. ~6,100 lines, no `sorry`, everything on `propext`,
+remaining work. ~7,000 lines, no `sorry`, everything on `propext`,
 `Classical.choice`, `Quot.sound`.
 
 The first classical continued-fraction theorem is now in: **Lagrange's theorem,
@@ -45,18 +45,17 @@ cases.
 
 ## Next steps
 
-**Item 5 is done.** Remaining recommended order: **6 (Hurwitz) → 2 (intrinsic
-ops) → the hard half of 4.** Hurwitz is the smallest theorem on top of the
-convergent layer and validates it before a big proof bets on it. Item 2 is the
+**Items 5 and the Hurwitz half of 6 are done.** Remaining recommended order:
+**2 (intrinsic ops) → the hard half of 4 → the rest of 6.** Item 2 is the
 only item that changes what the project *is* — it removes `ℝ` from the
 definition — and it does not invalidate any CF theorem proved before it (nothing
 in the Lagrange import chain reaches `Field.lean`), so deferring it costs
 exposure, not rework.
 
-Both 6 and the hard half of 4 want one thing `Convergent.lean` proves but does
-not export: the **exact** error. `column_errors` (currently `private`) already
-has `t − B/D = s/(D(Cs+D))` and `A/C − t = 1/(C(Cs+D))` on the nose. Exposing
-that is a re-statement, not a new proof.
+The exact-error layer that Hurwitz needed is now in `Convergent.lean` and the
+hard half of 4 should reuse it: `tailQuot` (`= [0; aⱼ, aⱼ₊₁, …]`, with
+`inv_tailQuot : 1/wⱼ = aⱼ + wⱼ₊₁`), `denRatio` (with
+`denRatio_succ : ρⱼ₊₁ = aⱼ + 1/ρⱼ`), and `abs_sub_contin_eq`.
 
 **The ordering turns on a question this file has not settled**: is this a
 *construction* ("the reals **are** `P(ω+1)`"), in which case item 2 is the
@@ -187,13 +186,11 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    needs `import Mathlib.NumberTheory.DiophantineApproximation.Basic`, not currently
    in this project's import closure).
 
-   **Hurwitz is the one to do first**, and item 5 is now in place. Only the `√5`
-   refinement is missing — Mathlib supplies the `1/q²` case and `goldenRatio`,
-   and `Examples.toReal₀_goldenPath` now proves `Φ₀ {n | Even n} = φ` outright,
-   which is the extremality witness. The standard proof takes any three
-   consecutive convergents and shows at least one satisfies the bound, so it
-   consumes item 5 and nothing else. It is the smallest theorem that
-   demonstrates the convergent layer works.
+   **Hurwitz is ✅ done** (`Hurwitz.lean`), both the `1/(√5 q²)` statement and
+   the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
+   The remaining rows — Legendre, badly approximable ↔ bounded partial
+   quotients — are now the cheap ones: both are statements about `contin` and
+   `partialQuot`, which exist.
 
    These are *classical results missing from a library*, not open problems. The
    wall at algebraic degree ≥ 3 is real and none of these touch it. But together
@@ -220,6 +217,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 | `Degree.lean` | `DegLeTwo`; the `SL₂(ℤ)` action on it; `[ℚ(t) : ℚ] ≤ 2` |
 | `Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `Convergent.lean` | run boundaries; the continuants; **the two estimates** |
+| `Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Gosper.lean` | the 2×2×2 tensor; absorb/emit correctness; the rules |
 | `GosperRat.lean` | the machine on rational inputs: paths in, path out |
@@ -244,6 +242,9 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `abs_sub_contin_eq` — the **exact** error `1/(qₖ(qₖwₖ + qₖ₊₁))`. Hurwitz is
+  this identity plus one relation between consecutive `wₖ + ρₖ`.
+- `exists_hurwitz_approx_real` — Hurwitz on `ℝ`; `sqrt5_optimal` — `√5` is best.
 
 ## Traps
 

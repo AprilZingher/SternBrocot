@@ -15,6 +15,7 @@ import SternBrocot.Degree
 import SternBrocot.Shift
 import SternBrocot.Lagrange
 import SternBrocot.Convergent
+import SternBrocot.Hurwitz
 import SternBrocot.Field
 import SternBrocot.Gosper
 import SternBrocot.GosperRat

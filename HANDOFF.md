@@ -137,16 +137,91 @@ With it, one recurrence serves both `x ≥ 1` and `x < 1`. The cost is that
 estimate is therefore stated at `k + 2`. Do not "fix" this by special-casing
 `x < 1`; the swap is the fix.
 
+### Follow-up added while doing item 2
+
+`column_errors` is now public, and the exact-error layer predicted here was
+built on top of it in the same file:
+
+* `tailValue`, `shift_runBoundary_succ`, `tailValue_succ_true/false` — the value
+  seen from run boundary `j`, and what one run does to it.
+* `tailQuot x j` = `wⱼ` = `[0; aⱼ, aⱼ₊₁, …]`, normalised so that a right run and
+  a left run give the *same* recurrence: `inv_tailQuot` proves
+  `1/wⱼ = aⱼ + wⱼ₊₁`. `tailQuot_pos`, `tailQuot_lt_one` bracket it in `(0,1)`.
+* `denRatio x j` = `ρⱼ = qⱼ₊₁/qⱼ`, with `denRatio_succ : ρⱼ₊₁ = aⱼ + 1/ρⱼ` and
+  `one_le_denRatio`.
+* `abs_sub_contin_eq` — **the sharp error**
+  `|Φ₀ x − pⱼ/qⱼ| = 1/(qⱼ (qⱼ wⱼ + qⱼ₊₁))`.
+
+Item 4 should use these rather than rebuilding them.
+
 ### What the next person should do first
 
-Nothing is blocked. The natural next consumers are Hurwitz (item 2) and the hard
-half of Lagrange (item 4), both of which want one thing this file does not yet
-provide: the **exact** error, not just the bound. It is already sitting inside
-`column_errors`, which proves
+Nothing is blocked.
 
-  `t − B/D = s/(D(Cs+D))`   and   `A/C − t = 1/(C(Cs+D))`
 
-exactly, and then throws the equalities away. Hurwitz needs
-`|t − pₖ/qₖ| = 1/(qₖ(qₖ w + qₖ₊₁))` where `w` is `s` or `1/s` according to
-`runBit`. Promoting `column_errors` from `private` and exposing that identity is
-the first job, and it is a re-statement, not a new proof.
+## Item 2 — COMPLETED
+
+New file `SternBrocot/Hurwitz.lean` (no `sorry`), plus the exact-error layer
+added to `Convergent.lean` and listed under item 1 above. Wired into
+`SternBrocot.lean`.
+
+### What was proved
+
+The reduction to a statement about two positive reals:
+
+* `hurwitzSum x j` = `λⱼ = wⱼ + ρⱼ`.
+* `hurwitzSum_succ` — **the one relation the theorem needs**:
+  `λⱼ₊₁ = 1/wⱼ + 1/ρⱼ`. It holds because `inv_tailQuot` and `denRatio_succ`
+  carry the *same* partial quotient `aⱼ`, which therefore cancels.
+* `hurwitzSum_le_iff` — the `j`-th convergent misses `1/(√5 q²)` exactly when
+  `λⱼ ≤ √5`. This is `abs_sub_contin_eq` divided by `qⱼ²`.
+
+The core:
+
+* `not_three_consecutive_fail` — three consecutive misses are impossible. With
+  `X = 1/wⱼ`, `Y = 1/ρⱼ`, misses at `j` and `j+1` give `X + Y ≤ √5` and
+  `1/X + 1/Y ≤ √5`; the miss at `j+2` feeds `sq_sub_le_one` at index `j+1` and,
+  after unwinding both recurrences, yields `X − Y ≥ 2aⱼ − 1 ≥ 1`. Those three
+  inequalities force `X + Y = √5` and `X Y = 1` exactly (`eq_of_sub_one_le`),
+  hence `ρⱼ = φ` — impossible, since `ρⱼ` is a ratio of integers.
+* `le_contin_den` — `qⱼ₊₃ ≥ j + 1`, so the denominators are unbounded.
+* `exists_hurwitz_approx` — **Hurwitz**, on the carrier.
+* `exists_hurwitz_approx_real` — **Hurwitz on `ℝ`**, for every irrational real,
+  positive or negative, via `exists_toReal₀_eq` and negation-is-complement.
+
+Optimality:
+
+* `norm_form_ne_zero` — `p² − pq − q² ≠ 0` for `q ≠ 0`; a zero would make `√5`
+  a ratio of integers.
+* `sqrt5_optimal` — for `c > √5` the rationals with
+  `|φ − p/q| < 1/(c q²)` all have `q ≤ ⌈1/(c(c−√5))⌉`. So `√5` cannot be
+  increased.
+
+### Remaining `sorry`s
+
+None.
+
+### A simplification worth recording
+
+The textbook proof deduces `aⱼ = 1` from two consecutive misses and only then
+finishes. That step is unnecessary here. Unwinding
+`ρⱼ₊₁ − wⱼ₊₁ = 2aⱼ + 1/ρⱼ − 1/wⱼ ≤ 1` gives `1/wⱼ − 1/ρⱼ ≥ 2aⱼ − 1`, and since
+`aⱼ ≥ 1` the bound `≥ 1` follows immediately — no case analysis on the partial
+quotient at all. `not_three_consecutive_fail` is correspondingly short.
+
+### Statement shape
+
+`exists_hurwitz_approx` is stated as "for every `M` there is a solution with
+`q > M`" rather than with `Set.Infinite`. That is the same content and avoids
+having to prove that the convergents are in lowest terms in order to talk about
+`Rat.den`. If a `Set.Infinite` form is ever wanted, the missing ingredient is
+`IsCoprime pⱼ qⱼ`, which is `pathMat_det` at a run boundary plus
+`boundaryMat_eq_contin` — a short derivation, not a new idea.
+
+### What the next person should do first
+
+Nothing here is blocked. `Examples.lean` could cheaply close one more loop:
+`partialQuot_goldenPath` and `contin_goldenPath` are already there, so
+`toReal₀_goldenPath ▸ sqrt5_optimal` states the extremality of `φ` directly in
+terms of the golden *path*. It is a two-line corollary and was left out only for
+time.

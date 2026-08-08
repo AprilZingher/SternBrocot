@@ -501,7 +501,10 @@ and `A D − B C = 1`,
 so `t` sits strictly between the two column fractions and the gap between them is
 `1/(C D)`. Both estimates are that one computation read twice. -/
 
-private theorem column_errors {A B C D s t : ℝ} (hC : 0 < C) (hD : 0 < D) (hs : 0 < s)
+/-- **The exact error of the two column fractions.** The estimates below only use
+the resulting inequalities, but the equalities themselves are what Hurwitz's
+argument needs, so they are stated and kept. -/
+theorem column_errors {A B C D s t : ℝ} (hC : 0 < C) (hD : 0 < D) (hs : 0 < s)
     (hdet : A * D - B * C = 1) (ht : t = (A * s + B) / (C * s + D)) :
     t - B / D = s / (D * (C * s + D)) ∧ A / C - t = 1 / (C * (C * s + D)) := by
   have hden : (0 : ℝ) < C * s + D := by positivity
@@ -581,5 +584,198 @@ theorem abs_sub_contin_lt_one_div_sq {x : Set ℕ} (hirr : Irrational (toReal₀
     exact_mod_cast contin_den_le_succ h (k + 1)
   refine lt_of_lt_of_le (abs_sub_contin_lt hirr k) ?_
   exact one_div_le_one_div_of_le (by positivity) (by nlinarith)
+
+/-! ### The complete quotients
+
+The estimate `1/(qₖ qₖ₊₁)` is not sharp; the sharp statement replaces `qₖ₊₁` by
+`qₖ wₖ + qₖ₊₁`, where `wₖ` is the tail of the continued fraction read from run
+`k` on. Two facts about `wₖ` carry the whole of Hurwitz:
+
+* `inv_tailQuot` : `1/wⱼ = aⱼ + wⱼ₊₁` — so `wⱼ = [0; aⱼ, aⱼ₊₁, …]`;
+* `denRatio_succ` : `ρⱼ₊₁ = aⱼ + 1/ρⱼ` for `ρⱼ = qⱼ₊₁/qⱼ`.
+
+The two recurrences share the same `aⱼ`, which is why `λⱼ = wⱼ + ρⱼ` satisfies
+`λⱼ₊₁ = 1/wⱼ + 1/ρⱼ`. That single relation is Hurwitz's lemma. -/
+
+theorem bitAt_iterate_shift (x : Set ℕ) (n i : ℕ) : bitAt (shift^[n] x) i = bitAt x (i + n) := by
+  by_cases hm : i + n ∈ x
+  · rw [bitAt_eq_true.2 (by rw [iterate_shift]; exact hm), bitAt_eq_true.2 hm]
+  · rw [bitAt_eq_false.2 (by rw [iterate_shift]; exact hm), bitAt_eq_false.2 hm]
+
+/-- The value of the path from run boundary `j` on. -/
+noncomputable def tailValue (x : Set ℕ) (j : ℕ) : ℝ := toReal₀ (shift^[runBoundary x j] x)
+
+/-- **One run at a time.** The path at boundary `j` is the run put back on top of
+the path at boundary `j+1`. -/
+theorem shift_runBoundary_succ {x : Set ℕ} (h : InfFlips x) (j : ℕ) :
+    shift^[runBoundary x j] x
+      = applyPath (List.replicate (partialQuot x j) (runBit x j))
+          (shift^[runBoundary x (j + 1)] x) := by
+  set n := runBoundary x j with hn
+  set a := partialQuot x j with ha
+  have hbits : ∀ i, 0 ≤ i → i < 0 + a → bitAt (shift^[n] x) i = runBit x j := by
+    intro i _ hi
+    rw [bitAt_iterate_shift]
+    refine bitAt_eq_of_lt_nextFlip (Nat.le_add_left _ _) ?_
+    rw [← runBoundary_succ, runBoundary_succ_eq h j, ← hn, ← ha]
+    omega
+  have hw : prefixWord (shift^[n] x) a = List.replicate a (runBit x j) := by
+    have := prefixWord_add (x := shift^[n] x) (n := 0) (a := a) (b := runBit x j) hbits
+    simpa using this
+  have hback := applyPath_prefixWord (shift^[n] x) a
+  rw [hw] at hback
+  rw [← hback, ← Function.iterate_add_apply, runBoundary_succ_eq h j, ← hn, ← ha, Nat.add_comm]
+
+theorem tailValue_succ_true {x : Set ℕ} (h : InfFlips x) {j : ℕ} (hb : runBit x j = true)
+    (hne : shift^[runBoundary x (j + 1)] x ≠ univ) :
+    tailValue x j = tailValue x (j + 1) + (partialQuot x j : ℝ) := by
+  rw [tailValue, tailValue, shift_runBoundary_succ h j, hb]
+  rw [toReal₀_applyPath _ hne, pathMat_replicate_true, mobius]
+  have hd : ((0 : ℤ) : ℝ) * toReal₀ (shift^[runBoundary x (j + 1)] x) + ((1 : ℤ) : ℝ) = 1 := by
+    push_cast; ring
+  rw [hd, div_one]
+  push_cast
+  ring
+
+theorem tailValue_succ_false {x : Set ℕ} (h : InfFlips x) {j : ℕ} (hb : runBit x j = false)
+    (hne : shift^[runBoundary x (j + 1)] x ≠ univ) :
+    tailValue x j
+      = tailValue x (j + 1) / ((partialQuot x j : ℝ) * tailValue x (j + 1) + 1) := by
+  rw [tailValue, tailValue, shift_runBoundary_succ h j, hb]
+  rw [toReal₀_applyPath _ hne, pathMat_replicate_false, mobius]
+  push_cast
+  ring_nf
+
+/-- The `j`-th **complete quotient**, normalised to `(0,1)`: the value
+`[0; aⱼ, aⱼ₊₁, …]`. The `if` is the alternation of the two moves — the tree
+stores `1/t` on left runs and `t` on right runs. -/
+noncomputable def tailQuot (x : Set ℕ) (j : ℕ) : ℝ :=
+  if runBit x j then (tailValue x j)⁻¹ else tailValue x j
+
+theorem tailValue_pos {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ) :
+    0 < tailValue x j :=
+  toReal₀_pos_of_irrational (irrational_toReal₀_iterate_shift hirr _)
+
+theorem tailQuot_pos {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ) : 0 < tailQuot x j := by
+  rw [tailQuot]
+  cases hb : runBit x j
+  · simpa using tailValue_pos hirr j
+  · simpa using tailValue_pos hirr j
+
+/-- **`1/wⱼ = aⱼ + wⱼ₊₁`.** Both moves give the same recurrence, which is the
+point of the normalisation in `tailQuot`: on a right run the tree stores `t` and
+the recurrence is `t ↦ t + a`, on a left run it stores `1/t` and the recurrence
+is `1/t ↦ 1/t + a`. -/
+theorem inv_tailQuot {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ) :
+    (tailQuot x j)⁻¹ = (partialQuot x j : ℝ) + tailQuot x (j + 1) := by
+  have h := infFlips_of_irrational hirr
+  have hne : shift^[runBoundary x (j + 1)] x ≠ univ :=
+    iterate_shift_ne_univ_of_irrational hirr _
+  have hpos := tailValue_pos hirr (j + 1)
+  have halt := runBit_succ h j
+  cases hb : runBit x j
+  · -- left run: the tree stores the value itself, and `1/s` picks up `a`
+    have hb1 : runBit x (j + 1) = true := by rw [halt, hb]; rfl
+    rw [tailQuot, tailQuot, hb, hb1, if_neg (by simp), if_pos rfl,
+      tailValue_succ_false h hb hne]
+    rw [inv_div]
+    field_simp
+  · have hb1 : runBit x (j + 1) = false := by rw [halt, hb]; rfl
+    rw [tailQuot, tailQuot, hb, hb1, if_pos rfl, if_neg (by simp),
+      tailValue_succ_true h hb hne]
+    rw [inv_inv]
+    ring
+
+/-- `0 < wⱼ < 1`: a partial quotient is at least `1` and the next tail is
+positive. -/
+theorem tailQuot_lt_one {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ) :
+    tailQuot x j < 1 := by
+  have h := infFlips_of_irrational hirr
+  have hinv := inv_tailQuot hirr j
+  have hpos := tailQuot_pos hirr j
+  have hpos' := tailQuot_pos hirr (j + 1)
+  have ha : (1 : ℝ) ≤ (partialQuot x j : ℝ) := by exact_mod_cast partialQuot_pos h j
+  have hlt : (1 : ℝ) < (tailQuot x j)⁻¹ := by rw [hinv]; linarith
+  have hkey : tailQuot x j * (tailQuot x j)⁻¹ = 1 := mul_inv_cancel₀ (ne_of_gt hpos)
+  nlinarith [mul_pos hpos (sub_pos.2 hlt)]
+
+/-- The ratio `ρⱼ = qⱼ₊₁/qⱼ` of consecutive convergent denominators. -/
+noncomputable def denRatio (x : Set ℕ) (j : ℕ) : ℝ :=
+  ((contin x (j + 1)).2 : ℝ) / ((contin x j).2 : ℝ)
+
+theorem one_le_denRatio {x : Set ℕ} (h : InfFlips x) (k : ℕ) : 1 ≤ denRatio x (k + 2) := by
+  have h1 : (0 : ℝ) < ((contin x (k + 2)).2 : ℝ) := by exact_mod_cast contin_den_pos h k
+  have h2 : ((contin x (k + 2)).2 : ℝ) ≤ ((contin x (k + 3)).2 : ℝ) := by
+    exact_mod_cast contin_den_le_succ h (k + 1)
+  rw [denRatio, le_div_iff₀ h1, one_mul]
+  exact h2
+
+/-- **`ρⱼ₊₁ = aⱼ + 1/ρⱼ`** — the denominator recurrence, read as a ratio. It
+carries the *same* `aⱼ` as `inv_tailQuot`, which is the whole of Hurwitz's
+lemma. -/
+theorem denRatio_succ {x : Set ℕ} (h : InfFlips x) (k : ℕ) :
+    denRatio x (k + 3) = (partialQuot x (k + 2) : ℝ) + (denRatio x (k + 2))⁻¹ := by
+  have h1 : (0 : ℝ) < ((contin x (k + 2)).2 : ℝ) := by exact_mod_cast contin_den_pos h k
+  have h2 : (0 : ℝ) < ((contin x (k + 3)).2 : ℝ) := by exact_mod_cast contin_den_pos h (k + 1)
+  have hrec : ((contin x (k + 4)).2 : ℝ)
+      = (partialQuot x (k + 2) : ℝ) * ((contin x (k + 3)).2 : ℝ) + ((contin x (k + 2)).2 : ℝ) := by
+    exact_mod_cast congrArg (fun z : ℤ => (z : ℝ)) (contin_den_add_two x (k + 2))
+  rw [denRatio, denRatio, hrec, inv_div]
+  field_simp
+  try ring
+
+/-! ### The sharp error
+
+`|Φ₀ x − pⱼ/qⱼ| = 1/(qⱼ (qⱼ wⱼ + qⱼ₊₁))`. Dividing through by `qⱼ²`, the
+approximation quality of the `j`-th convergent is governed by the single real
+number `wⱼ + ρⱼ`. -/
+
+/-- **The exact error of a convergent.** -/
+theorem abs_sub_contin_eq {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ) :
+    |toReal₀ x - ((contin x (k + 2)).1 : ℝ) / ((contin x (k + 2)).2 : ℝ)|
+      = 1 / (((contin x (k + 2)).2 : ℝ)
+          * (((contin x (k + 2)).2 : ℝ) * tailQuot x (k + 2) + ((contin x (k + 3)).2 : ℝ))) := by
+  have h := infFlips_of_irrational hirr
+  have hq : (0 : ℝ) < ((contin x (k + 2)).2 : ℝ) := by exact_mod_cast contin_den_pos h k
+  have hq' : (0 : ℝ) < ((contin x (k + 3)).2 : ℝ) := by exact_mod_cast contin_den_pos h (k + 1)
+  have hne := iterate_shift_ne_univ_of_irrational hirr (runBoundary x (k + 2))
+  have hs : 0 < tailValue x (k + 2) := tailValue_pos hirr (k + 2)
+  have halt := runBit_succ h (k + 1)
+  obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h (k + 1)
+  cases hb : runBit x (k + 1)
+  · -- the newer column is the first one; `wⱼ = 1/sⱼ`
+    have hb1 : runBit x (k + 2) = true := by rw [halt, hb]; rfl
+    have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
+        = ((contin x (k + 3)).1, (contin x (k + 2)).1,
+           (contin x (k + 3)).2, (contin x (k + 2)).2) := hF hb
+    obtain ⟨hlow, -⟩ := column_errors (A := ((contin x (k + 3)).1 : ℝ))
+      (B := ((contin x (k + 2)).1 : ℝ)) (C := ((contin x (k + 3)).2 : ℝ))
+      (D := ((contin x (k + 2)).2 : ℝ)) (s := tailValue x (k + 2)) (t := toReal₀ x) hq' hq hs
+      (by
+        have := pathMat_det (prefixWord x (runBoundary x (k + 2)))
+        rw [hm] at this
+        exact_mod_cast this)
+      (by
+        rw [tailValue, toReal₀_eq_mobius_prefixWord x (runBoundary x (k + 2)) hne, hm, mobius])
+    rw [abs_of_pos (by rw [hlow]; positivity), hlow, tailQuot, hb1, if_pos rfl, tailValue]
+    rw [tailValue] at hs
+    field_simp
+    ring
+  · -- the newer column is the second one; `wⱼ = sⱼ`
+    have hb1 : runBit x (k + 2) = false := by rw [halt, hb]; rfl
+    have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
+        = ((contin x (k + 2)).1, (contin x (k + 3)).1,
+           (contin x (k + 2)).2, (contin x (k + 3)).2) := hT hb
+    obtain ⟨-, hhigh⟩ := column_errors (A := ((contin x (k + 2)).1 : ℝ))
+      (B := ((contin x (k + 3)).1 : ℝ)) (C := ((contin x (k + 2)).2 : ℝ))
+      (D := ((contin x (k + 3)).2 : ℝ)) (s := tailValue x (k + 2)) (t := toReal₀ x) hq hq' hs
+      (by
+        have := pathMat_det (prefixWord x (runBoundary x (k + 2)))
+        rw [hm] at this
+        exact_mod_cast this)
+      (by
+        rw [tailValue, toReal₀_eq_mobius_prefixWord x (runBoundary x (k + 2)) hne, hm, mobius])
+    rw [abs_sub_comm, abs_of_pos (by rw [hhigh]; positivity), hhigh, tailQuot, hb1,
+      if_neg (by simp), tailValue]
 
 end SternBrocot
