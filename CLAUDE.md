@@ -44,18 +44,18 @@ cases.
 In the order they should be done. Items 1 and 2 are the real remaining work;
 3 and 4 are independent.
 
-1. **Gosper on ℚ** — 🔨 in progress in `GosperRat.lean`. ✅ the absorb phase:
-   `absorbLeftPath`/`absorbRightPath` feed a whole path into an input, and
-   `add_paths`/`mul_paths`/`sub_paths` say the tensor fed both paths has the sum,
-   product, difference as its value. It *runs* — `#eval` gives `5/2` for
-   `1/2 + 2`. No coinduction needed: rational inputs are finite paths, and the
-   emit guard `z ≥ 1` is decidable here, which is exactly why this half is easy
-   and the real case is not.
-   **Next in this file**: the emit phase as a *function* — currently
-   `exists_canonical_of_nonneg` only gives existence of the output path, so the
-   Euclidean algorithm needs writing as a definition (`decreasing_by` on
-   `num + den`). Then package as `Field` on canonical paths and give `≃+*` to
-   Mathlib's `ℚ`.
+1. **Gosper on ℚ** — ✅ **the loop is closed** (`GosperRat.lean`).
+   `absorbLeftPath`/`absorbRightPath` feed whole paths in; `pathOf` is the
+   Euclidean algorithm as a *function* (well-founded on `a + b`); `gosperAdd`
+   and `gosperMul` take two paths and return a canonical path, with
+   `nodeValue_gosperAdd`/`nodeValue_gosperMul` proving the values are the sum and
+   product. It runs: `#eval gosperAdd [false,true] [true,true]` gives
+   `[true,true,false,true]` = `5/2`, and `toPath (22/7)` reproduces the
+   hand-derived `path22over7` exactly.
+   **Next in this file**: package as a `Field` instance on canonical paths (or on
+   `ℚ` via the bijection) and give `≃+*` to Mathlib's `ℚ`. Note `pathOf` is
+   well-founded recursion, so it does **not** reduce by `rfl`/`decide` — concrete
+   checks need `#eval` or the general theorems, not kernel computation.
 
 2. **Intrinsic `+` and `×` on ℝ by density — closes the independence gap.**
    Define them as suprema of their values on nodes (`toRealQ_add_eq_sSup` shows

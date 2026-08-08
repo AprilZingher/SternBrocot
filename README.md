@@ -72,6 +72,7 @@ No `sorry`, no `native_decide`. Every result depends only on `propext`,
 | `SternBrocot/Induction.lean` | induction along the tree (reaches `ℚ`, not `ℝ`) |
 | `SternBrocot/Field.lean` | `SBReal ≃o ℝ` and the field structure |
 | `SternBrocot/Gosper.lean` | the 2×2×2 tensor; absorb/emit step correctness |
+| `SternBrocot/GosperRat.lean` | the machine on rational inputs: paths in, path out |
 | `SternBrocot/Examples.lean` | machine-checked sanity checks of the encoding |
 
 `Examples.lean` is worth reading first if you want to know what is actually being
