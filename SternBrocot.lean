@@ -13,4 +13,5 @@ import SternBrocot.SignedToReal
 import SternBrocot.Induction
 import SternBrocot.Field
 import SternBrocot.Gosper
+import SternBrocot.GosperRat
 import SternBrocot.Examples
