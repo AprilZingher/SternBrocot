@@ -538,11 +538,17 @@ theorem goldenRatio_badlyApproximable : BadlyApproximable (toReal₀ goldenPath)
 
 /-! ### A path with unbounded partial quotients
 
-Every other concrete example here is `goldenPath`, which is **right**-starting
-(`startIdx = 2`) and has every partial quotient equal to `1`. So two things had
-never been exercised by an example: the left branch of the `startIdx` machinery,
-and the `→` direction of `badlyApproximable_iff_boundedPartialQuot`, whose
-hypothesis needs *unbounded* partial quotients.
+The only worked *infinite* path in this file was `goldenPath`, which is
+**right**-starting (`startIdx = 2`) and has every partial quotient equal to `1`.
+So nothing here had ever exhibited *unbounded* partial quotients — which is what
+`¬ BoundedPartialQuot` needs, and hence what fires
+`badlyApproximable_iff_boundedPartialQuot` in the direction that concludes
+`¬ BadlyApproximable`.
+
+Note that is the **contrapositive** of the `→` direction, not the `→` direction
+itself: `→` is `BadlyApproximable → BoundedPartialQuot`, and
+`goldenRatio_badlyApproximable` could already fire it. `HANDOFF.md` had this
+muddled for several revisions.
 
 `slowPath` supplies both — its bit is the **odd**ness of the run index, which is
 what makes bit `0` false and the path left-starting (`startIdx_slowPath`). Its
@@ -654,15 +660,20 @@ theorem slowPath_ne_univ : slowPath ≠ univ := by
   rw [hlog] at hmem
   simp at hmem
 
-/-- **`slowPath` starts on the left**, unlike `goldenPath`. So `startIdx = 1`
-here, and this is the first example in the repository to exercise the branch of
-`startIdx`, `contin_den_startIdx` and `contin_den_le_succ_of_startIdx` where the
-genuine convergent list begins at index `1`.
+/-- **`slowPath` starts on the left**, unlike `goldenPath`: `startIdx = 1` here.
 
-This is pinned as a theorem rather than left to a comment because the first
-draft used `Even` in place of `Odd`, which makes bit `0` **true** and the path
-right-starting — the docstring then claimed a coverage it did not have, and
-nothing would have caught it. -/
+Be careful what this does and does not buy. It is the first *proved instance* of
+`startIdx x = 1` for a concrete path — a fact about this one-line theorem. It is
+**not** coverage of the left branch of the convergent indexing: nothing here
+computes `contin slowPath k`, so `contin_den_startIdx` and
+`contin_den_le_succ_of_startIdx` are no more exercised at `slowPath` than they
+were before. An earlier version of this docstring claimed otherwise and was
+wrong; genuine coverage would look like `contin_goldenPath`, which actually
+computes the convergents.
+
+Pinned as a theorem because the orientation is easy to get backwards: `Even` in
+place of `Odd` makes bit `0` **true** and the path right-starting, silently
+turning this into a second copy of `goldenPath`'s branch. -/
 theorem startIdx_slowPath : startIdx slowPath = 1 := by
   have hb : runBit slowPath 0 = false := by
     show bitAt slowPath 0 = false

@@ -40,6 +40,17 @@ if [ -n "$backwards" ]; then
   fail=1
 fi
 
+# CLAUDE.md: "nothing in the Lagrange import chain reaches Real/Field.lean".
+# The Lean-level version of this claim is in scripts/CheckDeps.lean; this is the
+# import-graph half, which needs no build.
+lagrange=$(grep -rn '^import SternBrocot\.Real\.Field' SternBrocot/CF/Lagrange.lean \
+  SternBrocot/CF/Shift.lean SternBrocot/CF/Degree.lean || true)
+if [ -n "$lagrange" ]; then
+  echo "FAIL: the Lagrange chain imports Real/Field.lean:"
+  echo "$lagrange"
+  fail=1
+fi
+
 if [ "$fail" -eq 0 ]; then
   n=$(find SternBrocot/Core -name '*.lean' | wc -l | tr -d ' ')
   echo "OK: Core/ is closed under imports and ℝ-free ($n modules)."

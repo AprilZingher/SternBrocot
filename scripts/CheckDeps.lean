@@ -1,12 +1,12 @@
 /-
-Independence claims, checked.
+Independence and deadness claims, checked.
 
 Every adversarial review of this repository so far has found the Lean sound and
 the prose wrong, and the false claims cluster hard: "the order is intrinsic",
 "`contin_den_lt_succ` is not used by `legendre`", "both directions run on one
 identity", "seventeen modules are ℝ-free". Almost all are of the form
 
-    X does not depend on Y
+    X does not depend on Y     /     nothing uses X
 
 which is exactly the shape a grep cannot check and a human does not check.
 `scripts/check-core-closed.sh` already turned one such claim into a structural
@@ -15,40 +15,44 @@ invariant. This does the same for the rest.
 Add a claim here whenever a docstring, README, CLAUDE.md or PR body asserts that
 something is *not* used. If the claim is false the check fails.
 
-**The trap this file exists to avoid**: `ConstantInfo.value?` returns `none` for
-*imported* theorems, so the naive collector silently reports an empty dependency
-set and every claim passes. Theorems must be read out of `.thmInfo` directly.
+## Three ways this check can lie, and what stops each
+
+1. **The collector silently returns nothing.** `ConstantInfo.value?` returns
+   `none` for **every** theorem — not just imported ones, which is what an
+   earlier version of this comment claimed; the default `allowOpaque := false`
+   makes it `none` for `.thmInfo` regardless of provenance. A collector built on
+   it reports empty dependency sets and passes everything. Guarded by the
+   *positive controls* below: dependencies that must be found.
+2. **A claim names a constant that does not exist.** A typo or a rename makes
+   `env.find?` return `none`, the closure comes back empty, and the claim passes
+   silently *forever*. This is not hypothetical — this repo has already renamed
+   `contin_best_approx → contin_best_approx_gen` and `contin_coprime →
+   contin_coprime_gen`. An adversarial review caught the first version of this
+   file passing two deliberately-misspelled claims about a real dependency while
+   printing "canary passed". Guarded by resolving every name up front.
+3. **The closure is incomplete.** Hand-rolled traversals drop `inductInfo →
+   ctors`, `recInfo → all` and `opaqueInfo → value`. Do not hand-roll it; use
+   `ConstantInfo.getUsedConstantsAsSet`, which Lean core already ships.
 -/
 import SternBrocot
 
 open Lean
 
-/-- Constants appearing in a declaration's type and value. `thmInfo` is handled
-separately because `value?` is `none` for imported theorems. -/
-def directDeps (env : Environment) (n : Name) : Array Name :=
-  match env.find? n with
-  | none => #[]
-  | some info =>
-    let fromType := info.type.getUsedConstants
-    let fromValue :=
-      match info with
-      | .thmInfo ti => ti.value.getUsedConstants
-      | _ => match info.value? with
-             | some e => e.getUsedConstants
-             | none => #[]
-    fromType ++ fromValue
-
-/-- Transitive closure, breadth-first with an explicit visited set. -/
+/-- Transitive closure of the constants a declaration uses. -/
 partial def transDeps (env : Environment) (start : Name) : NameSet :=
   let rec go (worklist : List Name) (seen : NameSet) : NameSet :=
     match worklist with
     | [] => seen
     | n :: rest =>
       if seen.contains n then go rest seen
-      else go ((directDeps env n).toList ++ rest) (seen.insert n)
+      else
+        let next := match env.find? n with
+          | none => []
+          | some info => info.getUsedConstantsAsSet.toList
+        go (next ++ rest) (seen.insert n)
   go [start] {}
 
-/-- `target` must not appear anywhere in `source`'s transitive dependencies. -/
+/-- `source` must not use `target`, anywhere in its transitive closure. -/
 structure Claim where
   source : Name
   target : Name
@@ -56,47 +60,100 @@ structure Claim where
 
 /-- Claims asserted in prose somewhere in the repository. -/
 def claims : List Claim := [
-  -- CF/BadlyApproximable.lean docstring, README, CLAUDE.md, PR #4
   { source := `SternBrocot.badlyApproximable_iff_boundedPartialQuot
     target := `SternBrocot.legendre
-    why := "BadlyApproximable.lean: 'uses neither Legendre nor the exact error formula'" },
+    why := "CF/BadlyApproximable.lean: 'uses neither Legendre nor the exact error formula'" },
   { source := `SternBrocot.badlyApproximable_iff_boundedPartialQuot
     target := `SternBrocot.abs_sub_contin_eq
-    why := "BadlyApproximable.lean: 'uses neither Legendre nor the exact error formula'" },
+    why := "CF/BadlyApproximable.lean: 'uses neither Legendre nor the exact error formula'" },
   { source := `SternBrocot.badlyApproximable_iff_boundedPartialQuot
     target := `SternBrocot.tailQuot
-    why := "BadlyApproximable.lean: the tailQuot layer is not used" },
-  -- CF/BadlyApproximable.lean: the -> direction does NOT use the new identity.
-  -- This is the claim I got backwards in PR #4 and had to withdraw.
+    why := "CF/BadlyApproximable.lean: the tailQuot layer is not used" },
   { source := `SternBrocot.not_badlyApproximable_of_unbounded
     target := `SternBrocot.contin_err_sum
-    why := "BadlyApproximable.lean: the -> direction runs on abs_sub_contin_lt, not the identity" }
+    why := "CF/BadlyApproximable.lean: the -> direction runs on abs_sub_contin_lt, not the identity" },
+  { source := `SternBrocot.eventuallyPeriodic_iff_degLeTwo
+    target := `SternBrocot.orderIsoReal
+    why := "CLAUDE.md: 'nothing in the Lagrange import chain reaches Real/Field.lean'" }
 ]
 
-/-- Sanity: a dependency that MUST be present. If this reports absent, the
-collector is broken and every claim above is passing vacuously. -/
-def canary : Claim :=
+/-- **Positive controls.** Dependencies that must be found. If one of these is
+reported absent the collector is broken and every claim above is vacuous.
+
+The second is the claim I got wrong in an earlier PR — asserting that `legendre`
+does not use `contin_den_lt_succ`, when in fact it does, four hops away through
+`exists_bracket → exists_contin_den_gt → contin_den_ge`. Keeping it as a control
+means the day someone reroutes `exists_contin_den_gt` and makes the
+independence *real*, this fails and asks to be reclassified rather than
+silently becoming a true claim nobody noticed. -/
+def canaries : List Claim := [
   { source := `SternBrocot.badlyApproximable_of_bounded
     target := `SternBrocot.contin_err_ge
-    why := "canary — this dependency is real, so it must be found" }
+    why := "control: the <- direction really does run on the identity" },
+  { source := `SternBrocot.legendre
+    target := `SternBrocot.contin_den_lt_succ
+    why := "control: legendre DOES use contin_den_lt_succ, via exists_bracket" }
+]
+
+/-- Declarations claimed to be unreferenced. `HANDOFF.md` says these three are
+dead, superseded by their `_gen` versions. -/
+def deadDecls : List (Name × String) := [
+  (`SternBrocot.contin_best_approx, "HANDOFF.md: superseded by contin_best_approx_gen"),
+  (`SternBrocot.contin_coprime, "HANDOFF.md: superseded by contin_coprime_gen"),
+  (`SternBrocot.contin_ne_toReal₀, "HANDOFF.md: unused; docstring has twice claimed a consumer")
+]
+
+/-- Every `SternBrocot.*` declaration in the environment. -/
+def projectDecls (env : Environment) : Array Name :=
+  env.constants.fold (init := #[]) fun acc n _ =>
+    if (`SternBrocot).isPrefixOf n then acc.push n else acc
 
 def main : IO UInt32 := do
   let env ← importModules #[{ module := `SternBrocot }] {}
   let mut bad := 0
-  -- the canary first: a broken collector makes everything else meaningless
-  let canaryDeps := transDeps env canary.source
-  if !canaryDeps.contains canary.target then
-    IO.println s!"FAIL (canary): {canary.source} should depend on {canary.target}."
-    IO.println "  The dependency collector is broken; all other results are vacuous."
-    bad := bad + 1
+  -- (2) every name must resolve, or its claim is vacuous
+  let allNames := (claims ++ canaries).flatMap (fun c => [c.source, c.target])
+                    ++ deadDecls.map Prod.fst
+  for n in allNames do
+    if (env.find? n).isNone then
+      IO.println s!"FAIL: unknown constant `{n}`."
+      IO.println "  A claim naming a constant that does not exist passes vacuously."
+      bad := bad + 1
+  if bad > 0 then return 1
+  -- (1) positive controls
+  for c in canaries do
+    if !(transDeps env c.source).contains c.target then
+      IO.println s!"FAIL (control): {c.source} should depend on {c.target}, and does not."
+      IO.println s!"  {c.why}"
+      IO.println "  The collector is broken; every independence claim below is vacuous."
+      bad := bad + 1
+  if bad > 0 then return 1
+  -- the independence claims themselves, one closure per distinct source
+  let mut cache : Std.HashMap Name NameSet := {}
   for c in claims do
-    let deps := transDeps env c.source
+    let deps ← match cache[c.source]? with
+      | some d => pure d
+      | none => let d := transDeps env c.source; cache := cache.insert c.source d; pure d
     if deps.contains c.target then
       IO.println s!"FAIL: {c.source} DOES transitively depend on {c.target}."
       IO.println s!"  claimed otherwise by: {c.why}"
       bad := bad + 1
+  -- deadness: nothing in the project may reference these
+  let decls := projectDecls env
+  for (dead, why) in deadDecls do
+    let mut users : Array Name := #[]
+    for d in decls do
+      if d == dead || dead.isPrefixOf d then continue
+      match env.find? d with
+      | none => pure ()
+      | some info => if info.getUsedConstantsAsSet.contains dead then users := users.push d
+    if users.size > 0 then
+      IO.println s!"FAIL: {dead} is referenced by {users.size} declaration(s), e.g. {users[0]!}."
+      IO.println s!"  claimed dead by: {why}"
+      bad := bad + 1
   if bad == 0 then
-    IO.println s!"OK: {claims.length} independence claims hold (canary passed)."
+    IO.println s!"OK: {claims.length} independence claims, {deadDecls.length} deadness claims, \
+{canaries.length} positive controls."
     return 0
   else
     return 1

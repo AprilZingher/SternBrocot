@@ -676,7 +676,14 @@ form follows from the coprime one with the same constant. The PR body said
 
 ### The gap: ✅ closed
 
-`slowPath` in `Examples.lean` instantiates the `→` direction.
+`slowPath` in `Examples.lean` supplies a witness of `¬ BoundedPartialQuot`,
+which fires the equivalence in the direction concluding `¬ BadlyApproximable`.
+
+**That is the contrapositive of `→`, not `→` itself** — `→` is
+`BadlyApproximable → BoundedPartialQuot`, and `goldenRatio_badlyApproximable`
+could already fire it. Earlier revisions of this section, and the PR body, said
+"the `→` direction is not instantiated"; what was actually missing was a witness
+of the *hypothesis of the contrapositive*.
 
 ```lean
 def slowPath : Set ℕ := {n | Odd (Nat.log 2 (n + 1))}
