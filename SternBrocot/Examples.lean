@@ -12,6 +12,7 @@ import SternBrocot.Real.SignedToReal
 import SternBrocot.CF.Lagrange
 import SternBrocot.CF.Convergent
 import SternBrocot.CF.Legendre
+import SternBrocot.CF.BadlyApproximable
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!
@@ -518,5 +519,18 @@ theorem legendre_goldenPath :
   have h2 : Real.goldenRatio < 2 := Real.goldenRatio_lt_two
   have hsq : Real.goldenRatio ^ 2 = Real.goldenRatio + 1 := Real.goldenRatio_sq
   constructor <;> · push_cast; nlinarith
+
+/-- Every partial quotient of `φ` is `1`, so the golden path has bounded partial
+quotients — the extremal case. -/
+theorem goldenPath_bounded : BoundedPartialQuot goldenPath :=
+  ⟨1, fun k => le_of_eq (partialQuot_goldenPath k)⟩
+
+/-- **`φ` is badly approximable.** The classical fact, obtained here by feeding
+`partialQuot_goldenPath` through the equivalence. Together with `sqrt5_optimal`
+this pins `φ` as the worst-approximable number from both sides: no rational
+beats `c/q²` for a fixed `c`, and `√5` is the best constant that works for
+*every* irrational. -/
+theorem goldenRatio_badlyApproximable : BadlyApproximable (toReal₀ goldenPath) :=
+  (badlyApproximable_iff_boundedPartialQuot irrational_goldenPath).2 goldenPath_bounded
 
 end SternBrocot
