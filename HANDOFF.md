@@ -674,49 +674,34 @@ bound is weaker because the reduced denominator is smaller, so the all-pairs
 form follows from the coprime one with the same constant. The PR body said
 "stronger"; that was wrong.
 
-### The gap: the `→` direction is not instantiated
+### The gap: ✅ closed
 
-`goldenRatio_badlyApproximable` fires the `←` direction. **Nothing fires the
-`→` direction**, because nothing in the repo exhibits a path with *unbounded*
-partial quotients. Its hypothesis is satisfiable — an adversarial review built
-the witness externally, via `liouville_liouvilleNumber 2` → `¬ BadlyApproximable`
-→ `exists_toReal₀_eq` → the theorem — so the direction is not vacuous. But that
-witness is not in the repo.
+`slowPath` in `Examples.lean` instantiates the `→` direction.
 
-Two routes, both real work:
+```lean
+def slowPath : Set ℕ := {n | Odd (Nat.log 2 (n + 1))}
+```
 
-* **Liouville.** `Mathlib.NumberTheory.Liouville.*` is *not in this project's
-  olean cache*, so importing it means compiling those modules. Cheap in code,
-  not cheap in build time; check `lake exe cache get` covers it before starting.
-* **Direct construction**, and here is a *better* one than "runs of length
-  `k+1`", which is what this note used to suggest. Triangular run starts need
-  `k(k+1)/2` and a bespoke run-index function. Use powers of two instead:
+Run `k` is `[2^k − 1, 2^{k+1} − 2]`, so `partialQuot slowPath k = 2 ^ k` —
+unbounded — and `slowPath_not_badlyApproximable` follows. Together with
+`goldenRatio_badlyApproximable` both directions of the equivalence now have
+witnesses, and they disagree, which is the useful part: one path is badly
+approximable and the other is not.
 
-  ```lean
-  def slowPath : Set ℕ := {n | Even (Nat.log 2 (n + 1))}
-  ```
+Two things worth keeping from doing it:
 
-  Run `k` is `{n | Nat.log 2 (n+1) = k}` = `[2^k − 1, 2^{k+1} − 2]`, of length
-  `2^k`. So `runBoundary slowPath k = 2^k − 1` and
-  `partialQuot slowPath k = 2^k`, which is unbounded. The advantage over
-  triangular numbers is that the run *index* of `n` is a closed form —
-  `Nat.log 2 (n+1)` — rather than a search, and Mathlib has the API for it
-  (`Nat.pow_log_le_self`, `Nat.lt_pow_succ_log_self`, `Nat.log_eq_iff`).
-
-  Irrationality comes free and does **not** need Liouville theory: `InfFlips`
-  rules out `EventuallyConstant`, and `eventuallyConstant_iff_rat` turns that
-  into irrationality. So the only real work is the `nextFlip` computation —
-  show `bitAt` is constant on each run and flips at the boundary — which is the
-  same shape as `partialQuot_goldenPath`, just with `2^k` in place of `1`.
-
-This route is the better one: it keeps `Mathlib.NumberTheory.Liouville.*` out of
-the import closure, and it gives `Examples.lean` a second worked path. That
-second point is worth more than it looks — **every concrete example in the repo
-is the golden path**, which is right-starting, so `startIdx = 2` and the entire
-left branch of `contin_den_startIdx`, `contin_den_le_succ_of_startIdx` and the
-`startIdx` split has never been exercised by an example. Those are exactly the
-lemmas the `a₀ = 0` seed swap keeps biting. A left-starting second example would
-be worth having even if the unbounded-partial-quotient goal did not exist.
+* **No Liouville theory.** Irrationality comes from `InfFlips` ruling out
+  `EventuallyConstant` and `eventuallyConstant_iff_rat` converting that. The
+  earlier note treated Liouville as the obvious route and the direct
+  construction as the fallback; it is the other way round. `Nat.log 2 (n+1)` as
+  the run index is what makes it short — a closed form, so the `nextFlip`
+  computation is one `sInf` sandwich rather than a search.
+* **`Odd`, not `Even`.** The first draft used `Even`, which makes bit `0` true
+  and the path *right*-starting — so it would have missed the left branch
+  entirely while the docstring claimed to cover it. `startIdx_slowPath` pins
+  `startIdx slowPath = 1` as a theorem so that flip cannot be reverted silently.
+  This is the first example in the repository to exercise the left branch of
+  `startIdx`, `contin_den_startIdx` and `contin_den_le_succ_of_startIdx`.
 
 Fourth appearance of the `a₀ = 0` seed swap:
 `contin_den_le_succ_of_startIdx` proves `q₀ ≤ q₁` from the *seeds* rather than

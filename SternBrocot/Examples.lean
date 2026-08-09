@@ -536,4 +536,164 @@ positive `c`, with no claim about its size. -/
 theorem goldenRatio_badlyApproximable : BadlyApproximable (toReal₀ goldenPath) :=
   (badlyApproximable_iff_boundedPartialQuot irrational_goldenPath).2 goldenPath_bounded
 
+/-! ### A path with unbounded partial quotients
+
+Every other concrete example here is `goldenPath`, which is **right**-starting
+(`startIdx = 2`) and has every partial quotient equal to `1`. So two things had
+never been exercised by an example: the left branch of the `startIdx` machinery,
+and the `→` direction of `badlyApproximable_iff_boundedPartialQuot`, whose
+hypothesis needs *unbounded* partial quotients.
+
+`slowPath` supplies both — its bit is the **odd**ness of the run index, which is
+what makes bit `0` false and the path left-starting (`startIdx_slowPath`). Its
+`k`-th run has length `2 ^ k`, so the run containing `n` is indexed by
+`Nat.log 2 (n + 1)` — a closed form rather than a search, which is what makes the
+`nextFlip` computation short. (An earlier
+`HANDOFF.md` note suggested runs of length `k + 1`; that needs triangular run
+starts `k(k+1)/2` and a run-index found by searching. Powers of two are
+strictly easier.)
+
+Irrationality comes free and needs no Liouville theory: a path that flips
+infinitely often is not eventually constant, and `eventuallyConstant_iff_rat`
+turns that into irrationality. -/
+
+/-- The path whose `k`-th run has length `2 ^ k`: bit `n` is the parity of the
+run containing it, and run `k` is `[2^k − 1, 2^{k+1} − 2]`. -/
+def slowPath : Set ℕ := {n | Odd (Nat.log 2 (n + 1))}
+
+theorem mem_slowPath_iff (n : ℕ) : n ∈ slowPath ↔ Odd (Nat.log 2 (n + 1)) := Iff.rfl
+
+/-- Two indices in the same run carry the same bit. -/
+theorem bitAt_slowPath_congr {m n : ℕ} (h : Nat.log 2 (m + 1) = Nat.log 2 (n + 1)) :
+    bitAt slowPath m = bitAt slowPath n := by
+  classical
+  simp only [bitAt, mem_slowPath_iff, h]
+
+/-- Adjacent runs carry different bits. -/
+theorem bitAt_slowPath_succ_ne {m n k : ℕ}
+    (hm : Nat.log 2 (m + 1) = k + 1) (hn : Nat.log 2 (n + 1) = k) :
+    bitAt slowPath m ≠ bitAt slowPath n := by
+  classical
+  simp only [bitAt, mem_slowPath_iff, hm, hn, Nat.odd_add_one]
+  by_cases hk : Odd k <;> simp [hk]
+
+/-- The run index of `n` really is `Nat.log 2 (n+1)`: on `[2^k − 1, 2^{k+1} − 2]`
+the logarithm is constant at `k`. -/
+theorem log_slowPath_of_mem_run {n k : ℕ} (h1 : 2 ^ k ≤ n + 1) (h2 : n + 1 < 2 ^ (k + 1)) :
+    Nat.log 2 (n + 1) = k :=
+  Nat.log_eq_of_pow_le_of_lt_pow h1 h2
+
+/-- **The next flip from a run start is the next run start.** -/
+theorem nextFlip_slowPath {n k : ℕ} (h : n + 1 = 2 ^ k) :
+    nextFlip slowPath n + 1 = 2 ^ (k + 1) := by
+  classical
+  have hlogn : Nat.log 2 (n + 1) = k := by rw [h]; exact Nat.log_pow (by norm_num) k
+  have hpk : 0 < 2 ^ k := Nat.two_pow_pos k
+  set t := 2 ^ (k + 1) - 1 with ht
+  have ht1 : t + 1 = 2 ^ (k + 1) := by
+    have : 0 < 2 ^ (k + 1) := Nat.two_pow_pos _
+    omega
+  have hlogt : Nat.log 2 (t + 1) = k + 1 := by rw [ht1]; exact Nat.log_pow (by norm_num) (k + 1)
+  have hnt : n < t := by
+    have : 2 ^ k < 2 ^ (k + 1) := by
+      have : (2:ℕ) ^ (k + 1) = 2 * 2 ^ k := by ring
+      omega
+    omega
+  -- `t` is in the flip set
+  have hmem : t ∈ {m | n < m ∧ bitAt slowPath m ≠ bitAt slowPath n} :=
+    ⟨hnt, bitAt_slowPath_succ_ne hlogt hlogn⟩
+  -- and nothing below it is
+  have hmin : ∀ m, n < m → m < t → bitAt slowPath m = bitAt slowPath n := by
+    intro m hm1 hm2
+    refine bitAt_slowPath_congr ?_
+    rw [hlogn]
+    exact log_slowPath_of_mem_run (by omega) (by omega)
+  have hle : nextFlip slowPath n ≤ t := Nat.sInf_le hmem
+  have hge : t ≤ nextFlip slowPath n := by
+    by_contra hc
+    have hlt : nextFlip slowPath n < t := by omega
+    have hin : nextFlip slowPath n ∈ {m | n < m ∧ bitAt slowPath m ≠ bitAt slowPath n} :=
+      Nat.sInf_mem ⟨t, hmem⟩
+    exact hin.2 (hmin _ hin.1 hlt)
+  omega
+
+/-- **The run boundaries are `2^k − 1`.** Stated as `+ 1 = 2^k` to keep `ℕ`
+subtraction out of it. -/
+theorem runBoundary_slowPath (k : ℕ) : runBoundary slowPath k + 1 = 2 ^ k := by
+  induction k with
+  | zero => rfl
+  | succ j ih =>
+    rw [runBoundary_succ]
+    exact nextFlip_slowPath ih
+
+/-- **The `k`-th partial quotient is `2 ^ k`.** -/
+theorem partialQuot_slowPath (k : ℕ) : partialQuot slowPath k = 2 ^ k := by
+  have h1 := runBoundary_slowPath k
+  have h2 := runBoundary_slowPath (k + 1)
+  have hpow : (2:ℕ) ^ (k + 1) = 2 * 2 ^ k := by ring
+  simp only [partialQuot]
+  omega
+
+theorem infFlips_slowPath : InfFlips slowPath := by
+  intro n
+  set k := Nat.log 2 (n + 1) with hk
+  refine ⟨2 ^ (k + 1) - 1, ?_, ?_⟩
+  · have h2 : n + 1 < 2 ^ (k + 1) := Nat.lt_pow_succ_log_self (by norm_num) (n + 1)
+    have : 0 < 2 ^ (k + 1) := Nat.two_pow_pos _
+    omega
+  · refine bitAt_slowPath_succ_ne ?_ hk.symm
+    have h0 : 0 < 2 ^ (k + 1) := Nat.two_pow_pos _
+    rw [show 2 ^ (k + 1) - 1 + 1 = 2 ^ (k + 1) by omega]
+    exact Nat.log_pow (by norm_num) (k + 1)
+
+theorem slowPath_ne_univ : slowPath ≠ univ := by
+  intro h
+  have hmem : (0 : ℕ) ∈ slowPath := h ▸ mem_univ 0
+  rw [mem_slowPath_iff] at hmem
+  have hlog : Nat.log 2 (0 + 1) = 0 := by simp
+  rw [hlog] at hmem
+  simp at hmem
+
+/-- **`slowPath` starts on the left**, unlike `goldenPath`. So `startIdx = 1`
+here, and this is the first example in the repository to exercise the branch of
+`startIdx`, `contin_den_startIdx` and `contin_den_le_succ_of_startIdx` where the
+genuine convergent list begins at index `1`.
+
+This is pinned as a theorem rather than left to a comment because the first
+draft used `Even` in place of `Odd`, which makes bit `0` **true** and the path
+right-starting — the docstring then claimed a coverage it did not have, and
+nothing would have caught it. -/
+theorem startIdx_slowPath : startIdx slowPath = 1 := by
+  have hb : runBit slowPath 0 = false := by
+    show bitAt slowPath 0 = false
+    simp [bitAt, mem_slowPath_iff]
+  simp [startIdx, hb]
+
+/-- Irrational, and **without** Liouville theory: infinitely many flips rules out
+eventual constancy, and `eventuallyConstant_iff_rat` does the rest. -/
+theorem irrational_slowPath : Irrational (toReal₀ slowPath) := by
+  intro ⟨q, hq⟩
+  have hec : EventuallyConstant slowPath :=
+    (eventuallyConstant_iff_rat slowPath_ne_univ).2 ⟨q, hq.symm⟩
+  obtain ⟨N, hN⟩ := hec
+  obtain ⟨m, hm1, hm2⟩ := infFlips_slowPath N
+  refine hm2 ?_
+  classical
+  rcases hN with hN | hN
+  · simp only [bitAt, if_neg (hN m (le_of_lt hm1)), if_neg (hN N le_rfl)]
+  · simp only [bitAt, if_pos (hN m (le_of_lt hm1)), if_pos (hN N le_rfl)]
+
+theorem slowPath_unbounded : ¬ BoundedPartialQuot slowPath := by
+  rintro ⟨M, hM⟩
+  have h1 := hM (M + 1)
+  rw [partialQuot_slowPath] at h1
+  have h2 : M + 1 < 2 ^ (M + 1) := Nat.lt_two_pow_self
+  omega
+
+/-- **The `→` direction, instantiated.** `slowPath` has unbounded partial
+quotients, so its value is *not* badly approximable — the mirror image of
+`goldenRatio_badlyApproximable`. -/
+theorem slowPath_not_badlyApproximable : ¬ BadlyApproximable (toReal₀ slowPath) :=
+  (badlyApproximable_iff_boundedPartialQuot irrational_slowPath).not.2 slowPath_unbounded
+
 end SternBrocot

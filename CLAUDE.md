@@ -393,6 +393,10 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `slowPath` (`Examples.lean`) — a path with `partialQuot slowPath k = 2 ^ k`,
+  the counterweight to `goldenPath`. It is **left**-starting
+  (`startIdx_slowPath : startIdx slowPath = 1`), so it is the first example
+  exercising the branch where the convergent list begins at index `1`.
 - `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
   approximable **iff** its partial quotients are bounded. The `←` direction runs
   on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity
