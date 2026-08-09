@@ -611,33 +611,41 @@ Two steps, and the first has an edge case worth knowing about before starting.
 
 2. **Bracketing** — choose `k` with `q_{k+3} ≤ q < q_{k+4}`. `Nat.find` on
    `exists_contin_den_gt` gives the least `k` with `q < q_{k+3}`, and minimality
-   gives the lower bound. **The edge case:** this needs `q ≥ q₃`, and `q₃` is
-   not always `1` — it is `1` for the golden path but larger when `a₁ > 1`. So a
-   `q` below `q₃` has no bracket, and the classical proof's implicit "the list
-   starts at `q₀ = 1`" does not hold in this indexing. Either handle small `q`
-   separately or start the convergent list lower; decide deliberately rather
-   than discovering it at the end.
+   gives the lower bound. **This needs `q ≥ q₃`, and the gap below `q₃` is not
+   an edge case — it is unbounded.** An earlier version of this note said `q₃`
+   is "`1` for the golden path but larger when `a₁ > 1`", which names the wrong
+   criterion. The closed forms, both verified:
+
+   | first run | `q₂` | `q₃` |
+   |---|---|---|
+   | right (`runBit x 0 = true`) | `1` | `a₁` |
+   | left (`runBit x 0 = false`) | `a₀` | `a₀·a₁ + 1` |
+
+   So `q₃ = 1` **iff** the path starts with a right run *and* `a₁ = 1`. On a
+   left-starting path `q₃ = a₀a₁ + 1 ≥ 2` no matter what `a₁` is, and `a₀` is
+   arbitrary — so the set of `q` with no bracket is `{1, …, q₃ − 1}` with `q₃`
+   as large as you like. "Handle small `q` separately" is therefore not a couple
+   of cases.
+
+   The classical proof leans on the convergent list starting at `q₀ = 1`, which
+   this indexing does not provide. The real decision is whether to extend the
+   list downward rather than to patch the proof — make it deliberately.
 3. **The finish** — from `|α − p/q| < 1/(2q²)` and step 1,
    `|q_k α − p_k| ≤ |qα − p| < 1/(2q)`. If `p/q ≠ p_k/q_k` then the two
    fractions differ by at least `1/(q q_k)`, while the triangle inequality
    bounds the difference by `1/(2q²) + 1/(2q q_k) ≤ 1/(q q_k)` using
    `q_k ≤ q` — a strict-versus-non-strict contradiction. So they are equal, and
    `contin_coprime` plus `IsCoprime p q` upgrades that to `(p, q) = (p_k, q_k)`.
-2. **Choosing the index** — needs `qₖ` unbounded, i.e. strictly increasing at
-   run boundaries. `contin_den_le_succ` gives `≤`; the strict version is not
-   stated and will be needed.
-3. **The conclusion** — from `|α − p/q| < 1/(2q²)` and step 1, derive
-   `|q α − p| < 1/(2q)`, compare against `|qₖ α − pₖ|`, and conclude `p/q` is
-   the `k`-th convergent by uniqueness of the coprime representative.
-
 Step 2 is the one I would check first — if `qₖ` can repeat, the indexing in
 step 1 needs care, and this development's `a₀ = 0` seed swap is exactly the kind
 of thing that makes the first few terms misbehave.
 
-**Checked, and the worry was justified.** `qₖ` *does* repeat, exactly once, at
-the start: `contin_den_eq_goldenPath` (`Examples.lean`) proves `q₂ = q₃ = 1` for
-the golden path. The cause is the seed swap — one of `q₀, q₁` is `0`, so
-`q₂ = a₀q₁ + q₀` has nothing to add, and `a₁ = 1` then leaves `q₃ = q₂`. From
+**Checked, and the worry was justified.** `qₖ` *can* repeat at the start:
+`contin_den_eq_goldenPath` (`Examples.lean`) proves `q₂ = q₃ = 1` for the golden
+path. It does not always — on a left-starting path `q₂ = a₀` and
+`q₃ = a₀a₁ + 1 > q₂`, so there is no repeat at all. The repeat happens exactly
+when the path starts with a right run and `a₁ = 1`. Either way the universally
+quantified `k + 2` statement is false, which is what fixes the indexing. From
 index `3` on both `qₖ` and `qₖ₊₁` are positive and `qₖ₊₂ = aₖqₖ₊₁ + qₖ > qₖ₊₁`
 is immediate.
 
@@ -652,6 +660,28 @@ everywhere else downstream of `Convergent.lean`:
 The off-by-one is recorded as a *theorem* rather than a comment so that a future
 attempt to restate `contin_den_lt_succ` at `k + 2` fails to compile instead of
 failing to be true.
+
+### Two cheap improvements left on the table
+
+Both were flagged by the adversarial review and both are worth doing; neither is
+a correctness issue.
+
+* **`cassini` proves the unsigned identity.** `Examples.lean` has
+  `|F² − F·F| = 1`; the classical Cassini is the *signed* `(−1)ⁿ`, and the sign
+  is available — `contin_det` carries it, alternating with `runBit`. The signed
+  version would be a materially better cross-check because the alternation is
+  the part most likely to be wrong. (Mathlib has signed Cassini at
+  `Mathlib/Data/Int/Fib/Lemmas.lean` as
+  `Int.fib_succ_mul_fib_pred_sub_fib_sq`, so this is a check, not a
+  contribution.)
+* **No concrete witness for `contin_best_approx`.** `contin_den_eq_goldenPath`
+  guards the growth indexing; nothing guards the best-approximation indexing the
+  same way. At the golden path, `k = 2`, `(p, q) = (2, 1)` the theorem should
+  give `|2φ − 3| ≤ |φ − 2|`. Blocked only on `Irrational (toReal₀ goldenPath)`,
+  which is not currently in the tree and is not a one-liner via Mathlib's
+  `Nat.Prime.irrational_sqrt` — it wants the `(1 + √5)/2` algebra spelled out.
+  Worth adding, since it would also unlock concrete instances of every other
+  `hirr`-hypothesised theorem in `CF/`.
 
 ### Then badly approximable
 

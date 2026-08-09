@@ -19,6 +19,11 @@ this module as containing Legendre.
 
 ## What is here
 
+Three layers, each with its own section below: the unimodularity and straddling
+of consecutive convergents; the growth of the denominators (stated at `k + 3`,
+not `k + 2` — see that section for why); and best approximation of the second
+kind, first as arithmetic and then at the convergents.
+
 * `contin_det` — `pₖ qₖ₊₁ − pₖ₊₁ qₖ = ±1`, with the sign alternating according
   to `runBit`. This is `pathMat_det` read through `boundaryMat_eq_contin`: the
   columns of the prefix matrix at a run boundary *are* the two convergents, so
@@ -186,8 +191,10 @@ theorem toReal₀_strictly_between_contin {x : Set ℕ} (hirr : Irrational (toRe
 /-- A convergent is never *equal* to the value, which is the degenerate case the
 straddling rules out. Irrationality is doing the work: a convergent is rational.
 
-Stated because the best-approximation argument needs `qₖ Φ₀x − pₖ ≠ 0` before it
-can divide by it. -/
+Not used by anything here — `abs_le_of_lattice` never divides by the error, so
+the justification this docstring used to give was fiction. Kept as a leaf for
+the Legendre finish, which compares `p/q` against `pₖ/qₖ` as fractions and does
+need them distinct. -/
 theorem contin_ne_toReal₀ {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ) :
     ((contin x (k + 2)).1 : ℝ) / ((contin x (k + 2)).2 : ℝ) ≠ toReal₀ x := by
   rcases toReal₀_strictly_between_contin hirr k with ⟨h1, -⟩ | ⟨-, h2⟩
