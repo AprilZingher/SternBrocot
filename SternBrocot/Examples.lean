@@ -12,6 +12,7 @@ import SternBrocot.Real.SignedToReal
 import SternBrocot.CF.Lagrange
 import SternBrocot.CF.Convergent
 import SternBrocot.CF.Legendre
+import SternBrocot.CF.BadlyApproximable
 import Mathlib.NumberTheory.Real.GoldenRatio
 
 /-!
@@ -518,5 +519,21 @@ theorem legendre_goldenPath :
   have h2 : Real.goldenRatio < 2 := Real.goldenRatio_lt_two
   have hsq : Real.goldenRatio ^ 2 = Real.goldenRatio + 1 := Real.goldenRatio_sq
   constructor <;> · push_cast; nlinarith
+
+/-- Every partial quotient of `φ` is `1`, so the golden path has bounded partial
+quotients — the extremal case. -/
+theorem goldenPath_bounded : BoundedPartialQuot goldenPath :=
+  ⟨1, fun k => le_of_eq (partialQuot_goldenPath k)⟩
+
+/-- **`φ` is badly approximable.** The classical fact, obtained here by feeding
+`partialQuot_goldenPath` through the equivalence.
+
+Two neighbouring results say related but distinct things, and it is easy to
+merge them by mistake: `sqrt5_optimal` says no constant *larger than* `√5` works
+**for `φ`**, while `exists_hurwitz_approx` says `√5` works for **every**
+irrational. This theorem is a third statement again — that `φ` admits *some*
+positive `c`, with no claim about its size. -/
+theorem goldenRatio_badlyApproximable : BadlyApproximable (toReal₀ goldenPath) :=
+  (badlyApproximable_iff_boundedPartialQuot irrational_goldenPath).2 goldenPath_bounded
 
 end SternBrocot

@@ -121,6 +121,14 @@ theorems do not.
   makes two consecutive convergents a basis of `ℤ²` and the straddling makes the
   two errors opposite in sign, so they add rather than cancel.
 
+- **Badly approximable ⟺ bounded partial quotients**
+  (`badlyApproximable_iff_boundedPartialQuot`). The hard direction runs on one
+  identity — `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1`, unimodularity and
+  straddling combined — which bounds a convergent's error from *below*; the easy
+  direction is the pre-existing upper estimate `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`.
+  `goldenRatio_badlyApproximable` is the extremal instance: every partial
+  quotient of `φ` is `1`.
+
 - **The convergents** (`CF/Convergent.lean`). The convergents are the prefixes at
   **run boundaries** — `boundaryMat_eq_contin` is where that lives — with the
   classical recurrence falling out of `pathMat`, the estimate
@@ -176,6 +184,7 @@ SternBrocot/
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `CF/Legendre.lean` | **Legendre's theorem**; best approximation of the second kind |
+| `CF/BadlyApproximable.lean` | **badly approximable ⟺ bounded partial quotients** |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
 

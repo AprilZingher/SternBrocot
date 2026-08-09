@@ -41,8 +41,8 @@ removes it, remove the claim with it.
 
 **Lagrange's theorem is in, both directions** —
 `eventuallyPeriodic_iff_degLeTwo`: the path of `x` is eventually periodic iff
-`[ℚ(Φ₀x) : ℚ] ≤ 2`. Hurwitz is in too. **Nothing in the repository has a
-`sorry`.**
+`[ℚ(Φ₀x) : ℚ] ≤ 2`. Hurwitz, Legendre, and badly-approximable ⟺ bounded
+partial quotients are in too. **Nothing in the repository has a `sorry`.**
 
 ## Setup
 
@@ -69,9 +69,9 @@ cases.
 
 ## Next steps
 
-**Items 2, 4, 5 and the Hurwitz half of 6 are done, and nothing has a `sorry`.**
-Remaining recommended order: **the rest of 6 (badly approximable) →
-the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
+**Items 2, 4, 5 and all of 6 except three-distance and Gauss–Kuzmin are done,
+and nothing has a `sorry`.**
+Remaining recommended order: **the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
 (`mk_lt_mk_iff`); what is left of the `ℝ`-freeing programme is the operations.
 
 Item 2 is the only item that changes what the project *is* — it removes `ℝ` from
@@ -259,7 +259,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    |---|---|
    | **Hurwitz** — `1/(√5 q²)` infinitely often, √5 optimal | yes: φ is the all-run-length-1 path, visibly extremal |
    | **Legendre** — `< 1/(2q²)` ⟹ `p/q` is a convergent — ✅ **done** | partly: convergents are the nodes along the path |
-   | **badly approximable ↔ bounded partial quotients** | yes: bounded run-lengths in the bit string |
+   | **badly approximable ↔ bounded partial quotients** — ✅ **done** | yes: bounded run-lengths in the bit string |
    | three-distance / Steinhaus | not obviously |
    | Gauss–Kuzmin | no — needs ergodic theory |
 
@@ -271,9 +271,12 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 
    **Hurwitz is ✅ done** (`CF/Hurwitz.lean`), both the `1/(√5 q²)` statement and
    the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
-   **Legendre is ✅ done** (`legendre`). The remaining row — badly approximable
-   ↔ bounded partial quotients — is now the cheap one: both are statements about `contin` and
-   `partialQuot`, which exist.
+   **Legendre is ✅ done** (`legendre`), and so is **badly approximable ↔
+   bounded partial quotients** (`badlyApproximable_iff_boundedPartialQuot`).
+   That closes every row of the table *above* except two: three-distance /
+   Steinhaus (marked "not obviously" — no obvious route through the run
+   decomposition, and nothing in the repo touches it) and Gauss–Kuzmin (needs
+   ergodic theory).
 
    These are *classical results missing from a library*, not open problems. The
    wall at algebraic degree ≥ 3 is real and none of these touch it. But together
@@ -327,6 +330,7 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
 | `CF/Legendre.lean` | **Legendre's theorem**; best approximation; `startIdx` |
+| `CF/BadlyApproximable.lean` | **badly approximable ⟺ bounded partial quotients** |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Real/Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Real/Complete.lean` | **the ordered-field axioms and completeness**, stated |
@@ -375,6 +379,12 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
+  approximable **iff** its partial quotients are bounded. The `←` direction runs
+  on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity
+  and straddling combined, giving a *lower* bound on a convergent's error. The
+  `→` direction does **not** use it; it is three lines on the pre-existing
+  `abs_sub_contin_lt`. `goldenRatio_badlyApproximable` is the extremal instance.
 - `legendre` — **Legendre's theorem**: an approximation to better than `1/(2q²)`
   in lowest terms is a convergent. Via best approximation of the second kind,
   which is the lattice argument — unimodularity makes two consecutive
