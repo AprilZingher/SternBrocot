@@ -639,12 +639,67 @@ unboundedness lemma it calls.
 The `k + 2` versions are kept; they are the instances at `j = k + 1` and are
 what the earlier sections' prose refers to.
 
-### Then badly approximable
+### Badly approximable — ✅ DONE (`CF/BadlyApproximable.lean`)
 
-`badly approximable ↔ bounded partial quotients` consumes Legendre for the `→`
-direction — bounded partial quotients bound the error from below at the
-convergents via `abs_sub_contin_eq`, and Legendre is what says non-convergents
-cannot do better. The `←` direction needs an unbounded partial quotient to
-produce arbitrarily good approximations, which is `abs_sub_contin_eq` again with
-`wₖ + ρₖ` large. Neither direction needs anything not now present *except*
-Legendre.
+```
+badlyApproximable_iff_boundedPartialQuot :
+  Irrational (Φ₀ x) → (BadlyApproximable (Φ₀ x) ↔ BoundedPartialQuot x)
+```
+
+**The plan recorded here before doing it was wrong in every particular**, and it
+is worth keeping the correction rather than the prediction. The old note said
+the theorem "consumes Legendre for the `→` direction … via `abs_sub_contin_eq`",
+and that "neither direction needs anything not now present *except* Legendre".
+In fact the file uses **neither** `legendre` nor `abs_sub_contin_eq` — verified
+transitively, not by grep. Routing through best approximation instead of
+Legendre removes the convergent / non-convergent case split entirely: every
+rational is compared against its bracketing convergent whether or not it is one.
+
+What the two directions actually run on, since this was also got wrong in the
+first draft of the PR:
+
+* **`←` (bounded ⟹ badly approximable)** — the new identity `contin_err_sum`,
+  `qₖ₊₁|Aₖ| + qₖ|Bₖ| = 1`, which is unimodularity and straddling combined. It
+  gives a *lower* bound on a convergent's error (`contin_err_ge`), which is what
+  was missing; `Convergent.lean` only had upper bounds.
+* **`→` (unbounded ⟹ not badly approximable)** — three lines on
+  `abs_sub_contin_lt`, which was already on `main`. **This direction does not
+  touch the new identity.** The PR body and three doc files initially claimed
+  "both directions run on one identity"; an adversarial review caught it.
+
+Also worth recording: no coprimality hypothesis is needed anywhere, so
+`BadlyApproximable` quantifies over all integer pairs with `q > 0`. That is
+*equivalent* to the lowest-terms form, not stronger — for non-reduced `p/q` the
+bound is weaker because the reduced denominator is smaller, so the all-pairs
+form follows from the coprime one with the same constant. The PR body said
+"stronger"; that was wrong.
+
+### The gap: the `→` direction is not instantiated
+
+`goldenRatio_badlyApproximable` fires the `←` direction. **Nothing fires the
+`→` direction**, because nothing in the repo exhibits a path with *unbounded*
+partial quotients. Its hypothesis is satisfiable — an adversarial review built
+the witness externally, via `liouville_liouvilleNumber 2` → `¬ BadlyApproximable`
+→ `exists_toReal₀_eq` → the theorem — so the direction is not vacuous. But that
+witness is not in the repo.
+
+Two routes, both real work:
+
+* **Liouville.** `Mathlib.NumberTheory.Liouville.*` is *not in this project's
+  olean cache*, so importing it means compiling those modules. Cheap in code,
+  not cheap in build time; check `lake exe cache get` covers it before starting.
+* **Direct construction.** Build a path whose `k`-th run has length `k+1`.
+  Irrationality then comes free — `InfFlips` rules out `EventuallyConstant`, and
+  `eventuallyConstant_iff_rat` turns that into irrationality — so no Liouville
+  theory is needed. The cost is computing `partialQuot` for the construction,
+  which is the same kind of work as `partialQuot_goldenPath`.
+
+The second is probably better: it keeps the import closure clean and would give
+`Examples.lean` a second worked path, which it has wanted for a while (every
+concrete example in the repo is the golden path).
+
+Fourth appearance of the `a₀ = 0` seed swap:
+`contin_den_le_succ_of_startIdx` proves `q₀ ≤ q₁` from the *seeds* rather than
+the recurrence, because on a left-starting path the pair at `j = 0` is
+legitimate and `contin_den_le_succ` only starts at index 1.
+

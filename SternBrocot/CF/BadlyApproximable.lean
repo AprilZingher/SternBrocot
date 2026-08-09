@@ -14,7 +14,11 @@ import SternBrocot.CF.Legendre
 
 ## The route
 
-Both directions run on a single identity, which is the real content of the file:
+The `←` direction runs on a single identity, which is the new content of the
+file. **The `→` direction does not use it** — it is three lines on
+`abs_sub_contin_lt`, an estimate that was already in `Convergent.lean`. An
+earlier version of this docstring said "both directions run on one identity";
+that was false, and false about the very file asserting it.
 
   `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1`   (`contin_err_sum`)
 
@@ -88,7 +92,8 @@ theorem contin_den_le_succ_of_startIdx {x : Set ℕ} (h : InfFlips x) {j : ℕ}
 
 /-! ### The identity
 
-Everything else in this file is arithmetic on `contin_err_sum`. -/
+`contin_err_sum` and the two bounds derived from it are what the `←` direction
+runs on. The `→` direction below uses none of them. -/
 
 /-- Opposite-signed quantities subtract into a sum of absolute values. The
 arithmetic heart of `contin_err_sum`, isolated so the sign analysis is not

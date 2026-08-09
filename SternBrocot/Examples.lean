@@ -526,10 +526,13 @@ theorem goldenPath_bounded : BoundedPartialQuot goldenPath :=
   ⟨1, fun k => le_of_eq (partialQuot_goldenPath k)⟩
 
 /-- **`φ` is badly approximable.** The classical fact, obtained here by feeding
-`partialQuot_goldenPath` through the equivalence. Together with `sqrt5_optimal`
-this pins `φ` as the worst-approximable number from both sides: no rational
-beats `c/q²` for a fixed `c`, and `√5` is the best constant that works for
-*every* irrational. -/
+`partialQuot_goldenPath` through the equivalence.
+
+Two neighbouring results say related but distinct things, and it is easy to
+merge them by mistake: `sqrt5_optimal` says no constant *larger than* `√5` works
+**for `φ`**, while `exists_hurwitz_approx` says `√5` works for **every**
+irrational. This theorem is a third statement again — that `φ` admits *some*
+positive `c`, with no claim about its size. -/
 theorem goldenRatio_badlyApproximable : BadlyApproximable (toReal₀ goldenPath) :=
   (badlyApproximable_iff_boundedPartialQuot irrational_goldenPath).2 goldenPath_bounded
 

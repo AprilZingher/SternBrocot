@@ -69,8 +69,8 @@ cases.
 
 ## Next steps
 
-**Items 2, 4, 5 and all of 6 except Gauss–Kuzmin are done, and nothing has a
-`sorry`.**
+**Items 2, 4, 5 and all of 6 except three-distance and Gauss–Kuzmin are done,
+and nothing has a `sorry`.**
 Remaining recommended order: **the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
 (`mk_lt_mk_iff`); what is left of the `ℝ`-freeing programme is the operations.
 
@@ -273,9 +273,10 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
    **Legendre is ✅ done** (`legendre`), and so is **badly approximable ↔
    bounded partial quotients** (`badlyApproximable_iff_boundedPartialQuot`).
-   Every row of the table below that was ever plausible is now closed except
-   the two marked "no": both are statements about `contin` and
-   `partialQuot`, which exist.
+   That closes every row of the table *above* except two: three-distance /
+   Steinhaus (marked "not obviously" — no obvious route through the run
+   decomposition, and nothing in the repo touches it) and Gauss–Kuzmin (needs
+   ergodic theory).
 
    These are *classical results missing from a library*, not open problems. The
    wall at algebraic degree ≥ 3 is real and none of these touch it. But together
@@ -379,10 +380,11 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
 - `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
-  approximable **iff** its partial quotients are bounded. Both directions run on
-  one identity, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` (`contin_err_sum`),
-  which is unimodularity and straddling combined. `goldenRatio_badlyApproximable`
-  is the extremal instance.
+  approximable **iff** its partial quotients are bounded. The `←` direction runs
+  on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity
+  and straddling combined, giving a *lower* bound on a convergent's error. The
+  `→` direction does **not** use it; it is three lines on the pre-existing
+  `abs_sub_contin_lt`. `goldenRatio_badlyApproximable` is the extremal instance.
 - `legendre` — **Legendre's theorem**: an approximation to better than `1/(2q²)`
   in lowest terms is a convergent. Via best approximation of the second kind,
   which is the lattice argument — unimodularity makes two consecutive
