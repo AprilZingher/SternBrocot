@@ -541,11 +541,12 @@ so the transfer principle is *density plus extensionality of cuts*, which is
 pure order theory and is what `Core/Density.lean` supplies.
 
 
-## Item 6 continued — consecutive convergents (`CF/Legendre.lean`)
+## Item 6 continued — Legendre's theorem (`CF/Legendre.lean`)
 
-New file, no `sorry`. **Legendre's theorem itself is not in it yet** — this is
-the layer underneath, and the name is aspirational. Say so out loud rather than
-letting the filename imply more than it holds.
+No `sorry`. This section was written in two passes: the first landed the
+machinery while Legendre itself was still open, the second closed it. Where the
+two disagree the later text wins — and the "✅ DONE" subsection below is the
+later text.
 
 ### What was proved
 
@@ -581,30 +582,6 @@ by writing `have hm : pathMat (prefixWord …) = … := hT hb` with the indices
 spelled the way the goal wants, letting defeq do the work at elaboration. Copy
 that pattern; do not fight it with `omega` or `simp_arith`.
 
-### What Legendre still needs
-
-> `|α − p/q| < 1/(2q²)` with `0 < q` and `gcd(p,q) = 1` implies `p/q` is a
-> convergent.
-
-The classical route, and what each step needs from here:
-
-1. **Best approximation of the second kind** — ✅ **done, as arithmetic.**
-   `exists_lattice_coords` (unimodularity gives the basis) and
-   `abs_le_of_lattice` (the estimate). Both are stated with no reference to
-   continued fractions, which is what keeps the case analysis readable.
-
-   The case analysis, since it is the content: `u = 0` is impossible because it
-   would force `d ≤ q`; `v = 0` leaves a multiple of `A` with `u ≥ 1`; and
-   otherwise `u, v` must have *opposite* signs, since same signs would give
-   `q ≥ c + d > d`. Opposite-signed coefficients against opposite-signed errors
-   point the same way, so the two terms add in absolute value rather than
-   cancelling — which is exactly where `contin_straddle` is consumed.
-
-   ✅ **Instantiated at the convergents too**: `contin_err_mul_neg` (the
-   straddle with denominators cleared, which is the `A * B < 0` hypothesis) and
-   `contin_best_approx`, which is the theorem in usable form — no integer pair
-   with `0 < q < qₖ₊₁` beats `(pₖ, qₖ)` measured by `|qα − p|`.
-
 ### Legendre — ✅ DONE
 
 ```
@@ -633,11 +610,21 @@ bracketable, and the "unbounded gap" was an artifact of starting the estimates
 at `k + 2` uniformly. This is the `a₀ = 0` seed swap surfacing for the third
 time; see the trap list in `CLAUDE.md`.
 
-Second thing that made this cheaper than expected: **bracketing needs only
+Second thing that made this cheaper than expected: **`exists_bracket` needs only
 monotonicity and unboundedness, not strict increase** — take the *greatest*
-index with `qⱼ ≤ q` (`Nat.findGreatest`). So the `q₂ = q₃` repeat that forced
-`contin_den_lt_succ` up to `k + 3` costs nothing here, and
-`contin_den_lt_succ` is not used by `legendre` at all.
+index with `qⱼ ≤ q` (`Nat.findGreatest`). The `q₂ = q₃` repeat therefore costs
+nothing in the bracketing argument itself.
+
+**But do not extend that to "`legendre` does not use `contin_den_lt_succ`" — an
+earlier version of this note did, and it is false.** The chain is four hops of
+ordinary source:
+`legendre` → `exists_bracket` → `exists_contin_den_gt` → `contin_den_ge` →
+`contin_den_lt_succ`. Unboundedness is *derived from* strict increase here, so
+the `k + 3` growth lemmas are load-bearing after all. Rerouting
+`exists_contin_den_gt` through `contin_den_add_two` plus positivity would make
+the independence real; until someone does that, the honest statement is that
+strict increase is not needed by the *bracketing step*, only by the
+unboundedness lemma it calls.
 
 ### What was added
 

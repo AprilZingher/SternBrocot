@@ -70,7 +70,7 @@ cases.
 ## Next steps
 
 **Items 2, 4, 5 and the Hurwitz half of 6 are done, and nothing has a `sorry`.**
-Remaining recommended order: **the rest of 6 (Legendre, badly approximable) →
+Remaining recommended order: **the rest of 6 (badly approximable) →
 the `ℝ`-free field axioms → 3 (productivity).** The intrinsic *order* is done
 (`mk_lt_mk_iff`); what is left of the `ℝ`-freeing programme is the operations.
 
@@ -258,7 +258,7 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
    | theorem | encoding helps? |
    |---|---|
    | **Hurwitz** — `1/(√5 q²)` infinitely often, √5 optimal | yes: φ is the all-run-length-1 path, visibly extremal |
-   | **Legendre** — `< 1/(2q²)` ⟹ `p/q` is a convergent | partly: convergents are the nodes along the path |
+   | **Legendre** — `< 1/(2q²)` ⟹ `p/q` is a convergent — ✅ **done** | partly: convergents are the nodes along the path |
    | **badly approximable ↔ bounded partial quotients** | yes: bounded run-lengths in the bit string |
    | three-distance / Steinhaus | not obviously |
    | Gauss–Kuzmin | no — needs ergodic theory |
@@ -271,8 +271,8 @@ The status paragraph above claims the first, item 6 pitches the second. Decide.
 
    **Hurwitz is ✅ done** (`CF/Hurwitz.lean`), both the `1/(√5 q²)` statement and
    the optimality of `√5`. It consumed item 5 and nothing else, as predicted.
-   The remaining rows — Legendre, badly approximable ↔ bounded partial
-   quotients — are now the cheap ones: both are statements about `contin` and
+   **Legendre is ✅ done** (`legendre`). The remaining row — badly approximable
+   ↔ bounded partial quotients — is now the cheap one: both are statements about `contin` and
    `partialQuot`, which exist.
 
    These are *classical results missing from a library*, not open problems. The
@@ -375,6 +375,11 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `legendre` — **Legendre's theorem**: an approximation to better than `1/(2q²)`
+  in lowest terms is a convergent. Via best approximation of the second kind,
+  which is the lattice argument — unimodularity makes two consecutive
+  convergents a basis of `ℤ²` and the straddling makes the two errors opposite
+  in sign, so they add rather than cancel.
 - `abs_sub_contin_eq` — the **exact** error `1/(qₖ(qₖwₖ + qₖ₊₁))`. Hurwitz is
   this identity plus one relation between consecutive `wₖ + ρₖ`.
 - `exists_hurwitz_approx_real` — Hurwitz on `ℝ`; `sqrt5_optimal` — `√5` is best.

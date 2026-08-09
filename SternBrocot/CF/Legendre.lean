@@ -11,7 +11,7 @@ import SternBrocot.CF.Convergent
 > convergent.
 
 `legendre` at the end of the file. Everything before it is the machinery, in
-four layers, each with its own section:
+four layers:
 
 1. **Consecutive convergents** — unimodularity (`contin_det`) and straddling
    (`contin_straddle`). `Convergent.lean` has the ingredients but never states
@@ -67,8 +67,11 @@ one case split over `runBit`, and neither needs a new estimate.
 
 ## Indexing
 
-As everywhere downstream of `Convergent.lean`, statements are at `k + 2`: the
-seeds `contin x 0`, `contin x 1` are not convergents, and `q₁ = 0`.
+Sections 1–3 are stated at `k + 2`, inherited from `Convergent.lean`. **That
+convention is right-branch-only**, which is what section 4 exists to fix: on a
+left-starting path `contin x 1 = (0, 1)` is a genuine convergent and `q₁ = 1`,
+while it is `contin x 0` that carries the `1/0` seed. The blanket claim "`q₁ = 0`
+and `contin x 1` is not a convergent" is true only when `runBit x 0 = true`.
 -/
 
 open Set
@@ -586,7 +589,7 @@ theorem exists_bracket {x : Set ℕ} (h : InfFlips x) {q : ℤ} (hq : 1 ≤ q) :
     show (contin x (startIdx x)).2 ≤ q
     rw [contin_den_startIdx]; exact hq
   have hsN : startIdx x ≤ N := le_trans (startIdx_le_two x) (by omega)
-  have hNnot : ¬ P N := by show ¬ ((contin x N).2 ≤ q); push_neg; exact hN0
+  have hNnot : ¬ P N := by show ¬ ((contin x N).2 ≤ q); simp only [not_le]; exact hN0
   set j := Nat.findGreatest P N with hjdef
   have hjs : startIdx x ≤ j := Nat.le_findGreatest hsN hPstart
   have hPj : P j := Nat.findGreatest_spec hsN hPstart
