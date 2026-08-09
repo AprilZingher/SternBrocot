@@ -242,4 +242,82 @@ theorem exists_contin_den_gt {x : Set ℕ} (h : InfFlips x) (M : ℤ) :
   have := Int.self_le_toNat M
   omega
 
+/-! ### Best approximation of the second kind
+
+The lattice step. Unimodularity makes two consecutive convergents a basis of
+`ℤ²`, so *every* integer pair `(p, q)` is `u·(pₖ,qₖ) + v·(pₖ₊₁,qₖ₊₁)`; the
+straddling makes the two errors `qₖα − pₖ` and `qₖ₊₁α − pₖ₊₁` opposite in sign,
+so the contributions can never cancel. The bound `q < qₖ₊₁` forces `u` and `v`
+to have opposite signs too, and opposite-signed coefficients against
+opposite-signed errors point the *same* way — so the two terms add in absolute
+value instead of cancelling.
+
+Stated as pure arithmetic: nothing below mentions continued fractions, and
+keeping it separate is what makes the case analysis readable. -/
+
+/-- Unimodularity makes the two columns a basis of `ℤ²`. -/
+theorem exists_lattice_coords {a b c d : ℤ} (hdet : a * d - b * c = 1 ∨ a * d - b * c = -1)
+    (p q : ℤ) : ∃ u v : ℤ, p = u * a + v * b ∧ q = u * c + v * d := by
+  rcases hdet with he | he
+  · exact ⟨d * p - b * q, a * q - c * p,
+      by linear_combination (-p) * he, by linear_combination (-q) * he⟩
+  · exact ⟨b * q - d * p, c * p - a * q,
+      by linear_combination p * he, by linear_combination q * he⟩
+
+/-- **The lattice estimate.** With `A`, `B` the two signed errors — opposite in
+sign, which is `contin_straddle` — and `0 < q < d`, no integer combination
+realising such a `q` can beat `|A|`. -/
+theorem abs_le_of_lattice {c d q u v : ℤ} {A B : ℝ}
+    (hc : 0 < c) (hd : 0 < d) (hAB : A * B < 0)
+    (hq0 : 0 < q) (hqd : q < d) (hqe : q = u * c + v * d) :
+    |A| ≤ |(u : ℝ) * A + (v : ℝ) * B| := by
+  have hA0 : A ≠ 0 := by rintro rfl; simp at hAB
+  -- `u = 0` would force `d ≤ q`
+  have hu0 : u ≠ 0 := by
+    rintro rfl
+    have hv : 1 ≤ v := by nlinarith
+    nlinarith
+  rcases eq_or_ne v 0 with rfl | hv0
+  · -- `v = 0`: then `q = u c` with `u ≥ 1`, so the term is a multiple of `A`
+    have hu : 1 ≤ u := by nlinarith
+    have huR : (1 : ℝ) ≤ (u : ℝ) := by exact_mod_cast hu
+    rw [Int.cast_zero, zero_mul, add_zero, abs_mul,
+      abs_of_pos (by linarith : (0 : ℝ) < (u : ℝ))]
+    nlinarith [abs_nonneg A]
+  · -- both nonzero, hence of opposite signs: same signs would break `0 < q < d`
+    have hopp : (1 ≤ u ∧ v ≤ -1) ∨ (u ≤ -1 ∧ 1 ≤ v) := by
+      rcases lt_trichotomy u 0 with h1 | h1 | h1
+      · rcases lt_trichotomy v 0 with h2 | h2 | h2
+        · exfalso; nlinarith
+        · exact absurd h2 hv0
+        · exact Or.inr ⟨by omega, by omega⟩
+      · exact absurd h1 hu0
+      · rcases lt_trichotomy v 0 with h2 | h2 | h2
+        · exact Or.inl ⟨by omega, by omega⟩
+        · exact absurd h2 hv0
+        · exfalso; nlinarith
+    rcases hopp with ⟨hu, hv⟩ | ⟨hu, hv⟩
+    · have huR : (1 : ℝ) ≤ (u : ℝ) := by exact_mod_cast hu
+      have hvR : (v : ℝ) ≤ -1 := by exact_mod_cast hv
+      rcases lt_or_gt_of_ne hA0 with hAneg | hApos
+      · have hB : 0 < B := by nlinarith
+        rw [abs_of_neg hAneg,
+          abs_of_neg (by nlinarith : (u : ℝ) * A + (v : ℝ) * B < 0)]
+        nlinarith
+      · have hB : B < 0 := by nlinarith
+        rw [abs_of_pos hApos,
+          abs_of_pos (by nlinarith : (0 : ℝ) < (u : ℝ) * A + (v : ℝ) * B)]
+        nlinarith
+    · have huR : (u : ℝ) ≤ -1 := by exact_mod_cast hu
+      have hvR : (1 : ℝ) ≤ (v : ℝ) := by exact_mod_cast hv
+      rcases lt_or_gt_of_ne hA0 with hAneg | hApos
+      · have hB : 0 < B := by nlinarith
+        rw [abs_of_neg hAneg,
+          abs_of_pos (by nlinarith : (0 : ℝ) < (u : ℝ) * A + (v : ℝ) * B)]
+        nlinarith
+      · have hB : B < 0 := by nlinarith
+        rw [abs_of_pos hApos,
+          abs_of_neg (by nlinarith : (u : ℝ) * A + (v : ℝ) * B < 0)]
+        nlinarith
+
 end SternBrocot

@@ -588,12 +588,24 @@ that pattern; do not fight it with `omega` or `simp_arith`.
 
 The classical route, and what each step needs from here:
 
-1. **Best approximation of the second kind** — for `0 < q < qₖ₊₁`,
-   `|qₖ α − pₖ| ≤ |q α − p|`. This is the lattice argument: `abs_contin_det`
-   makes `(pₖ, qₖ)`, `(pₖ₊₁, qₖ₊₁)` a basis of `ℤ²`, so `(p, q) = u(pₖ, qₖ) +
-   v(pₖ₊₁, qₖ₊₁)` with `u, v ∈ ℤ`; `contin_straddle` makes `qₖα − pₖ` and
-   `qₖ₊₁α − pₖ₊₁` opposite in sign, so if `u, v` are both nonzero and of the
-   same sign the two contributions cannot cancel. Both inputs now exist.
+1. **Best approximation of the second kind** — ✅ **done, as arithmetic.**
+   `exists_lattice_coords` (unimodularity gives the basis) and
+   `abs_le_of_lattice` (the estimate). Both are stated with no reference to
+   continued fractions, which is what keeps the case analysis readable.
+
+   The case analysis, since it is the content: `u = 0` is impossible because it
+   would force `d ≤ q`; `v = 0` leaves a multiple of `A` with `u ≥ 1`; and
+   otherwise `u, v` must have *opposite* signs, since same signs would give
+   `q ≥ c + d > d`. Opposite-signed coefficients against opposite-signed errors
+   point the same way, so the two terms add in absolute value rather than
+   cancelling — which is exactly where `contin_straddle` is consumed.
+
+   **Still to do:** instantiate this at the convergents. That means feeding
+   `abs_contin_det` in as `hdet` and deriving `A * B < 0` from
+   `contin_straddle` — the straddle is stated as inequalities between
+   *fractions* `pₖ/qₖ` vs `Φ₀x`, and the lattice lemma wants the sign of
+   `qₖ Φ₀x − pₖ`; clearing the positive denominator is the only step between
+   them.
 2. **Choosing the index** — needs `qₖ` unbounded, i.e. strictly increasing at
    run boundaries. `contin_den_le_succ` gives `≤`; the strict version is not
    stated and will be needed.
