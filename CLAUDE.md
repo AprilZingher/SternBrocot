@@ -326,6 +326,7 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 | `CF/Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
+| `CF/Legendre.lean` | consecutive convergents; **best approximation of the second kind** (not Legendre itself) |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Real/Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Real/Complete.lean` | **the ordered-field axioms and completeness**, stated |
@@ -405,6 +406,10 @@ Things that cost time to rediscover.
 - **`below a ⊆ below b` for a tail pair is not immediate** — it fails if `b` is a
   node. It holds because the *right* element of a tail pair is cofinite, hence
   never a node. Load-bearing; I got it wrong first time.
+- **`contin` denominators are strictly increasing only from index 3.** The
+  usual `k + 2` indexing is one too low here: `q₂ = q₃ = 1` on the golden path,
+  since the `a₀ = 0` seed swap leaves one of `q₀, q₁` at `0` and `a₁ = 1` then
+  repeats. `contin_den_eq_goldenPath` records the counterexample.
 - **The convergents are at run boundaries, and `contin` is indexed from 2.** The
   seeds `contin x 0`, `contin x 1` are `(0,1)`, `(1,0)` *swapped* when the path
   starts with a left move — that swap is the classical `a₀ = 0`, and it is what
