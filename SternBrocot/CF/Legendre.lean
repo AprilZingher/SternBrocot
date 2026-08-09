@@ -5,24 +5,42 @@ Released under Apache 2.0 license.
 import SternBrocot.CF.Convergent
 
 /-!
-# Consecutive convergents, and best approximation of the second kind
+# Legendre's theorem
 
-Facts about *pairs* of consecutive convergents that `Convergent.lean` has the
-ingredients for but never states, because the estimates there only ever needed
-one convergent at a time — plus the best-approximation theorem they support.
+> `|Φ₀x − p/q| < 1/(2q²)` with `q > 0` and `gcd(p, q) = 1` implies `p/q` is a
+> convergent.
 
-**Legendre's theorem itself is not in this file.** The name is where the file is
-going, not what it holds. `contin_best_approx` is the substantial input to it;
-what remains is the bracketing step (choose `k` with `qₖ ≤ q < qₖ₊₁`) and the
-comparison of two distinct fractions, both recorded in `HANDOFF.md`. Do not cite
-this module as containing Legendre.
+`legendre` at the end of the file. Everything before it is the machinery, in
+four layers:
 
-## What is here
+1. **Consecutive convergents** — unimodularity (`contin_det`) and straddling
+   (`contin_straddle`). `Convergent.lean` has the ingredients but never states
+   them, because its estimates only ever needed one convergent at a time.
+2. **Denominator growth** — strict from index `3`, not `2`; see that section.
+3. **Best approximation of the second kind** — the lattice argument, stated
+   first as pure arithmetic and then at the convergents.
+4. **Where the convergent list starts** — `startIdx`, which is what makes the
+   bracketing step work at all.
 
-Three layers, each with its own section below: the unimodularity and straddling
-of consecutive convergents; the growth of the denominators (stated at `k + 3`,
-not `k + 2` — see that section for why); and best approximation of the second
-kind, first as arithmetic and then at the convergents.
+## The trap that shaped this file
+
+The obvious route to the bracketing step — choose `k` with `qₖ ≤ q < qₖ₊₁` —
+fails on the indexing inherited from `Convergent.lean`, and the reason is the
+`a₀ = 0` seed swap showing up for the third time. Stated at `k + 2`, the
+smallest available denominator is `q₂`, which is `1` on a right-starting path
+but `a₀` on a left-starting one — arbitrarily large. So a small `q` would have
+no bracket.
+
+The resolution is not to patch the proof but to notice that the convergent list
+genuinely starts one index lower on the left branch: `contin x 1 = (0, 1)` *is*
+the classical `p₀/q₀` there. `startIdx` names the right index on each branch and
+`contin_den_startIdx` shows the denominator is `1` at that index either way, so
+every `q ≥ 1` is bracketable after all.
+
+Note also that bracketing needs only **monotonicity and unboundedness**, not
+strict increase — take the *greatest* index with `qⱼ ≤ q`. That is why the
+`q₂ = q₃` repeat, which forced `contin_den_lt_succ` up to `k + 3`, costs nothing
+here.
 
 * `contin_det` — `pₖ qₖ₊₁ − pₖ₊₁ qₖ = ±1`, with the sign alternating according
   to `runBit`. This is `pathMat_det` read through `boundaryMat_eq_contin`: the
@@ -49,8 +67,11 @@ one case split over `runBit`, and neither needs a new estimate.
 
 ## Indexing
 
-As everywhere downstream of `Convergent.lean`, statements are at `k + 2`: the
-seeds `contin x 0`, `contin x 1` are not convergents, and `q₁ = 0`.
+Sections 1–3 are stated at `k + 2`, inherited from `Convergent.lean`. **That
+convention is right-branch-only**, which is what section 4 exists to fix: on a
+left-starting path `contin x 1 = (0, 1)` is a genuine convergent and `q₁ = 1`,
+while it is `contin x 0` that carries the `1/0` seed. The blanket claim "`q₁ = 0`
+and `contin x 1` is not a convergent" is true only when `runBit x 0 = true`.
 -/
 
 open Set
@@ -384,5 +405,295 @@ theorem contin_best_approx {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : 
   push_cast
   ring
 
+/-! ### Lowering the index: where the convergent list really starts
+
+Everything above is stated at `k + 2`, inherited from `Convergent.lean`. For
+Legendre that is one too high, and the reason is again the `a₀ = 0` seed swap.
+
+The convergent list *does* start at denominator `1` — but at a different index
+on each branch:
+
+| first run | `contin x 1` | `contin x 2` |
+|---|---|---|
+| right (`runBit x 0 = true`) | `(1, 0)` = `1/0`, not a convergent | `(a₀, 1)` — the classical `p₀/q₀` |
+| left (`runBit x 0 = false`) | `(0, 1)` — the classical `p₀/q₀` | `(1, a₀)` = `p₁/q₁` |
+
+So on a left-starting path the genuine first convergent sits at index `1`, below
+the range every estimate above is stated on, and skipping it is what made
+`q₃` look like an unbounded obstruction. `startIdx` names the right starting
+index and `contin_den_startIdx` says the denominator there is `1` on both
+branches — so *every* `q ≥ 1` is bracketable after all.
+
+Note the bracketing needs only **monotonicity and unboundedness**, not strict
+increase: take the *greatest* index with `qⱼ ≤ q`. That is why the `q₂ = q₃`
+repeat, which forced `contin_den_lt_succ` up to `k + 3`, costs nothing here. -/
+
+/-- The index at which the genuine convergents begin: `2` on a right-starting
+path, `1` on a left-starting one. -/
+noncomputable def startIdx (x : Set ℕ) : ℕ := if runBit x 0 then 2 else 1
+
+theorem one_le_startIdx (x : Set ℕ) : 1 ≤ startIdx x := by
+  unfold startIdx; split <;> omega
+
+/-- **The convergent list starts at denominator `1`**, on both branches. -/
+theorem contin_den_startIdx (x : Set ℕ) : (contin x (startIdx x)).2 = 1 := by
+  cases hb : runBit x 0
+  · have hs : startIdx x = 1 := by simp [startIdx, hb]
+    rw [hs]
+    show (contin x 1).2 = 1
+    simp [contin_one, hb]
+  · have hs : startIdx x = 2 := by simp [startIdx, hb]
+    rw [hs]
+    have e2 := contin_den_add_two x 0
+    have h0 : contin x 0 = (0, 1) := by simp [contin_zero, hb]
+    have h1 : contin x 1 = (1, 0) := by simp [contin_one, hb]
+    rw [h0, h1] at e2
+    show (contin x 2).2 = 1
+    simpa using e2
+
+/-- Monotonicity of the denominators from index `1` on. -/
+theorem contin_den_mono {x : Set ℕ} (h : InfFlips x) {i j : ℕ} (hi : 1 ≤ i) (hij : i ≤ j) :
+    (contin x i).2 ≤ (contin x j).2 := by
+  obtain ⟨m, rfl⟩ : ∃ m, j = i + m := ⟨j - i, by omega⟩
+  clear hij
+  induction m with
+  | zero => simp
+  | succ n ih =>
+    refine le_trans ih ?_
+    obtain ⟨t, ht⟩ : ∃ t, i + n = t + 1 := ⟨i + n - 1, by omega⟩
+    have ht2 : i + (n + 1) = t + 2 := by omega
+    rw [ht, ht2]
+    exact contin_den_le_succ h t
+
+theorem contin_den_pos_of_startIdx {x : Set ℕ} (h : InfFlips x) {j : ℕ}
+    (hj : startIdx x ≤ j) : 0 < (contin x j).2 := by
+  have := contin_den_mono h (one_le_startIdx x) hj
+  rw [contin_den_startIdx] at this
+  omega
+
+/-! ### The pair lemmas, one index lower
+
+Restatements of `contin_det` and `contin_straddle` at `(j+1, j+2)` rather than
+`(k+2, k+3)`, with positivity passed in rather than derived. The proofs are the
+same reading of `boundaryMat_eq_contin`, at boundary `j+1` instead of `k+2`. -/
+
+theorem contin_det_gen {x : Set ℕ} (h : InfFlips x) (j : ℕ) :
+    (contin x (j + 1)).1 * (contin x (j + 2)).2
+        - (contin x (j + 2)).1 * (contin x (j + 1)).2 = 1
+      ∨ (contin x (j + 1)).1 * (contin x (j + 2)).2
+        - (contin x (j + 2)).1 * (contin x (j + 1)).2 = -1 := by
+  obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h j
+  have hdet := pathMat_det (prefixWord x (runBoundary x (j + 1)))
+  cases hb : runBit x j
+  · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
+        = ((contin x (j + 2)).1, (contin x (j + 1)).1,
+           (contin x (j + 2)).2, (contin x (j + 1)).2) := hF hb
+    rw [hm] at hdet
+    exact Or.inr (by linarith)
+  · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
+        = ((contin x (j + 1)).1, (contin x (j + 2)).1,
+           (contin x (j + 1)).2, (contin x (j + 2)).2) := hT hb
+    rw [hm] at hdet
+    exact Or.inl hdet
+
+theorem contin_err_mul_neg_gen {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ)
+    (h1 : 0 < (contin x (j + 1)).2) (h2 : 0 < (contin x (j + 2)).2) :
+    (((contin x (j + 1)).2 : ℝ) * toReal₀ x - ((contin x (j + 1)).1 : ℝ))
+      * (((contin x (j + 2)).2 : ℝ) * toReal₀ x - ((contin x (j + 2)).1 : ℝ)) < 0 := by
+  have h := infFlips_of_irrational hirr
+  obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h j
+  have h1r : (0 : ℝ) < ((contin x (j + 1)).2 : ℝ) := by exact_mod_cast h1
+  have h2r : (0 : ℝ) < ((contin x (j + 2)).2 : ℝ) := by exact_mod_cast h2
+  have core : ∀ A B C D : ℤ, 0 < C → 0 < D →
+      pathMat (prefixWord x (runBoundary x (j + 1))) = (A, B, C, D) →
+      (B : ℝ) / (D : ℝ) < toReal₀ x ∧ toReal₀ x < (A : ℝ) / (C : ℝ) := by
+    intro A B C D hC hD hm
+    set n := runBoundary x (j + 1) with hn
+    set s := toReal₀ (shift^[n] x) with hsdef
+    have hne := iterate_shift_ne_univ_of_irrational hirr n
+    have hs : 0 < s := toReal₀_pos_of_irrational (irrational_toReal₀_iterate_shift hirr n)
+    have hCr : (0 : ℝ) < (C : ℝ) := by exact_mod_cast hC
+    have hDr : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
+    have hdetr : (A : ℝ) * (D : ℝ) - (B : ℝ) * (C : ℝ) = 1 := by
+      have := pathMat_det (prefixWord x n)
+      rw [hm] at this
+      exact_mod_cast this
+    have ht : toReal₀ x = ((A : ℝ) * s + (B : ℝ)) / ((C : ℝ) * s + (D : ℝ)) := by
+      rw [toReal₀_eq_mobius_prefixWord x n hne, hm, mobius]
+    obtain ⟨hlow, hhigh⟩ := column_errors hCr hDr hs hdetr ht
+    have hden : (0 : ℝ) < (C : ℝ) * s + (D : ℝ) := by positivity
+    constructor
+    · have hpos : (0 : ℝ) < toReal₀ x - (B : ℝ) / (D : ℝ) := by rw [hlow]; positivity
+      linarith
+    · have hpos : (0 : ℝ) < (A : ℝ) / (C : ℝ) - toReal₀ x := by rw [hhigh]; positivity
+      linarith
+  cases hb : runBit x j
+  · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
+        = ((contin x (j + 2)).1, (contin x (j + 1)).1,
+           (contin x (j + 2)).2, (contin x (j + 1)).2) := hF hb
+    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h2 h1 hm
+    rw [div_lt_iff₀ h1r] at hlo
+    rw [lt_div_iff₀ h2r] at hhi
+    nlinarith
+  · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
+        = ((contin x (j + 1)).1, (contin x (j + 2)).1,
+           (contin x (j + 1)).2, (contin x (j + 2)).2) := hT hb
+    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h1 h2 hm
+    rw [div_lt_iff₀ h2r] at hlo
+    rw [lt_div_iff₀ h1r] at hhi
+    nlinarith
+
+/-- **Best approximation of the second kind**, at the true starting index. -/
+theorem contin_best_approx_gen {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (j : ℕ)
+    (h1 : 0 < (contin x (j + 1)).2) (h2 : 0 < (contin x (j + 2)).2)
+    {p q : ℤ} (hq0 : 0 < q) (hqd : q < (contin x (j + 2)).2) :
+    |((contin x (j + 1)).2 : ℝ) * toReal₀ x - ((contin x (j + 1)).1 : ℝ)|
+      ≤ |(q : ℝ) * toReal₀ x - (p : ℝ)| := by
+  have h := infFlips_of_irrational hirr
+  obtain ⟨u, v, hp, hqe⟩ := exists_lattice_coords (contin_det_gen h j) p q
+  have hkey := abs_le_of_lattice (c := (contin x (j + 1)).2) (d := (contin x (j + 2)).2)
+    (A := ((contin x (j + 1)).2 : ℝ) * toReal₀ x - ((contin x (j + 1)).1 : ℝ))
+    (B := ((contin x (j + 2)).2 : ℝ) * toReal₀ x - ((contin x (j + 2)).1 : ℝ))
+    h1 h2 (contin_err_mul_neg_gen hirr j h1 h2) hq0 hqd hqe
+  refine le_trans hkey (le_of_eq ?_)
+  congr 1
+  subst hp
+  subst hqe
+  push_cast
+  ring
+
+theorem startIdx_le_two (x : Set ℕ) : startIdx x ≤ 2 := by
+  unfold startIdx; split <;> omega
+
+/-- Coprimality of the convergent at any index, from the general determinant. -/
+theorem contin_coprime_gen {x : Set ℕ} (h : InfFlips x) (j : ℕ) :
+    IsCoprime (contin x (j + 1)).1 (contin x (j + 1)).2 := by
+  rcases contin_det_gen h j with he | he
+  · exact ⟨(contin x (j + 2)).2, -(contin x (j + 2)).1, by linear_combination he⟩
+  · exact ⟨-(contin x (j + 2)).2, (contin x (j + 2)).1, by linear_combination -he⟩
+
+/-! ### Bracketing
+
+The denominators are monotone from index `1`, unbounded, and equal to `1` at
+`startIdx`. So for any `q ≥ 1` the *greatest* index with `qⱼ ≤ q` exists and
+brackets `q`. Strict increase is not needed — which is what makes the `q₂ = q₃`
+repeat harmless here. -/
+
+theorem exists_bracket {x : Set ℕ} (h : InfFlips x) {q : ℤ} (hq : 1 ≤ q) :
+    ∃ j : ℕ, startIdx x ≤ j ∧ (contin x j).2 ≤ q ∧ q < (contin x (j + 1)).2 := by
+  classical
+  obtain ⟨N0, hN0⟩ := exists_contin_den_gt h q
+  set N := N0 + 3 with hNdef
+  set P : ℕ → Prop := fun j => (contin x j).2 ≤ q with hPdef
+  have hPstart : P (startIdx x) := by
+    show (contin x (startIdx x)).2 ≤ q
+    rw [contin_den_startIdx]; exact hq
+  have hsN : startIdx x ≤ N := le_trans (startIdx_le_two x) (by omega)
+  have hNnot : ¬ P N := by show ¬ ((contin x N).2 ≤ q); simp only [not_le]; exact hN0
+  set j := Nat.findGreatest P N with hjdef
+  have hjs : startIdx x ≤ j := Nat.le_findGreatest hsN hPstart
+  have hPj : P j := Nat.findGreatest_spec hsN hPstart
+  have hjN : j ≤ N := Nat.findGreatest_le N
+  have hjltN : j < N := lt_of_le_of_ne hjN (fun heq => hNnot (heq ▸ hPj))
+  have hnext : ¬ P (j + 1) :=
+    Nat.findGreatest_is_greatest (by rw [← hjdef]; omega) (by omega)
+  refine ⟨j, hjs, hPj, ?_⟩
+  show q < (contin x (j + 1)).2
+  by_contra hc
+  exact hnext (by show (contin x (j + 1)).2 ≤ q; omega)
+
+/-! ### Legendre's theorem
+
+If `p/q` approximates `Φ₀x` to better than `1/(2q²)`, it **is** a convergent.
+
+The classical proof. Bracket `q` between consecutive convergent denominators;
+best approximation gives `|qⱼα − pⱼ| ≤ |qα − p| < 1/(2q)`; then if `p/q` and
+`pⱼ/qⱼ` were distinct they would differ by at least `1/(q qⱼ)`, while the
+triangle inequality caps the difference at exactly that — a strict-versus-
+non-strict contradiction. Coprimality upgrades equality of fractions to equality
+of pairs. -/
+
+/-- **Legendre's theorem.** -/
+theorem legendre {x : Set ℕ} (hirr : Irrational (toReal₀ x)) {p q : ℤ}
+    (hq0 : 0 < q) (hcop : IsCoprime p q)
+    (happrox : |toReal₀ x - (p : ℝ) / (q : ℝ)| < 1 / (2 * (q : ℝ) ^ 2)) :
+    ∃ j : ℕ, startIdx x ≤ j ∧ contin x j = (p, q) := by
+  have h := infFlips_of_irrational hirr
+  obtain ⟨j, hjs, hle, hlt⟩ := exists_bracket h hq0
+  obtain ⟨i, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by have := one_le_startIdx x; omega⟩
+  set pj := (contin x (i + 1)).1 with hpj
+  set qj := (contin x (i + 1)).2 with hqj
+  have hd1 : 0 < qj := contin_den_pos_of_startIdx h hjs
+  have hd2 : 0 < (contin x (i + 2)).2 := contin_den_pos_of_startIdx h (by omega)
+  have hbest := contin_best_approx_gen hirr i hd1 hd2 (p := p) hq0 hlt
+  have hqR : (0 : ℝ) < (q : ℝ) := by exact_mod_cast hq0
+  have hd1R : (0 : ℝ) < (qj : ℝ) := by exact_mod_cast hd1
+  -- `|qα − p| < 1/(2q)`
+  have hqp : |(q : ℝ) * toReal₀ x - (p : ℝ)| < 1 / (2 * (q : ℝ)) := by
+    have hfac : (q : ℝ) * toReal₀ x - (p : ℝ)
+        = (q : ℝ) * (toReal₀ x - (p : ℝ) / (q : ℝ)) := by field_simp
+    rw [hfac, abs_mul, abs_of_pos hqR]
+    have := mul_lt_mul_of_pos_left happrox hqR
+    calc (q : ℝ) * |toReal₀ x - (p : ℝ) / (q : ℝ)|
+        < (q : ℝ) * (1 / (2 * (q : ℝ) ^ 2)) := this
+      _ = 1 / (2 * (q : ℝ)) := by field_simp
+  -- hence `|α − pⱼ/qⱼ| < 1/(2 q qⱼ)`
+  have hconv : |toReal₀ x - (pj : ℝ) / (qj : ℝ)| < 1 / (2 * (q : ℝ) * (qj : ℝ)) := by
+    have hqjne : (qj : ℝ) ≠ 0 := ne_of_gt hd1R
+    have hfac2 : (qj : ℝ) * toReal₀ x - (pj : ℝ)
+        = (qj : ℝ) * (toReal₀ x - (pj : ℝ) / (qj : ℝ)) := by field_simp
+    rw [hfac2, abs_mul, abs_of_pos hd1R] at hbest
+    have h2 := lt_of_le_of_lt hbest hqp
+    rw [lt_div_iff₀ (by positivity)] at h2
+    rw [lt_div_iff₀ (by positivity)]
+    nlinarith
+  -- the two fractions coincide
+  have hcross : p * qj = pj * q := by
+    by_contra hne
+    have hDne : p * qj - pj * q ≠ 0 := fun h0 => hne (by linarith)
+    have hZ : (1 : ℤ) ≤ |p * qj - pj * q| := Int.one_le_abs hDne
+    have hR : (1 : ℝ) ≤ |((p * qj - pj * q : ℤ) : ℝ)| := by
+      rw [← Int.cast_abs]; exact_mod_cast hZ
+    push_cast at hR
+    have hsplit : |(p : ℝ) / (q : ℝ) - (pj : ℝ) / (qj : ℝ)|
+        = |(p : ℝ) * (qj : ℝ) - (pj : ℝ) * (q : ℝ)| / ((q : ℝ) * (qj : ℝ)) := by
+      rw [div_sub_div _ _ (ne_of_gt hqR) (ne_of_gt hd1R), abs_div,
+        abs_of_pos (by positivity : (0 : ℝ) < (q : ℝ) * (qj : ℝ)),
+        show (q : ℝ) * (pj : ℝ) = (pj : ℝ) * (q : ℝ) from mul_comm _ _]
+    have hqjq : (qj : ℝ) ≤ (q : ℝ) := by exact_mod_cast hle
+    have htri : |(p : ℝ) / (q : ℝ) - (pj : ℝ) / (qj : ℝ)|
+        ≤ |toReal₀ x - (p : ℝ) / (q : ℝ)| + |toReal₀ x - (pj : ℝ) / (qj : ℝ)| := by
+      have := abs_sub_le ((p : ℝ) / (q : ℝ)) (toReal₀ x) ((pj : ℝ) / (qj : ℝ))
+      rwa [abs_sub_comm ((p : ℝ) / (q : ℝ)) (toReal₀ x)] at this
+    rw [hsplit, div_le_iff₀ (by positivity)] at htri
+    have hstep : 1 / (2 * (q : ℝ) ^ 2) ≤ 1 / (2 * (q : ℝ) * (qj : ℝ)) := by
+      apply one_div_le_one_div_of_le (by positivity)
+      nlinarith
+    -- the two errors together are smaller than `1/(q qⱼ)`, so the product is `< 1`
+    have hsum : |toReal₀ x - (p : ℝ) / (q : ℝ)| + |toReal₀ x - (pj : ℝ) / (qj : ℝ)|
+        < 2 * (1 / (2 * (q : ℝ) * (qj : ℝ))) := by
+      have h1 : |toReal₀ x - (p : ℝ) / (q : ℝ)| < 1 / (2 * (q : ℝ) * (qj : ℝ)) :=
+        lt_of_lt_of_le happrox hstep
+      linarith [hconv]
+    have hfin : (|toReal₀ x - (p : ℝ) / (q : ℝ)| + |toReal₀ x - (pj : ℝ) / (qj : ℝ)|)
+        * ((q : ℝ) * (qj : ℝ)) < 1 := by
+      have hpos : (0 : ℝ) < (q : ℝ) * (qj : ℝ) := by positivity
+      have hmul := mul_lt_mul_of_pos_right hsum hpos
+      rwa [show 2 * (1 / (2 * (q : ℝ) * (qj : ℝ))) * ((q : ℝ) * (qj : ℝ)) = 1 by
+        field_simp] at hmul
+    linarith [hR, htri, hfin]
+  -- coprimality upgrades that to equality of pairs
+  have hcopj : IsCoprime pj qj := contin_coprime_gen h i
+  have hdvd1 : q ∣ qj := (hcop.symm).dvd_of_dvd_mul_left ⟨pj, by rw [hcross]; ring⟩
+  have hdvd2 : qj ∣ q := (hcopj.symm).dvd_of_dvd_mul_left ⟨p, by rw [← hcross]; ring⟩
+  have hqeq : q = qj := Int.dvd_antisymm (le_of_lt hq0) (le_of_lt hd1) hdvd1 hdvd2
+  have hpeq : pj = p := by
+    have hmul : p * qj = pj * qj := by rw [hcross, ← hqeq]
+    have hne0 : qj ≠ 0 := by omega
+    exact (mul_right_cancel₀ hne0 hmul).symm
+  exact ⟨i + 1, hjs, Prod.ext_iff.mpr ⟨hpeq, hqeq.symm⟩⟩
+
 end SternBrocot
+
+
 

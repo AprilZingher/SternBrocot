@@ -495,4 +495,28 @@ theorem contin_den_eq_goldenPath : (contin goldenPath 2).2 = (contin goldenPath 
   rw [contin_goldenPath 1, contin_goldenPath 2]
   norm_num
 
+/-! ### Concrete instances of the continued-fraction theorems
+
+Every theorem in `CF/` carries an `Irrational (Φ₀ x)` hypothesis, and until now
+**not one of them had ever been instantiated** — so nothing checked that those
+hypotheses are jointly satisfiable in the first place. An earlier note in
+`HANDOFF.md` claimed this was blocked on irrationality of `φ` being hard to
+obtain. That was wrong: Mathlib has `Real.goldenRatio_irrational`, and this file
+already imported it. -/
+
+theorem irrational_goldenPath : Irrational (toReal₀ goldenPath) :=
+  toReal₀_goldenPath ▸ Real.goldenRatio_irrational
+
+/-- **Legendre's theorem, fired.** `2/1` approximates `φ` to within `1/2`, so it
+must be a convergent — and it is, at index `3`, where
+`contin_goldenPath` gives `(fib 3, fib 2) = (2, 1)`. -/
+theorem legendre_goldenPath :
+    ∃ j : ℕ, startIdx goldenPath ≤ j ∧ contin goldenPath j = (2, 1) := by
+  refine legendre irrational_goldenPath one_pos isCoprime_one_right ?_
+  rw [toReal₀_goldenPath, abs_lt]
+  have h1 : (1 : ℝ) < Real.goldenRatio := Real.one_lt_goldenRatio
+  have h2 : Real.goldenRatio < 2 := Real.goldenRatio_lt_two
+  have hsq : Real.goldenRatio ^ 2 = Real.goldenRatio + 1 := Real.goldenRatio_sq
+  constructor <;> · push_cast; nlinarith
+
 end SternBrocot

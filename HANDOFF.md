@@ -541,11 +541,12 @@ so the transfer principle is *density plus extensionality of cuts*, which is
 pure order theory and is what `Core/Density.lean` supplies.
 
 
-## Item 6 continued — consecutive convergents (`CF/Legendre.lean`)
+## Item 6 continued — Legendre's theorem (`CF/Legendre.lean`)
 
-New file, no `sorry`. **Legendre's theorem itself is not in it yet** — this is
-the layer underneath, and the name is aspirational. Say so out loud rather than
-letting the filename imply more than it holds.
+No `sorry`. This section was written in two passes: the first landed the
+machinery while Legendre itself was still open, the second closed it. Where the
+two disagree the later text wins — and the "✅ DONE" subsection below is the
+later text.
 
 ### What was proved
 
@@ -581,107 +582,62 @@ by writing `have hm : pathMat (prefixWord …) = … := hT hb` with the indices
 spelled the way the goal wants, letting defeq do the work at elaboration. Copy
 that pattern; do not fight it with `omega` or `simp_arith`.
 
-### What Legendre still needs
+### Legendre — ✅ DONE
 
-> `|α − p/q| < 1/(2q²)` with `0 < q` and `gcd(p,q) = 1` implies `p/q` is a
-> convergent.
+```
+legendre : Irrational (Φ₀ x) → 0 < q → IsCoprime p q →
+  |Φ₀ x − p/q| < 1/(2q²) → ∃ j, startIdx x ≤ j ∧ contin x j = (p, q)
+```
 
-The classical route, and what each step needs from here:
+The conclusion is deliberately `startIdx x ≤ j`, not just `∃ j`: without it the
+statement could be read as satisfied by a *seed* index, and `contin x 0` is
+`(0,1)` or `(1,0)` depending on the branch. Pinning `j` into the genuine
+convergent range removes the ambiguity.
 
-1. **Best approximation of the second kind** — ✅ **done, as arithmetic.**
-   `exists_lattice_coords` (unimodularity gives the basis) and
-   `abs_le_of_lattice` (the estimate). Both are stated with no reference to
-   continued fractions, which is what keeps the case analysis readable.
+**How the bracketing obstruction dissolved.** The previous note said the set of
+`q` with no bracket is unbounded, and that was true *of the `k + 2` indexing*.
+It was the wrong conclusion to draw. The convergent list genuinely starts one
+index lower on the left branch:
 
-   The case analysis, since it is the content: `u = 0` is impossible because it
-   would force `d ≤ q`; `v = 0` leaves a multiple of `A` with `u ≥ 1`; and
-   otherwise `u, v` must have *opposite* signs, since same signs would give
-   `q ≥ c + d > d`. Opposite-signed coefficients against opposite-signed errors
-   point the same way, so the two terms add in absolute value rather than
-   cancelling — which is exactly where `contin_straddle` is consumed.
+| first run | `contin x 1` | `contin x 2` |
+|---|---|---|
+| right | `(1, 0)` = `1/0`, not a convergent | `(a₀, 1)` — the classical `p₀/q₀` |
+| left | `(0, 1)` — the classical `p₀/q₀` | `(1, a₀)` = `p₁/q₁` |
 
-   ✅ **Instantiated at the convergents too**: `contin_err_mul_neg` (the
-   straddle with denominators cleared, which is the `A * B < 0` hypothesis) and
-   `contin_best_approx`, which is the theorem in usable form — no integer pair
-   with `0 < q < qₖ₊₁` beats `(pₖ, qₖ)` measured by `|qα − p|`.
+So `startIdx x = if runBit x 0 then 2 else 1`, and `contin_den_startIdx` proves
+the denominator there is `1` on **both** branches. Every `q ≥ 1` is therefore
+bracketable, and the "unbounded gap" was an artifact of starting the estimates
+at `k + 2` uniformly. This is the `a₀ = 0` seed swap surfacing for the third
+time; see the trap list in `CLAUDE.md`.
 
-### What is left for Legendre proper
+Second thing that made this cheaper than expected: **`exists_bracket` needs only
+monotonicity and unboundedness, not strict increase** — take the *greatest*
+index with `qⱼ ≤ q` (`Nat.findGreatest`). The `q₂ = q₃` repeat therefore costs
+nothing in the bracketing argument itself.
 
-Two steps, and the first has an edge case worth knowing about before starting.
+**But do not extend that to "`legendre` does not use `contin_den_lt_succ`" — an
+earlier version of this note did, and it is false.** The chain is four hops of
+ordinary source:
+`legendre` → `exists_bracket` → `exists_contin_den_gt` → `contin_den_ge` →
+`contin_den_lt_succ`. Unboundedness is *derived from* strict increase here, so
+the `k + 3` growth lemmas are load-bearing after all. Rerouting
+`exists_contin_den_gt` through `contin_den_add_two` plus positivity would make
+the independence real; until someone does that, the honest statement is that
+strict increase is not needed by the *bracketing step*, only by the
+unboundedness lemma it calls.
 
-2. **Bracketing** — choose `k` with `q_{k+3} ≤ q < q_{k+4}`. `Nat.find` on
-   `exists_contin_den_gt` gives the least `k` with `q < q_{k+3}`, and minimality
-   gives the lower bound. **This needs `q ≥ q₃`, and the gap below `q₃` is not
-   an edge case — it is unbounded.** An earlier version of this note said `q₃`
-   is "`1` for the golden path but larger when `a₁ > 1`", which names the wrong
-   criterion. The closed forms, both verified:
+### What was added
 
-   | first run | `q₂` | `q₃` |
-   |---|---|---|
-   | right (`runBit x 0 = true`) | `1` | `a₁` |
-   | left (`runBit x 0 = false`) | `a₀` | `a₀·a₁ + 1` |
+* `startIdx`, `one_le_startIdx`, `startIdx_le_two`, `contin_den_startIdx`
+* `contin_den_mono` (monotone from index 1), `contin_den_pos_of_startIdx`
+* `contin_det_gen`, `contin_err_mul_neg_gen`, `contin_best_approx_gen`,
+  `contin_coprime_gen` — the pair lemmas restated at `(j+1, j+2)` with
+  positivity passed in rather than derived, so they apply at index 1
+* `exists_bracket`
+* `legendre`
 
-   So `q₃ = 1` **iff** the path starts with a right run *and* `a₁ = 1`. On a
-   left-starting path `q₃ = a₀a₁ + 1 ≥ 2` no matter what `a₁` is, and `a₀` is
-   arbitrary — so the set of `q` with no bracket is `{1, …, q₃ − 1}` with `q₃`
-   as large as you like. "Handle small `q` separately" is therefore not a couple
-   of cases.
-
-   The classical proof leans on the convergent list starting at `q₀ = 1`, which
-   this indexing does not provide. The real decision is whether to extend the
-   list downward rather than to patch the proof — make it deliberately.
-3. **The finish** — from `|α − p/q| < 1/(2q²)` and step 1,
-   `|q_k α − p_k| ≤ |qα − p| < 1/(2q)`. If `p/q ≠ p_k/q_k` then the two
-   fractions differ by at least `1/(q q_k)`, while the triangle inequality
-   bounds the difference by `1/(2q²) + 1/(2q q_k) ≤ 1/(q q_k)` using
-   `q_k ≤ q` — a strict-versus-non-strict contradiction. So they are equal, and
-   `contin_coprime` plus `IsCoprime p q` upgrades that to `(p, q) = (p_k, q_k)`.
-Step 2 is the one I would check first — if `qₖ` can repeat, the indexing in
-step 1 needs care, and this development's `a₀ = 0` seed swap is exactly the kind
-of thing that makes the first few terms misbehave.
-
-**Checked, and the worry was justified.** `qₖ` *can* repeat at the start:
-`contin_den_eq_goldenPath` (`Examples.lean`) proves `q₂ = q₃ = 1` for the golden
-path. It does not always — on a left-starting path `q₂ = a₀` and
-`q₃ = a₀a₁ + 1 > q₂`, so there is no repeat at all. The repeat happens exactly
-when the path starts with a right run and `a₁ = 1`. Either way the universally
-quantified `k + 2` statement is false, which is what fixes the indexing. From
-index `3` on both `qₖ` and `qₖ₊₁` are positive and `qₖ₊₂ = aₖqₖ₊₁ + qₖ > qₖ₊₁`
-is immediate.
-
-So the growth lemmas are stated at `k + 3`, one higher than the `k + 2` used
-everywhere else downstream of `Convergent.lean`:
-
-* `contin_den_lt_succ` — `q_{k+3} < q_{k+4}`, strict.
-* `contin_den_ge` — `k + 1 ≤ q_{k+3}`, the linear bound.
-* `exists_contin_den_gt` — the denominators are unbounded, which is what lets
-  step 2 bracket a given `q`.
-
-The off-by-one is recorded as a *theorem* rather than a comment so that a future
-attempt to restate `contin_den_lt_succ` at `k + 2` fails to compile instead of
-failing to be true.
-
-### Two cheap improvements left on the table
-
-Both were flagged by the adversarial review and both are worth doing; neither is
-a correctness issue.
-
-* **`cassini` proves the unsigned identity.** `Examples.lean` has
-  `|F² − F·F| = 1`; the classical Cassini is the *signed* `(−1)ⁿ`, and the sign
-  is available — `contin_det` carries it, alternating with `runBit`. The signed
-  version would be a materially better cross-check because the alternation is
-  the part most likely to be wrong. (Mathlib has signed Cassini at
-  `Mathlib/Data/Int/Fib/Lemmas.lean` as
-  `Int.fib_succ_mul_fib_pred_sub_fib_sq`, so this is a check, not a
-  contribution.)
-* **No concrete witness for `contin_best_approx`.** `contin_den_eq_goldenPath`
-  guards the growth indexing; nothing guards the best-approximation indexing the
-  same way. At the golden path, `k = 2`, `(p, q) = (2, 1)` the theorem should
-  give `|2φ − 3| ≤ |φ − 2|`. Blocked only on `Irrational (toReal₀ goldenPath)`,
-  which is not currently in the tree and is not a one-liner via Mathlib's
-  `Nat.Prime.irrational_sqrt` — it wants the `(1 + √5)/2` algebra spelled out.
-  Worth adding, since it would also unlock concrete instances of every other
-  `hirr`-hypothesised theorem in `CF/`.
+The `k + 2` versions are kept; they are the instances at `j = k + 1` and are
+what the earlier sections' prose refers to.
 
 ### Then badly approximable
 

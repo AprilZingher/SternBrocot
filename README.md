@@ -114,6 +114,13 @@ theorems do not.
 - **Hurwitz's theorem** (`exists_hurwitz_approx_real`), with `√5` optimal
   (`sqrt5_optimal`).
 
+- **Legendre's theorem** (`legendre`). For **irrational** `Φ₀x`: if
+  `|Φ₀x − p/q| < 1/(2q²)` with `q > 0` and `p/q` in lowest terms, then `p/q` is a
+  convergent. Via best approximation of the second
+  kind (`contin_best_approx_gen`), which is the lattice argument: unimodularity
+  makes two consecutive convergents a basis of `ℤ²` and the straddling makes the
+  two errors opposite in sign, so they add rather than cancel.
+
 - **The convergents** (`CF/Convergent.lean`). The convergents are the prefixes at
   **run boundaries** — `boundaryMat_eq_contin` is where that lives — with the
   classical recurrence falling out of `pathMat`, the estimate
@@ -168,6 +175,7 @@ SternBrocot/
 | `CF/Lagrange.lean` | eventually periodic ⟹ degree ≤ 2; rational ⟺ eventually constant |
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
+| `CF/Legendre.lean` | **Legendre's theorem**; best approximation of the second kind |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Examples.lean` | machine-checked checks that the definitions mean what is claimed |
 
