@@ -297,7 +297,21 @@ SternBrocot/
 **`Core/` is closed under imports**, which is what makes its ℝ-freeness a
 property of the import graph rather than something you have to probe for.
 `scripts/check-core-closed.sh` checks it with a grep and needs no Lean build;
-CI runs it on every push. The check exists because the probe-based version of
+CI runs it on every push.
+
+**`scripts/check-deps.sh` is the companion for the other kind of claim.** Every
+adversarial review of this repo has found the Lean sound and the prose wrong,
+and the false claims cluster hard — they are almost all of the form *"X does not
+depend on Y"*: "the order is intrinsic", "`contin_den_lt_succ` is not used by
+`legendre`", "both directions run on one identity". That shape is invisible to
+grep and to reading, and mechanical to check. `scripts/CheckDeps.lean` lists the
+independence claims the prose makes and fails if one is false.
+
+**Add a claim there whenever a docstring, README, `CLAUDE.md` or PR body says
+something is *not* used.** It carries a canary — a dependency that must be found
+— because `ConstantInfo.value?` returns `none` for *imported* theorems, so a
+naive collector reports empty dependency sets and passes everything vacuously.
+It needs a build, so it is not in CI; run it after `lake build`. The check exists because the probe-based version of
 this claim was got wrong twice — once in the module count, once by probing for
 `Real.pi`, which resolves nowhere here and so reported every module ℝ-free.
 

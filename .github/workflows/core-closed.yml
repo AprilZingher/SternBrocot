@@ -14,3 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/check-core-closed.sh
+
+  # NOTE: deliberately NOT run here. scripts/check-deps.sh needs a built
+  # SternBrocot, which needs Mathlib's olean cache (~7.7 GB). Running it in CI
+  # means paying that on every push. Run it locally after `lake build`:
+  #
+  #     ./scripts/check-deps.sh
+  #
+  # Adding it here is worth doing if this repo ever gets a cached Lean CI job.
