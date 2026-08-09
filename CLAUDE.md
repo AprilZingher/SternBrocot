@@ -326,7 +326,7 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 | `CF/Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
-| `CF/Legendre.lean` | consecutive convergents: unimodularity, straddling, coprimality |
+| `CF/Legendre.lean` | consecutive convergents; **best approximation of the second kind** (not Legendre itself) |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Real/Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Real/Complete.lean` | **the ordered-field axioms and completeness**, stated |

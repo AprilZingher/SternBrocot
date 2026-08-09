@@ -5,12 +5,17 @@ Released under Apache 2.0 license.
 import SternBrocot.CF.Convergent
 
 /-!
-# Consecutive convergents: unimodularity and straddling
+# Consecutive convergents, and best approximation of the second kind
 
-Two facts about *pairs* of consecutive convergents that `Convergent.lean` has
-the ingredients for but never states, because the estimates there only ever
-needed one convergent at a time. Both are inputs to Legendre's theorem and to
-the theory of best approximation.
+Facts about *pairs* of consecutive convergents that `Convergent.lean` has the
+ingredients for but never states, because the estimates there only ever needed
+one convergent at a time — plus the best-approximation theorem they support.
+
+**Legendre's theorem itself is not in this file.** The name is where the file is
+going, not what it holds. `contin_best_approx` is the substantial input to it;
+what remains is the bracketing step (choose `k` with `qₖ ≤ q < qₖ₊₁`) and the
+comparison of two distinct fractions, both recorded in `HANDOFF.md`. Do not cite
+this module as containing Legendre.
 
 ## What is here
 
@@ -320,4 +325,57 @@ theorem abs_le_of_lattice {c d q u v : ℤ} {A B : ℝ}
           abs_of_neg (by nlinarith : (u : ℝ) * A + (v : ℝ) * B < 0)]
         nlinarith
 
+/-! ### The estimate at the convergents
+
+Instantiating the lattice lemma. The only work is clearing denominators:
+`contin_straddle` compares *fractions* `pₖ/qₖ` against `Φ₀x`, while
+`abs_le_of_lattice` wants the sign of `qₖ Φ₀x − pₖ`. -/
+
+/-- The two signed errors at consecutive convergents have opposite signs. This is
+`contin_straddle` with the positive denominators cleared. -/
+theorem contin_err_mul_neg {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ) :
+    (((contin x (k + 2)).2 : ℝ) * toReal₀ x - ((contin x (k + 2)).1 : ℝ))
+      * (((contin x (k + 3)).2 : ℝ) * toReal₀ x - ((contin x (k + 3)).1 : ℝ)) < 0 := by
+  have h := infFlips_of_irrational hirr
+  have hq2 : (0 : ℝ) < ((contin x (k + 2)).2 : ℝ) := by exact_mod_cast contin_den_pos h k
+  have hq3 : (0 : ℝ) < ((contin x (k + 3)).2 : ℝ) := by exact_mod_cast contin_den_pos h (k + 1)
+  rcases toReal₀_strictly_between_contin hirr k with ⟨h1, h2⟩ | ⟨h1, h2⟩
+  · rw [div_lt_iff₀ hq2] at h1
+    rw [lt_div_iff₀ hq3] at h2
+    nlinarith
+  · rw [div_lt_iff₀ hq3] at h1
+    rw [lt_div_iff₀ hq2] at h2
+    nlinarith
+
+/-- **Best approximation of the second kind, at the convergents.** No integer
+pair with `0 < q < qₖ₊₁` approximates `Φ₀x` better than `(pₖ, qₖ)` does, measured
+by `|qα − p|`. -/
+theorem contin_best_approx {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ)
+    {p q : ℤ} (hq0 : 0 < q) (hqd : q < (contin x (k + 3)).2) :
+    |((contin x (k + 2)).2 : ℝ) * toReal₀ x - ((contin x (k + 2)).1 : ℝ)|
+      ≤ |(q : ℝ) * toReal₀ x - (p : ℝ)| := by
+  have h := infFlips_of_irrational hirr
+  have hc : 0 < (contin x (k + 2)).2 := contin_den_pos h k
+  have hd : 0 < (contin x (k + 3)).2 := contin_den_pos h (k + 1)
+  have hdet : (contin x (k + 2)).1 * (contin x (k + 3)).2
+        - (contin x (k + 3)).1 * (contin x (k + 2)).2 = 1
+      ∨ (contin x (k + 2)).1 * (contin x (k + 3)).2
+        - (contin x (k + 3)).1 * (contin x (k + 2)).2 = -1 := by
+    have := abs_contin_det h k
+    rcases abs_eq (by norm_num : (0:ℤ) ≤ 1) |>.1 this with h1 | h1
+    · exact Or.inl h1
+    · exact Or.inr h1
+  obtain ⟨u, v, hp, hqe⟩ := exists_lattice_coords hdet p q
+  have hkey := abs_le_of_lattice (c := (contin x (k + 2)).2) (d := (contin x (k + 3)).2)
+    (A := ((contin x (k + 2)).2 : ℝ) * toReal₀ x - ((contin x (k + 2)).1 : ℝ))
+    (B := ((contin x (k + 3)).2 : ℝ) * toReal₀ x - ((contin x (k + 3)).1 : ℝ))
+    hc hd (contin_err_mul_neg hirr k) hq0 hqd hqe
+  refine le_trans hkey (le_of_eq ?_)
+  congr 1
+  subst hp
+  subst hqe
+  push_cast
+  ring
+
 end SternBrocot
+

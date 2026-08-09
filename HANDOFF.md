@@ -600,12 +600,29 @@ The classical route, and what each step needs from here:
    point the same way, so the two terms add in absolute value rather than
    cancelling — which is exactly where `contin_straddle` is consumed.
 
-   **Still to do:** instantiate this at the convergents. That means feeding
-   `abs_contin_det` in as `hdet` and deriving `A * B < 0` from
-   `contin_straddle` — the straddle is stated as inequalities between
-   *fractions* `pₖ/qₖ` vs `Φ₀x`, and the lattice lemma wants the sign of
-   `qₖ Φ₀x − pₖ`; clearing the positive denominator is the only step between
-   them.
+   ✅ **Instantiated at the convergents too**: `contin_err_mul_neg` (the
+   straddle with denominators cleared, which is the `A * B < 0` hypothesis) and
+   `contin_best_approx`, which is the theorem in usable form — no integer pair
+   with `0 < q < qₖ₊₁` beats `(pₖ, qₖ)` measured by `|qα − p|`.
+
+### What is left for Legendre proper
+
+Two steps, and the first has an edge case worth knowing about before starting.
+
+2. **Bracketing** — choose `k` with `q_{k+3} ≤ q < q_{k+4}`. `Nat.find` on
+   `exists_contin_den_gt` gives the least `k` with `q < q_{k+3}`, and minimality
+   gives the lower bound. **The edge case:** this needs `q ≥ q₃`, and `q₃` is
+   not always `1` — it is `1` for the golden path but larger when `a₁ > 1`. So a
+   `q` below `q₃` has no bracket, and the classical proof's implicit "the list
+   starts at `q₀ = 1`" does not hold in this indexing. Either handle small `q`
+   separately or start the convergent list lower; decide deliberately rather
+   than discovering it at the end.
+3. **The finish** — from `|α − p/q| < 1/(2q²)` and step 1,
+   `|q_k α − p_k| ≤ |qα − p| < 1/(2q)`. If `p/q ≠ p_k/q_k` then the two
+   fractions differ by at least `1/(q q_k)`, while the triangle inequality
+   bounds the difference by `1/(2q²) + 1/(2q q_k) ≤ 1/(q q_k)` using
+   `q_k ≤ q` — a strict-versus-non-strict contradiction. So they are equal, and
+   `contin_coprime` plus `IsCoprime p q` upgrades that to `(p, q) = (p_k, q_k)`.
 2. **Choosing the index** — needs `qₖ` unbounded, i.e. strictly increasing at
    run boundaries. `contin_den_le_succ` gives `≤`; the strict version is not
    stated and will be needed.
