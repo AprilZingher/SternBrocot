@@ -126,8 +126,9 @@ theorems do not.
   identity — `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1`, unimodularity and
   straddling combined — which bounds a convergent's error from *below*; the easy
   direction is the pre-existing upper estimate `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`.
-  `goldenRatio_badlyApproximable` is the extremal instance: every partial
-  quotient of `φ` is `1`.
+  Both sides are inhabited: `goldenRatio_badlyApproximable` (every partial
+  quotient of `φ` is `1`) and `slowPath_not_badlyApproximable`, where the `k`-th
+  run has length `2^k`.
 
 - **The convergents** (`CF/Convergent.lean`). The convergents are the prefixes at
   **run boundaries** — `boundaryMat_eq_contin` is where that lives — with the

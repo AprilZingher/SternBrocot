@@ -674,32 +674,68 @@ bound is weaker because the reduced denominator is smaller, so the all-pairs
 form follows from the coprime one with the same constant. The PR body said
 "stronger"; that was wrong.
 
-### The gap: the `→` direction is not instantiated
+### The gap: ✅ closed
 
-`goldenRatio_badlyApproximable` fires the `←` direction. **Nothing fires the
-`→` direction**, because nothing in the repo exhibits a path with *unbounded*
-partial quotients. Its hypothesis is satisfiable — an adversarial review built
-the witness externally, via `liouville_liouvilleNumber 2` → `¬ BadlyApproximable`
-→ `exists_toReal₀_eq` → the theorem — so the direction is not vacuous. But that
-witness is not in the repo.
+`slowPath` in `Examples.lean` supplies a witness of `¬ BoundedPartialQuot`,
+which fires the equivalence in the direction concluding `¬ BadlyApproximable`.
 
-Two routes, both real work:
+**That is the contrapositive of `→`, not `→` itself** — `→` is
+`BadlyApproximable → BoundedPartialQuot`, and `goldenRatio_badlyApproximable`
+could already fire it. Earlier revisions of this section, and the PR body, said
+"the `→` direction is not instantiated"; what was actually missing was a witness
+of the *hypothesis of the contrapositive*.
 
-* **Liouville.** `Mathlib.NumberTheory.Liouville.*` is *not in this project's
-  olean cache*, so importing it means compiling those modules. Cheap in code,
-  not cheap in build time; check `lake exe cache get` covers it before starting.
-* **Direct construction.** Build a path whose `k`-th run has length `k+1`.
-  Irrationality then comes free — `InfFlips` rules out `EventuallyConstant`, and
-  `eventuallyConstant_iff_rat` turns that into irrationality — so no Liouville
-  theory is needed. The cost is computing `partialQuot` for the construction,
-  which is the same kind of work as `partialQuot_goldenPath`.
+```lean
+def slowPath : Set ℕ := {n | Odd (Nat.log 2 (n + 1))}
+```
 
-The second is probably better: it keeps the import closure clean and would give
-`Examples.lean` a second worked path, which it has wanted for a while (every
-concrete example in the repo is the golden path).
+Run `k` is `[2^k − 1, 2^{k+1} − 2]`, so `partialQuot slowPath k = 2 ^ k` —
+unbounded — and `slowPath_not_badlyApproximable` follows. Together with
+`goldenRatio_badlyApproximable` both directions of the equivalence now have
+witnesses, and they disagree, which is the useful part: one path is badly
+approximable and the other is not.
+
+Two things worth keeping from doing it:
+
+* **No Liouville theory.** Irrationality comes from `InfFlips` ruling out
+  `EventuallyConstant` and `eventuallyConstant_iff_rat` converting that. The
+  earlier note treated Liouville as the obvious route and the direct
+  construction as the fallback; it is the other way round. `Nat.log 2 (n+1)` as
+  the run index is what makes it short — a closed form, so the `nextFlip`
+  computation is one `sInf` sandwich rather than a search.
+* **`Odd`, not `Even`.** The first draft used `Even`, which makes bit `0` true
+  and the path *right*-starting — so it would have missed the left branch
+  entirely while the docstring claimed to cover it. `startIdx_slowPath` pins
+  `startIdx slowPath = 1` as a theorem so that flip cannot be reverted silently.
+  This is the first example in the repository to exercise the left branch of
+  `startIdx`, `contin_den_startIdx` and `contin_den_le_succ_of_startIdx`.
 
 Fourth appearance of the `a₀ = 0` seed swap:
 `contin_den_le_succ_of_startIdx` proves `q₀ ≤ q₁` from the *seeds* rather than
 the recurrence, because on a left-starting path the pair at `j = 0` is
 legitimate and `contin_den_le_succ` only starts at index 1.
 
+
+
+## Housekeeping noted, not done
+
+Three declarations in `CF/Legendre.lean` are dead — zero references anywhere in
+the tree — because the `_gen` versions superseded them:
+
+* `contin_best_approx` (superseded by `contin_best_approx_gen`)
+* `contin_coprime` (superseded by `contin_coprime_gen`)
+* `contin_ne_toReal₀` — this one has now had its docstring claim a downstream
+  consumer **twice**, both times falsely (first `abs_le_of_lattice`, then the
+  Legendre finish). It is a true and natural fact, so it is kept, but the third
+  person to write a justification for it should instead delete it.
+
+Also: `CF/Legendre.lean:162-184` and `CF/BadlyApproximable.lean`'s
+`contin_err_mul_neg_gen` contain byte-identical copies of the same `core` block,
+differing only in the boundary index (`k+2` versus `j+1`). Since
+`k + 2 = (k+1) + 1` the second literally generalises the first; one shared lemma
+instantiated at `j = k+1` removes 23 duplicated lines and the risk that the two
+drift apart. Not done because the duplication is currently harmless and the
+refactor touches two working proofs.
+
+Neither of these is urgent. Both are the kind of thing that gets worse if left
+for another three PRs.

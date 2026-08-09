@@ -297,7 +297,31 @@ SternBrocot/
 **`Core/` is closed under imports**, which is what makes its ℝ-freeness a
 property of the import graph rather than something you have to probe for.
 `scripts/check-core-closed.sh` checks it with a grep and needs no Lean build;
-CI runs it on every push. The check exists because the probe-based version of
+CI runs it on every push.
+
+**`scripts/check-deps.sh` is the companion for the other kind of claim.** Every
+adversarial review of this repo has found the Lean sound and the prose wrong,
+and the false claims cluster hard — they are almost all of the form *"X does not
+depend on Y"*: "the order is intrinsic", "`contin_den_lt_succ` is not used by
+`legendre`", "both directions run on one identity". That shape is invisible to
+grep and to reading, and mechanical to check. `scripts/CheckDeps.lean` lists the
+independence claims the prose makes and fails if one is false.
+
+**Add a claim there whenever a docstring, README, `CLAUDE.md` or PR body says
+something is *not* used.** It carries **positive controls** — dependencies that must be found — because
+`ConstantInfo.value?` returns `none` for *every* theorem (the default
+`allowOpaque := false` does it, not the fact of being imported, which is what
+this file used to say), so a naive collector reports empty dependency sets and
+passes everything. Use `ConstantInfo.getUsedConstantsAsSet`; do not hand-roll
+the traversal, which drops `inductInfo → ctors`, `recInfo → all` and
+`opaqueInfo → value`.
+
+It also **resolves every name up front**. A claim naming a constant that does
+not exist — a typo, or a rename like `contin_best_approx →
+contin_best_approx_gen` — passes vacuously and permanently otherwise. The first
+version of the script had exactly this hole and was caught passing two
+deliberately-misspelled claims about a real dependency while printing "canary
+passed". It needs a build, so it is not in CI; run it after `lake build`. The check exists because the probe-based version of
 this claim was got wrong twice — once in the module count, once by probing for
 `Real.pi`, which resolves nowhere here and so reported every module ℝ-free.
 
@@ -379,6 +403,12 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `boundaryMat_eq_contin` — the convergents are the columns of the prefix matrix
   **at run boundaries**; the classical recurrence falls out of `pathMat`.
 - `abs_sub_contin_lt` — `|Φ₀x − pₖ/qₖ| < 1/(qₖqₖ₊₁)`, strictly.
+- `slowPath` (`Examples.lean`) — a path with `partialQuot slowPath k = 2 ^ k`,
+  the counterweight to `goldenPath`, and the witness that makes
+  `¬ BadlyApproximable` inhabited. It is **left**-starting
+  (`startIdx_slowPath`), which is the first proved instance of `startIdx x = 1`
+  — but nothing computes `contin slowPath k`, so the convergent-indexing branch
+  is still not covered by any example.
 - `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
   approximable **iff** its partial quotients are bounded. The `←` direction runs
   on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity
