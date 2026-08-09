@@ -326,7 +326,7 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 | `CF/Lagrange.lean` | **eventually periodic ⟹ degree ≤ 2**; rational ⟺ eventually constant |
 | `CF/Convergent.lean` | run boundaries; the continuants; **the two estimates** |
 | `CF/Hurwitz.lean` | **`1/(√5 q²)` infinitely often**; `√5` is optimal |
-| `CF/Legendre.lean` | consecutive convergents; **best approximation of the second kind** (not Legendre itself) |
+| `CF/Legendre.lean` | **Legendre's theorem**; best approximation; `startIdx` |
 | `CF/Reduction.lean` | **Lagrange's hard half** — bounded forms; the pigeonhole; the `iff` |
 | `Real/Field.lean` | **`SBReal ≃o ℝ`**; the field structure |
 | `Real/Complete.lean` | **the ordered-field axioms and completeness**, stated |
@@ -406,6 +406,14 @@ Things that cost time to rediscover.
 - **`below a ⊆ below b` for a tail pair is not immediate** — it fails if `b` is a
   node. It holds because the *right* element of a tail pair is cofinite, hence
   never a node. Load-bearing; I got it wrong first time.
+- **The convergent list starts at a *different index* on each branch.** Index 2
+  on a right-starting path (`contin x 2 = (a₀, 1)`), index 1 on a left-starting
+  one (`contin x 1 = (0, 1)`, the classical `p₀/q₀`). `startIdx` names it and
+  `contin_den_startIdx` proves the denominator is `1` there either way. Stating
+  everything at `k + 2` uniformly hides the left branch's first convergent and
+  makes the smallest available denominator `a₀`, which is arbitrarily large —
+  that looked like an unbounded obstruction to Legendre and was an artifact.
+  Third appearance of the `a₀ = 0` seed swap.
 - **`contin` denominators are strictly increasing only from index 3.** The
   usual `k + 2` indexing is one too low here: `q₂ = q₃ = 1` on the golden path,
   since the `a₀ = 0` seed swap leaves one of `q₀, q₁` at `0` and `a₁ = 1` then
