@@ -605,6 +605,25 @@ Step 2 is the one I would check first — if `qₖ` can repeat, the indexing in
 step 1 needs care, and this development's `a₀ = 0` seed swap is exactly the kind
 of thing that makes the first few terms misbehave.
 
+**Checked, and the worry was justified.** `qₖ` *does* repeat, exactly once, at
+the start: `contin_den_eq_goldenPath` (`Examples.lean`) proves `q₂ = q₃ = 1` for
+the golden path. The cause is the seed swap — one of `q₀, q₁` is `0`, so
+`q₂ = a₀q₁ + q₀` has nothing to add, and `a₁ = 1` then leaves `q₃ = q₂`. From
+index `3` on both `qₖ` and `qₖ₊₁` are positive and `qₖ₊₂ = aₖqₖ₊₁ + qₖ > qₖ₊₁`
+is immediate.
+
+So the growth lemmas are stated at `k + 3`, one higher than the `k + 2` used
+everywhere else downstream of `Convergent.lean`:
+
+* `contin_den_lt_succ` — `q_{k+3} < q_{k+4}`, strict.
+* `contin_den_ge` — `k + 1 ≤ q_{k+3}`, the linear bound.
+* `exists_contin_den_gt` — the denominators are unbounded, which is what lets
+  step 2 bracket a given `q`.
+
+The off-by-one is recorded as a *theorem* rather than a comment so that a future
+attempt to restate `contin_den_lt_succ` at `k + 2` fails to compile instead of
+failing to be true.
+
 ### Then badly approximable
 
 `badly approximable ↔ bounded partial quotients` consumes Legendre for the `→`

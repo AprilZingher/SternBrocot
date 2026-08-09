@@ -484,4 +484,15 @@ theorem cassini (k : ℕ) :
   have h := abs_contin_det infFlips_goldenPath k
   rwa [contin_goldenPath (k + 1), contin_goldenPath (k + 2)] at h
 
+/-- **The convergent denominators are not strictly increasing from index 2.**
+
+`q₂ = q₃ = 1` for the golden path, because the `a₀ = 0` seed swap leaves one of
+`q₀, q₁` equal to `0` and every partial quotient of `φ` is `1`. This is why
+`contin_den_lt_succ` is stated at `k + 3` rather than `k + 2`, and it is stated
+here as a theorem so that a future attempt to strengthen that lemma fails to
+compile rather than failing to be true. -/
+theorem contin_den_eq_goldenPath : (contin goldenPath 2).2 = (contin goldenPath 3).2 := by
+  rw [contin_goldenPath 1, contin_goldenPath 2]
+  norm_num
+
 end SternBrocot

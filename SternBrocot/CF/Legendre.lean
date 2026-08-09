@@ -189,4 +189,57 @@ theorem contin_ne_toReal₀ {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k :
   · exact ne_of_lt h1
   · exact ne_of_gt h2
 
+/-! ### The denominators grow — but not from where you would guess
+
+Legendre's theorem picks the index `k` with `qₖ ≤ q < qₖ₊₁`, which needs the
+denominators to actually increase. `contin_den_le_succ` gives only `≤`, and the
+strict version is **false at the first step**: `contin_goldenPath` makes
+`q₂ = q₃ = 1`, recorded as `contin_den_eq_goldenPath` in `Examples.lean`.
+
+The reason is the `a₀ = 0` seed swap. One of `q₀, q₁` is `0`, so the recurrence
+`qₖ₊₂ = aₖ qₖ₊₁ + qₖ` has nothing to add at the first step and `a₁ = 1` leaves
+`q₃ = q₂`. From index `3` on, both `qₖ` and `qₖ₊₁` are positive and the strict
+increase is immediate. So every statement below starts at `k + 3`, one higher
+than the `k + 2` used everywhere else — do not "simplify" it back down. -/
+
+/-- **The convergent denominators strictly increase**, from index `3`.
+
+Not from index `2`: see `contin_den_eq_goldenPath`. -/
+theorem contin_den_lt_succ {x : Set ℕ} (h : InfFlips x) (k : ℕ) :
+    (contin x (k + 3)).2 < (contin x (k + 4)).2 := by
+  have hrec : (contin x (k + 4)).2
+      = (partialQuot x (k + 2) : ℤ) * (contin x (k + 3)).2 + (contin x (k + 2)).2 :=
+    contin_den_add_two x (k + 2)
+  have ha : 1 ≤ (partialQuot x (k + 2) : ℤ) := by
+    exact_mod_cast partialQuot_pos h (k + 2)
+  have h3 : 0 < (contin x (k + 3)).2 := contin_den_pos h (k + 1)
+  have h2 : 0 < (contin x (k + 2)).2 := contin_den_pos h k
+  nlinarith
+
+/-- A linear lower bound, which is what makes the denominators unbounded. -/
+theorem contin_den_ge {x : Set ℕ} (h : InfFlips x) (k : ℕ) :
+    (k : ℤ) + 1 ≤ (contin x (k + 3)).2 := by
+  induction k with
+  | zero =>
+    have h1 : 0 < (contin x 3).2 := contin_den_pos h 1
+    show ((0 : ℕ) : ℤ) + 1 ≤ (contin x 3).2
+    push_cast
+    omega
+  | succ j ih =>
+    have hlt := contin_den_lt_succ h j
+    -- `j + 1 + 3` and `j + 4` are defeq but not syntactically equal; see the
+    -- indexing trap noted above
+    have hidx : (contin x (j + 1 + 3)).2 = (contin x (j + 4)).2 := rfl
+    rw [hidx]
+    push_cast
+    omega
+
+/-- **The denominators are unbounded**, which is what lets Legendre's theorem
+choose an index bracketing a given `q`. -/
+theorem exists_contin_den_gt {x : Set ℕ} (h : InfFlips x) (M : ℤ) :
+    ∃ k : ℕ, M < (contin x (k + 3)).2 := by
+  refine ⟨M.toNat, lt_of_lt_of_le ?_ (contin_den_ge h M.toNat)⟩
+  have := Int.self_le_toNat M
+  omega
+
 end SternBrocot
