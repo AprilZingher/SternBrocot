@@ -688,18 +688,62 @@ Two routes, both real work:
 * **Liouville.** `Mathlib.NumberTheory.Liouville.*` is *not in this project's
   olean cache*, so importing it means compiling those modules. Cheap in code,
   not cheap in build time; check `lake exe cache get` covers it before starting.
-* **Direct construction.** Build a path whose `k`-th run has length `k+1`.
-  Irrationality then comes free — `InfFlips` rules out `EventuallyConstant`, and
-  `eventuallyConstant_iff_rat` turns that into irrationality — so no Liouville
-  theory is needed. The cost is computing `partialQuot` for the construction,
-  which is the same kind of work as `partialQuot_goldenPath`.
+* **Direct construction**, and here is a *better* one than "runs of length
+  `k+1`", which is what this note used to suggest. Triangular run starts need
+  `k(k+1)/2` and a bespoke run-index function. Use powers of two instead:
 
-The second is probably better: it keeps the import closure clean and would give
-`Examples.lean` a second worked path, which it has wanted for a while (every
-concrete example in the repo is the golden path).
+  ```lean
+  def slowPath : Set ℕ := {n | Even (Nat.log 2 (n + 1))}
+  ```
+
+  Run `k` is `{n | Nat.log 2 (n+1) = k}` = `[2^k − 1, 2^{k+1} − 2]`, of length
+  `2^k`. So `runBoundary slowPath k = 2^k − 1` and
+  `partialQuot slowPath k = 2^k`, which is unbounded. The advantage over
+  triangular numbers is that the run *index* of `n` is a closed form —
+  `Nat.log 2 (n+1)` — rather than a search, and Mathlib has the API for it
+  (`Nat.pow_log_le_self`, `Nat.lt_pow_succ_log_self`, `Nat.log_eq_iff`).
+
+  Irrationality comes free and does **not** need Liouville theory: `InfFlips`
+  rules out `EventuallyConstant`, and `eventuallyConstant_iff_rat` turns that
+  into irrationality. So the only real work is the `nextFlip` computation —
+  show `bitAt` is constant on each run and flips at the boundary — which is the
+  same shape as `partialQuot_goldenPath`, just with `2^k` in place of `1`.
+
+This route is the better one: it keeps `Mathlib.NumberTheory.Liouville.*` out of
+the import closure, and it gives `Examples.lean` a second worked path. That
+second point is worth more than it looks — **every concrete example in the repo
+is the golden path**, which is right-starting, so `startIdx = 2` and the entire
+left branch of `contin_den_startIdx`, `contin_den_le_succ_of_startIdx` and the
+`startIdx` split has never been exercised by an example. Those are exactly the
+lemmas the `a₀ = 0` seed swap keeps biting. A left-starting second example would
+be worth having even if the unbounded-partial-quotient goal did not exist.
 
 Fourth appearance of the `a₀ = 0` seed swap:
 `contin_den_le_succ_of_startIdx` proves `q₀ ≤ q₁` from the *seeds* rather than
 the recurrence, because on a left-starting path the pair at `j = 0` is
 legitimate and `contin_den_le_succ` only starts at index 1.
 
+
+
+## Housekeeping noted, not done
+
+Three declarations in `CF/Legendre.lean` are dead — zero references anywhere in
+the tree — because the `_gen` versions superseded them:
+
+* `contin_best_approx` (superseded by `contin_best_approx_gen`)
+* `contin_coprime` (superseded by `contin_coprime_gen`)
+* `contin_ne_toReal₀` — this one has now had its docstring claim a downstream
+  consumer **twice**, both times falsely (first `abs_le_of_lattice`, then the
+  Legendre finish). It is a true and natural fact, so it is kept, but the third
+  person to write a justification for it should instead delete it.
+
+Also: `CF/Legendre.lean:162-184` and `CF/BadlyApproximable.lean`'s
+`contin_err_mul_neg_gen` contain byte-identical copies of the same `core` block,
+differing only in the boundary index (`k+2` versus `j+1`). Since
+`k + 2 = (k+1) + 1` the second literally generalises the first; one shared lemma
+instantiated at `j = k+1` removes 23 duplicated lines and the risk that the two
+drift apart. Not done because the duplication is currently harmless and the
+refactor touches two working proofs.
+
+Neither of these is urgent. Both are the kind of thing that gets worse if left
+for another three PRs.
