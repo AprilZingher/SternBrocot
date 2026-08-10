@@ -145,12 +145,49 @@ which side the convergent is on, and that is the information Legendre's theorem
 runs on: consecutive convergents bracket the value, so the intervals they cut
 out nest. -/
 
+/-- **The two columns of *any* prefix matrix straddle the value**: the `B`-column
+strictly below, the `A`-column strictly above.
+
+This is `column_errors` with the final `abs` dropped — that lemma already
+produces both differences as manifestly *positive* quantities.
+
+Both call sites are in this file: `contin_straddle` at `runBoundary x (k+2)` and
+`contin_err_mul_neg_gen` at `runBoundary x (j+1)`. Each previously inlined this
+proof. The two copies were *near*-identical, not byte-identical — they differed
+in the boundary index and in whether the positivity hypothesis was named — and
+since `k + 2 = (k + 1) + 1`, the boundary-indexed form alone would have unified
+them. Stating it at an arbitrary prefix length `n` is therefore not what made
+the deduplication possible; it is just the weakest hypothesis the proof actually
+uses, since no step below mentions the boundary. No current caller needs that
+generality. -/
+theorem columns_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (n : ℕ)
+    {A B C D : ℤ} (hC : 0 < C) (hD : 0 < D)
+    (hm : pathMat (prefixWord x n) = (A, B, C, D)) :
+    (B : ℝ) / (D : ℝ) < toReal₀ x ∧ toReal₀ x < (A : ℝ) / (C : ℝ) := by
+  set s := toReal₀ (shift^[n] x) with hsdef
+  have hne := iterate_shift_ne_univ_of_irrational hirr n
+  have hs : 0 < s := toReal₀_pos_of_irrational (irrational_toReal₀_iterate_shift hirr n)
+  have hCr : (0 : ℝ) < (C : ℝ) := by exact_mod_cast hC
+  have hDr : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
+  have hdetr : (A : ℝ) * (D : ℝ) - (B : ℝ) * (C : ℝ) = 1 := by
+    have := pathMat_det (prefixWord x n)
+    rw [hm] at this
+    exact_mod_cast this
+  have ht : toReal₀ x = ((A : ℝ) * s + (B : ℝ)) / ((C : ℝ) * s + (D : ℝ)) := by
+    rw [toReal₀_eq_mobius_prefixWord x n hne, hm, mobius]
+  obtain ⟨hlow, hhigh⟩ := column_errors hCr hDr hs hdetr ht
+  have hden : (0 : ℝ) < (C : ℝ) * s + (D : ℝ) := by positivity
+  constructor
+  · have hpos : (0 : ℝ) < toReal₀ x - (B : ℝ) / (D : ℝ) := by rw [hlow]; positivity
+    linarith
+  · have hpos : (0 : ℝ) < (A : ℝ) / (C : ℝ) - toReal₀ x := by rw [hhigh]; positivity
+    linarith
+
 /-- **Consecutive convergents lie on opposite sides of `Φ₀ x`**, and which side
 is which alternates with the run bit.
 
-The proof is `column_errors` without the final `abs` — that lemma already
-produces both differences as manifestly *positive* quantities, so no new
-estimate is involved, only a reading of which column is which convergent. -/
+The proof is `columns_straddle` at the run boundary, so no new estimate is
+involved, only a reading of which column is which convergent. -/
 theorem contin_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ) :
     (runBit x (k + 1) = true →
       ((contin x (k + 3)).1 : ℝ) / ((contin x (k + 3)).2 : ℝ) < toReal₀ x ∧
@@ -160,42 +197,17 @@ theorem contin_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ
         toReal₀ x < ((contin x (k + 3)).1 : ℝ) / ((contin x (k + 3)).2 : ℝ)) := by
   have h := infFlips_of_irrational hirr
   obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h (k + 1)
-  -- the shared analytic core: for the prefix matrix at boundary `k+2`, the
-  -- `B`-column is strictly below the value and the `A`-column strictly above
-  have core : ∀ A B C D : ℤ, 0 < C → 0 < D →
-      pathMat (prefixWord x (runBoundary x (k + 2))) = (A, B, C, D) →
-      (B : ℝ) / (D : ℝ) < toReal₀ x ∧ toReal₀ x < (A : ℝ) / (C : ℝ) := by
-    intro A B C D hC hD hm
-    set n := runBoundary x (k + 2) with hn
-    set s := toReal₀ (shift^[n] x) with hsdef
-    have hne := iterate_shift_ne_univ_of_irrational hirr n
-    have hs : 0 < s := toReal₀_pos_of_irrational (irrational_toReal₀_iterate_shift hirr n)
-    have hCr : (0 : ℝ) < (C : ℝ) := by exact_mod_cast hC
-    have hDr : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
-    have hdetr : (A : ℝ) * (D : ℝ) - (B : ℝ) * (C : ℝ) = 1 := by
-      have := pathMat_det (prefixWord x n)
-      rw [hm] at this
-      exact_mod_cast this
-    have ht : toReal₀ x = ((A : ℝ) * s + (B : ℝ)) / ((C : ℝ) * s + (D : ℝ)) := by
-      rw [toReal₀_eq_mobius_prefixWord x n hne, hm, mobius]
-    obtain ⟨hlow, hhigh⟩ := column_errors hCr hDr hs hdetr ht
-    have hden : (0 : ℝ) < (C : ℝ) * s + (D : ℝ) := by positivity
-    constructor
-    · have : (0 : ℝ) < toReal₀ x - (B : ℝ) / (D : ℝ) := by rw [hlow]; positivity
-      linarith
-    · have : (0 : ℝ) < (A : ℝ) / (C : ℝ) - toReal₀ x := by rw [hhigh]; positivity
-      linarith
   have hq2 : 0 < (contin x (k + 2)).2 := contin_den_pos h k
   have hq3 : 0 < (contin x (k + 3)).2 := contin_den_pos h (k + 1)
   refine ⟨fun hb => ?_, fun hb => ?_⟩
   · have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
         = ((contin x (k + 2)).1, (contin x (k + 3)).1,
            (contin x (k + 2)).2, (contin x (k + 3)).2) := hT hb
-    exact core _ _ _ _ hq2 hq3 hm
+    exact columns_straddle hirr _ hq2 hq3 hm
   · have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
         = ((contin x (k + 3)).1, (contin x (k + 2)).1,
            (contin x (k + 3)).2, (contin x (k + 2)).2) := hF hb
-    exact core _ _ _ _ hq3 hq2 hm
+    exact columns_straddle hirr _ hq3 hq2 hm
 
 /-- The straddling, stated without reference to `runBit`: the value is strictly
 between two consecutive convergents, in one order or the other. -/
@@ -504,41 +516,18 @@ theorem contin_err_mul_neg_gen {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (
   obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h j
   have h1r : (0 : ℝ) < ((contin x (j + 1)).2 : ℝ) := by exact_mod_cast h1
   have h2r : (0 : ℝ) < ((contin x (j + 2)).2 : ℝ) := by exact_mod_cast h2
-  have core : ∀ A B C D : ℤ, 0 < C → 0 < D →
-      pathMat (prefixWord x (runBoundary x (j + 1))) = (A, B, C, D) →
-      (B : ℝ) / (D : ℝ) < toReal₀ x ∧ toReal₀ x < (A : ℝ) / (C : ℝ) := by
-    intro A B C D hC hD hm
-    set n := runBoundary x (j + 1) with hn
-    set s := toReal₀ (shift^[n] x) with hsdef
-    have hne := iterate_shift_ne_univ_of_irrational hirr n
-    have hs : 0 < s := toReal₀_pos_of_irrational (irrational_toReal₀_iterate_shift hirr n)
-    have hCr : (0 : ℝ) < (C : ℝ) := by exact_mod_cast hC
-    have hDr : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
-    have hdetr : (A : ℝ) * (D : ℝ) - (B : ℝ) * (C : ℝ) = 1 := by
-      have := pathMat_det (prefixWord x n)
-      rw [hm] at this
-      exact_mod_cast this
-    have ht : toReal₀ x = ((A : ℝ) * s + (B : ℝ)) / ((C : ℝ) * s + (D : ℝ)) := by
-      rw [toReal₀_eq_mobius_prefixWord x n hne, hm, mobius]
-    obtain ⟨hlow, hhigh⟩ := column_errors hCr hDr hs hdetr ht
-    have hden : (0 : ℝ) < (C : ℝ) * s + (D : ℝ) := by positivity
-    constructor
-    · have hpos : (0 : ℝ) < toReal₀ x - (B : ℝ) / (D : ℝ) := by rw [hlow]; positivity
-      linarith
-    · have hpos : (0 : ℝ) < (A : ℝ) / (C : ℝ) - toReal₀ x := by rw [hhigh]; positivity
-      linarith
   cases hb : runBit x j
   · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
         = ((contin x (j + 2)).1, (contin x (j + 1)).1,
            (contin x (j + 2)).2, (contin x (j + 1)).2) := hF hb
-    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h2 h1 hm
+    obtain ⟨hlo, hhi⟩ := columns_straddle hirr _ h2 h1 hm
     rw [div_lt_iff₀ h1r] at hlo
     rw [lt_div_iff₀ h2r] at hhi
     nlinarith
   · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
         = ((contin x (j + 1)).1, (contin x (j + 2)).1,
            (contin x (j + 1)).2, (contin x (j + 2)).2) := hT hb
-    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h1 h2 hm
+    obtain ⟨hlo, hhi⟩ := columns_straddle hirr _ h1 h2 hm
     rw [div_lt_iff₀ h2r] at hlo
     rw [lt_div_iff₀ h1r] at hhi
     nlinarith

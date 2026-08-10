@@ -660,25 +660,23 @@ theorem slowPath_ne_univ : slowPath ≠ univ := by
   rw [hlog] at hmem
   simp at hmem
 
+/-- The path's first bit is a **left** move — the orientation everything below
+turns on. `goldenPath`'s is `true` (`runBit_goldenPath_zero`). -/
+theorem runBit_slowPath_zero : runBit slowPath 0 = false := by
+  show bitAt slowPath 0 = false
+  simp [bitAt, mem_slowPath_iff]
+
 /-- **`slowPath` starts on the left**, unlike `goldenPath`: `startIdx = 1` here.
 
-Be careful what this does and does not buy. It is the first *proved instance* of
-`startIdx x = 1` for a concrete path — a fact about this one-line theorem. It is
-**not** coverage of the left branch of the convergent indexing: nothing here
-computes `contin slowPath k`, so `contin_den_startIdx` and
-`contin_den_le_succ_of_startIdx` are no more exercised at `slowPath` than they
-were before. An earlier version of this docstring claimed otherwise and was
-wrong; genuine coverage would look like `contin_goldenPath`, which actually
-computes the convergents.
+On its own this is a fact about `startIdx`, not about the convergents; the
+section below computes `contin slowPath k` and is where the left branch of the
+recurrence is actually pinned down.
 
 Pinned as a theorem because the orientation is easy to get backwards: `Even` in
 place of `Odd` makes bit `0` **true** and the path right-starting, silently
 turning this into a second copy of `goldenPath`'s branch. -/
 theorem startIdx_slowPath : startIdx slowPath = 1 := by
-  have hb : runBit slowPath 0 = false := by
-    show bitAt slowPath 0 = false
-    simp [bitAt, mem_slowPath_iff]
-  simp [startIdx, hb]
+  simp [startIdx, runBit_slowPath_zero]
 
 /-- Irrational, and **without** Liouville theory: infinitely many flips rules out
 eventual constancy, and `eventuallyConstant_iff_rat` does the rest. -/
@@ -706,5 +704,126 @@ quotients, so its value is *not* badly approximable — the mirror image of
 `goldenRatio_badlyApproximable`. -/
 theorem slowPath_not_badlyApproximable : ¬ BadlyApproximable (toReal₀ slowPath) :=
   (badlyApproximable_iff_boundedPartialQuot irrational_slowPath).not.2 slowPath_unbounded
+
+/-! ### The convergents of `slowPath`, and the left-starting seed order
+
+`contin_goldenPath` computes the convergents of `φ`, but only on a **right**-
+starting path, where the seeds sit as `contin _ 0 = (0, 1)`, `contin _ 1 = (1, 0)`
+and the convergent list begins at index `2`. On a left-starting path the two
+seeds are *swapped* — the `a₀ = 0` convention — so `contin _ 1 = (0, 1)` is a
+genuine convergent, the classical `p₀/q₀`. Nothing in this file computed a
+concrete instance of that arrangement before.
+
+Be exact about what the theorems below do and do not establish. Instantiating an
+already-elaborated `∀ x` lemma does not *run* any branch of its proof: every
+branch of `contin_den_le_succ_of_startIdx` was checked once and for all when
+`CF/BadlyApproximable.lean` compiled. What the concrete values buy is the other
+thing — that the hypotheses of the left branch are **satisfiable**, so that
+branch is not vacuous, and (in `contin_den_zero_not_le_one_goldenPath`) that its
+conclusion is genuinely *false* without them. That is the content here.
+
+`slowPath`'s convergents have no closed form — the partial quotients are `2^k`,
+so the numerators go `1, 2, 9, 74` — which is itself the point: unlike the
+Fibonacci case, nothing here can be checked by recognising a known sequence. -/
+
+/-- The `1/0` seed, at index `0`. Not a convergent: it is the `p₋₁/q₋₁` of the
+classical indexing, and its denominator is `0`. -/
+theorem contin_slowPath_zero : contin slowPath 0 = (1, 0) := by
+  simp [contin_zero, runBit_slowPath_zero]
+
+/-- **The genuine `p₀/q₀`, at index 1.** On a right-starting path this index
+holds the `1/0` seed; here it is the convergent `0/1`. -/
+theorem contin_slowPath_one : contin slowPath 1 = (0, 1) := by
+  simp [contin_one, runBit_slowPath_zero]
+
+theorem contin_slowPath_two : contin slowPath 2 = (1, 1) := by
+  have h := contin_add_two slowPath 0
+  rw [contin_slowPath_zero, contin_slowPath_one, partialQuot_slowPath] at h
+  simpa using h
+
+theorem contin_slowPath_three : contin slowPath 3 = (2, 3) := by
+  have h := contin_add_two slowPath 1
+  rw [contin_slowPath_one, contin_slowPath_two, partialQuot_slowPath] at h
+  norm_num at h
+  exact h
+
+theorem contin_slowPath_four : contin slowPath 4 = (9, 13) := by
+  have h := contin_add_two slowPath 2
+  rw [contin_slowPath_two, contin_slowPath_three, partialQuot_slowPath] at h
+  norm_num at h
+  exact h
+
+/-- `a₃ = 8`, so the numerators jump `9 ↦ 74`. Computed rather than left in a
+comment, since a value asserted only in prose is exactly what this file exists
+to rule out. -/
+theorem contin_slowPath_five : contin slowPath 5 = (74, 107) := by
+  have h := contin_add_two slowPath 3
+  rw [contin_slowPath_three, contin_slowPath_four, partialQuot_slowPath] at h
+  norm_num at h
+  exact h
+
+/-! #### The left branch, checked against the concrete values -/
+
+/-- `contin_den_startIdx` claims denominator `1` at `startIdx` on **both**
+branches. Here is the left branch, proved from the general lemma. -/
+theorem contin_den_startIdx_slowPath : (contin slowPath (startIdx slowPath)).2 = 1 :=
+  contin_den_startIdx slowPath
+
+/-- The same statement again, proved instead from `startIdx_slowPath` and the
+directly computed `contin slowPath 1 = (0, 1)`, mentioning neither
+`contin_den_startIdx` nor its proof.
+
+Two independent proofs of one statement is what makes this a cross-check rather
+than a restatement: if `contin_den_startIdx` had the two branches the wrong way
+round it would land on the `1/0` seed, whose denominator is `0`, and the
+elaboration of `contin_den_startIdx_slowPath` would fail against this value. -/
+theorem contin_den_startIdx_slowPath' : (contin slowPath (startIdx slowPath)).2 = 1 := by
+  rw [startIdx_slowPath, contin_slowPath_one]
+
+/-- `contin_den_le_succ_of_startIdx` at `j = 0`. The hypothesis is
+`startIdx x ≤ j + 1`, so `j = 0` needs `startIdx x ≤ 1`: on a right-starting
+path `startIdx x = 2` and the case is vacuous. This is the first witness that it
+is not vacuous everywhere. -/
+theorem contin_den_le_succ_slowPath_zero :
+    (contin slowPath 0).2 ≤ (contin slowPath 1).2 :=
+  contin_den_le_succ_of_startIdx infFlips_slowPath (by rw [startIdx_slowPath])
+
+/-- **And the `j = 0` case is not merely vacuous on the right branch — it is
+false there.** `goldenPath`'s seeds are `(0, 1)` and `(1, 0)`, so the same
+inequality reads `1 ≤ 0`.
+
+This is why `contin_den_le_succ_of_startIdx` carries the `startIdx x ≤ j + 1`
+hypothesis instead of holding at every `j`, and it is the one fact in this
+section that the concrete seed values are strictly necessary for: it cannot be
+stated, let alone proved, without them. -/
+theorem contin_den_zero_not_le_one_goldenPath :
+    ¬ ((contin goldenPath 0).2 ≤ (contin goldenPath 1).2) := by
+  simp [contin_zero, contin_one, runBit_goldenPath_zero]
+
+/-- Unimodularity at the first convergent pair, from the general lemma. -/
+theorem abs_contin_det_slowPath :
+    |(contin slowPath 2).1 * (contin slowPath 3).2
+      - (contin slowPath 3).1 * (contin slowPath 2).2| = 1 :=
+  abs_contin_det infFlips_slowPath 0
+
+/-- The same statement from the computed values instead: `|1·3 − 2·1| = 1`.
+
+Paired with `abs_contin_det_slowPath` for the same reason as the `startIdx` pair
+above — two independent proofs of one statement, so a wrong value on either side
+fails to elaborate. Stating the arithmetic on its own (`|(1:ℤ)*3 − 2*1| = 1`)
+would prove nothing about this development: `norm_num` closes it with no
+convergent in sight. -/
+theorem abs_contin_det_slowPath' :
+    |(contin slowPath 2).1 * (contin slowPath 3).2
+      - (contin slowPath 3).1 * (contin slowPath 2).2| = 1 := by
+  rw [contin_slowPath_two, contin_slowPath_three]
+  norm_num
+
+/-- The convergent estimate at `slowPath`'s first genuine convergent pair. -/
+theorem abs_sub_contin_lt_slowPath :
+    |toReal₀ slowPath - (1 : ℝ) / (1 : ℝ)| < 1 / ((1 : ℝ) * (3 : ℝ)) := by
+  have h := abs_sub_contin_lt irrational_slowPath 0
+  rw [contin_slowPath_two, contin_slowPath_three] at h
+  simpa using h
 
 end SternBrocot

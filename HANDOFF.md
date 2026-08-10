@@ -729,13 +729,64 @@ the tree — because the `_gen` versions superseded them:
   Legendre finish). It is a true and natural fact, so it is kept, but the third
   person to write a justification for it should instead delete it.
 
-Also: `CF/Legendre.lean:162-184` and `CF/BadlyApproximable.lean`'s
-`contin_err_mul_neg_gen` contain byte-identical copies of the same `core` block,
-differing only in the boundary index (`k+2` versus `j+1`). Since
-`k + 2 = (k+1) + 1` the second literally generalises the first; one shared lemma
-instantiated at `j = k+1` removes 23 duplicated lines and the risk that the two
-drift apart. Not done because the duplication is currently harmless and the
-refactor touches two working proofs.
+~~Also: two near-identical copies of the same `core` block.~~ ✅ Done —
+extracted as `columns_straddle` in `CF/Legendre.lean`. Both copies were in
+`CF/Legendre.lean`, not one there and one in `CF/BadlyApproximable.lean` as an
+earlier version of this note said — `contin_err_mul_neg_gen` lives in
+`Legendre.lean` with the rest of the `_gen` layer.
 
-Neither of these is urgent. Both are the kind of thing that gets worse if left
-for another three PRs.
+Two corrections to how this dedup was first written up, both caught in review:
+
+- The copies were **not byte-identical**. They differed in the boundary index
+  (`k+2` versus `j+1`), in two comment lines, and in whether the positivity
+  hypothesis was named. "Byte-identical" was a stronger claim than the note it
+  replaced, which said "differing only in the boundary index" and was right.
+- `columns_straddle` is stated at an **arbitrary prefix length**, but that is
+  not what enabled the dedup: since `k + 2 = (k+1) + 1`, the boundary-indexed
+  form alone unifies both call sites, and both callers still instantiate it at a
+  boundary. The generality is the weakest hypothesis the proof uses, not a
+  simplification anything cashes in.
+
+The saving is 24 duplicated lines removed against 33 lines of lemma and
+docstring added — net **−11** in `Legendre.lean`, not the −85 an earlier PR body
+claimed by misreading `git diff --stat`'s total-changed column as deletions.
+
+The three dead declarations are not urgent; `scripts/check-deps.sh` has asserted
+their deadness since PR #5, so if one acquires a user the check fails and asks
+whether the prose should change.
+
+## Left-branch coverage — ✅ closed, on the second attempt
+
+`contin_slowPath_{zero,…,five}` compute `slowPath`'s seeds `(1,0), (0,1)` and
+its convergents `(1,1), (2,3), (9,13), (74,107)`. The seeds are the interesting
+half: on a left-starting path they are *swapped* relative to `goldenPath`, and
+nothing in the repository had computed that arrangement at a concrete path.
+
+**What this does and does not establish.** Instantiating an already-elaborated
+`∀ x` lemma does not *run* any branch of its proof — every branch of
+`contin_den_le_succ_of_startIdx` was checked when `CF/BadlyApproximable.lean`
+compiled, for all `x`. The first version of this section said "`Examples.lean`
+now runs it", which is not a thing an instantiation can do. What the concrete
+values buy is two weaker but real facts: the `j = 0` hypothesis is
+**satisfiable** (`contin_den_le_succ_slowPath_zero`), so that branch is not
+vacuous everywhere; and its conclusion is **false** on the right branch
+(`contin_den_zero_not_le_one_goldenPath`: the seeds there give `1 ≤ 0`), which is
+why the lemma carries `startIdx x ≤ j + 1` at all. The second is the only
+statement here that cannot even be written down without the computed seeds.
+
+**And the claim this section originally made was false in the same way as its
+predecessor.** It said `contin_slowPath_{two,three,four}` were "what puts the
+`j = 0` seed case under test" — but the `example` asserting that used
+`infFlips_slowPath` and `startIdx_slowPath`, both of which predate this work, and
+none of the computed values. It would have compiled unchanged on `main`. The
+structural reason it slipped past `scripts/check-deps.sh`: the claim was attached
+to an anonymous `example`, which has no `Name`, so `projectDecls` cannot see it
+and no `Claim` can be written about it. Everything in that section is now a named
+theorem, and the two cross-check pairs are registered — `..._slowPath'` must not
+use the general lemma, `..._slowPath` must.
+
+The numerators are `1, 2, 9, 74` with no closed form, unlike `contin_goldenPath`'s
+Fibonacci. That is a feature for an example: nothing can be checked by
+recognising a known sequence. `74` is now `contin_slowPath_five` rather than an
+uncomputed value asserted in a comment, which is what it was when the PR body
+quoted it.
