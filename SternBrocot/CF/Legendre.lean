@@ -149,12 +149,17 @@ out nest. -/
 strictly below, the `A`-column strictly above.
 
 This is `column_errors` with the final `abs` dropped — that lemma already
-produces both differences as manifestly *positive* quantities. Stated for an
-arbitrary prefix length `n` rather than at a run boundary, because nothing here
-needs the boundary: `contin_straddle` instantiates it at `runBoundary x (k+2)`
-and `contin_err_mul_neg_gen` (in `CF/BadlyApproximable.lean`) at
-`runBoundary x (j+1)`. Both were previously carrying byte-identical inlined
-copies of this proof. -/
+produces both differences as manifestly *positive* quantities.
+
+Both call sites are in this file: `contin_straddle` at `runBoundary x (k+2)` and
+`contin_err_mul_neg_gen` at `runBoundary x (j+1)`. Each previously inlined this
+proof. The two copies were *near*-identical, not byte-identical — they differed
+in the boundary index and in whether the positivity hypothesis was named — and
+since `k + 2 = (k + 1) + 1`, the boundary-indexed form alone would have unified
+them. Stating it at an arbitrary prefix length `n` is therefore not what made
+the deduplication possible; it is just the weakest hypothesis the proof actually
+uses, since no step below mentions the boundary. No current caller needs that
+generality. -/
 theorem columns_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (n : ℕ)
     {A B C D : ℤ} (hC : 0 < C) (hD : 0 < D)
     (hm : pathMat (prefixWord x n) = (A, B, C, D)) :
@@ -181,9 +186,8 @@ theorem columns_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (n : �
 /-- **Consecutive convergents lie on opposite sides of `Φ₀ x`**, and which side
 is which alternates with the run bit.
 
-The proof is `column_errors` without the final `abs` — that lemma already
-produces both differences as manifestly *positive* quantities, so no new
-estimate is involved, only a reading of which column is which convergent. -/
+The proof is `columns_straddle` at the run boundary, so no new estimate is
+involved, only a reading of which column is which convergent. -/
 theorem contin_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ) :
     (runBit x (k + 1) = true →
       ((contin x (k + 3)).1 : ℝ) / ((contin x (k + 3)).2 : ℝ) < toReal₀ x ∧
@@ -193,19 +197,17 @@ theorem contin_straddle {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (k : ℕ
         toReal₀ x < ((contin x (k + 3)).1 : ℝ) / ((contin x (k + 3)).2 : ℝ)) := by
   have h := infFlips_of_irrational hirr
   obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h (k + 1)
-  have core := fun (A B C D : ℤ) hC hD hm =>
-    columns_straddle hirr (runBoundary x (k + 2)) (A := A) (B := B) (C := C) (D := D) hC hD hm
   have hq2 : 0 < (contin x (k + 2)).2 := contin_den_pos h k
   have hq3 : 0 < (contin x (k + 3)).2 := contin_den_pos h (k + 1)
   refine ⟨fun hb => ?_, fun hb => ?_⟩
   · have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
         = ((contin x (k + 2)).1, (contin x (k + 3)).1,
            (contin x (k + 2)).2, (contin x (k + 3)).2) := hT hb
-    exact core _ _ _ _ hq2 hq3 hm
+    exact columns_straddle hirr _ hq2 hq3 hm
   · have hm : pathMat (prefixWord x (runBoundary x (k + 2)))
         = ((contin x (k + 3)).1, (contin x (k + 2)).1,
            (contin x (k + 3)).2, (contin x (k + 2)).2) := hF hb
-    exact core _ _ _ _ hq3 hq2 hm
+    exact columns_straddle hirr _ hq3 hq2 hm
 
 /-- The straddling, stated without reference to `runBit`: the value is strictly
 between two consecutive convergents, in one order or the other. -/
@@ -514,20 +516,18 @@ theorem contin_err_mul_neg_gen {x : Set ℕ} (hirr : Irrational (toReal₀ x)) (
   obtain ⟨hT, hF⟩ := boundaryMat_eq_contin h j
   have h1r : (0 : ℝ) < ((contin x (j + 1)).2 : ℝ) := by exact_mod_cast h1
   have h2r : (0 : ℝ) < ((contin x (j + 2)).2 : ℝ) := by exact_mod_cast h2
-  have core := fun (A B C D : ℤ) hC hD hm =>
-    columns_straddle hirr (runBoundary x (j + 1)) (A := A) (B := B) (C := C) (D := D) hC hD hm
   cases hb : runBit x j
   · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
         = ((contin x (j + 2)).1, (contin x (j + 1)).1,
            (contin x (j + 2)).2, (contin x (j + 1)).2) := hF hb
-    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h2 h1 hm
+    obtain ⟨hlo, hhi⟩ := columns_straddle hirr _ h2 h1 hm
     rw [div_lt_iff₀ h1r] at hlo
     rw [lt_div_iff₀ h2r] at hhi
     nlinarith
   · have hm : pathMat (prefixWord x (runBoundary x (j + 1)))
         = ((contin x (j + 1)).1, (contin x (j + 2)).1,
            (contin x (j + 1)).2, (contin x (j + 2)).2) := hT hb
-    obtain ⟨hlo, hhi⟩ := core _ _ _ _ h1 h2 hm
+    obtain ⟨hlo, hhi⟩ := columns_straddle hirr _ h1 h2 hm
     rw [div_lt_iff₀ h2r] at hlo
     rw [lt_div_iff₀ h1r] at hhi
     nlinarith

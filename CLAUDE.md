@@ -406,10 +406,15 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `slowPath` (`Examples.lean`) — a path with `partialQuot slowPath k = 2 ^ k`,
   the counterweight to `goldenPath`, and the witness that makes
   `¬ BadlyApproximable` inhabited. It is **left**-starting
-  (`startIdx_slowPath`), and `contin_slowPath_{two,three,four}` compute its
-  convergents `(1,1), (2,3), (9,13)` — which is what puts
-  `contin_den_le_succ_of_startIdx`'s `j = 0` seed case, unreachable on a
-  right-starting path, under test for the first time.
+  (`startIdx_slowPath`), and `contin_slowPath_{zero,…,five}` compute its seeds
+  `(1,0), (0,1)` — the left-starting *swap* — and its convergents `(1,1), (2,3),
+  (9,13), (74,107)`. The seed values are what make
+  `contin_den_zero_not_le_one_goldenPath` statable: the `j = 0` case of
+  `contin_den_le_succ_of_startIdx` is not merely vacuous on a right-starting
+  path, it is **false** there, reading `1 ≤ 0`. Note instantiating an
+  already-elaborated `∀`-lemma runs no branch of its proof; what a concrete path
+  buys is that the branch's hypotheses are satisfiable and its conclusion
+  genuinely branch-dependent.
 - `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
   approximable **iff** its partial quotients are bounded. The `←` direction runs
   on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity

@@ -33,6 +33,15 @@ something is *not* used. If the claim is false the check fails.
 3. **The closure is incomplete.** Hand-rolled traversals drop `inductInfo →
    ctors`, `recInfo → all` and `opaqueInfo → value`. Do not hand-roll it; use
    `ConstantInfo.getUsedConstantsAsSet`, which Lean core already ships.
+
+## And one way it cannot check anything at all
+
+An anonymous `example` has no `Name`, so `projectDecls` cannot see it and no
+claim can be written about it. A coverage claim attached to an `example` is
+therefore outside this file's reach *by construction* — which is how a false one
+shipped in PR #6: the prose said a set of computed values was what put a lemma's
+seed branch under test, and the `example` making that claim used none of them.
+Name anything a docstring or PR body makes a dependency claim about.
 -/
 import SternBrocot
 
@@ -74,7 +83,19 @@ def claims : List Claim := [
     why := "CF/BadlyApproximable.lean: the -> direction runs on abs_sub_contin_lt, not the identity" },
   { source := `SternBrocot.eventuallyPeriodic_iff_degLeTwo
     target := `SternBrocot.orderIsoReal
-    why := "CLAUDE.md: 'nothing in the Lagrange import chain reaches Real/Field.lean'" }
+    why := "CLAUDE.md: 'nothing in the Lagrange import chain reaches Real/Field.lean'" },
+  -- The two cross-check pairs in `Examples.lean`. Each pair states one fact
+  -- twice: once from a general lemma, once from the computed convergents. The
+  -- claim that makes it a cross-check rather than a restatement is that the
+  -- primed proof does *not* go through the general lemma — otherwise both
+  -- halves would fail or succeed together and nothing is being compared. The
+  -- matching canaries below assert the unprimed halves DO use it.
+  { source := `SternBrocot.contin_den_startIdx_slowPath'
+    target := `SternBrocot.contin_den_startIdx
+    why := "Examples.lean: 'mentioning neither contin_den_startIdx nor its proof'" },
+  { source := `SternBrocot.abs_contin_det_slowPath'
+    target := `SternBrocot.abs_contin_det
+    why := "Examples.lean: 'the same statement from the computed values instead'" }
 ]
 
 /-- **Positive controls.** Dependencies that must be found. If one of these is
@@ -92,7 +113,13 @@ def canaries : List Claim := [
     why := "control: the <- direction really does run on the identity" },
   { source := `SternBrocot.legendre
     target := `SternBrocot.contin_den_lt_succ
-    why := "control: legendre DOES use contin_den_lt_succ, via exists_bracket" }
+    why := "control: legendre DOES use contin_den_lt_succ, via exists_bracket" },
+  { source := `SternBrocot.contin_den_startIdx_slowPath
+    target := `SternBrocot.contin_den_startIdx
+    why := "control: the unprimed half of the startIdx cross-check is the general lemma" },
+  { source := `SternBrocot.abs_contin_det_slowPath
+    target := `SternBrocot.abs_contin_det
+    why := "control: the unprimed half of the determinant cross-check is the general lemma" }
 ]
 
 /-- Declarations claimed to be unreferenced. `HANDOFF.md` says these three are
