@@ -729,13 +729,31 @@ the tree — because the `_gen` versions superseded them:
   Legendre finish). It is a true and natural fact, so it is kept, but the third
   person to write a justification for it should instead delete it.
 
-Also: `CF/Legendre.lean:162-184` and `CF/BadlyApproximable.lean`'s
-`contin_err_mul_neg_gen` contain byte-identical copies of the same `core` block,
-differing only in the boundary index (`k+2` versus `j+1`). Since
-`k + 2 = (k+1) + 1` the second literally generalises the first; one shared lemma
-instantiated at `j = k+1` removes 23 duplicated lines and the risk that the two
-drift apart. Not done because the duplication is currently harmless and the
-refactor touches two working proofs.
+~~Also: two byte-identical copies of the same `core` block.~~ ✅ Done —
+extracted as `columns_straddle` in `CF/Legendre.lean`, stated for an **arbitrary
+prefix length** rather than at a run boundary, since neither use needed the
+boundary. `contin_straddle` instantiates it at `runBoundary x (k+2)` and
+`contin_err_mul_neg_gen` at `runBoundary x (j+1)`. Note both copies were in
+`CF/Legendre.lean`, not one there and one in `CF/BadlyApproximable.lean` as an
+earlier version of this note said — `contin_err_mul_neg_gen` lives in
+`Legendre.lean` with the rest of the `_gen` layer.
 
-Neither of these is urgent. Both are the kind of thing that gets worse if left
-for another three PRs.
+The three dead declarations are not urgent, but `scripts/check-deps.sh` now
+asserts their deadness, so if one acquires a user the check fails and asks
+whether the prose should change.
+
+## Left-branch coverage — ✅ closed
+
+`contin_slowPath_{zero,one,two,three,four}` compute `slowPath`'s convergents:
+`(1,0), (0,1), (1,1), (2,3), (9,13)`. This is what the earlier "first example to
+exercise the left branch" claim should have meant and did not.
+
+The check that matters is `contin_den_le_succ_of_startIdx` at `j = 0`. That case
+exists **only** for left-starting paths — on a right-starting path
+`startIdx = 2`, so `j = 0` never satisfies its hypothesis and the seed branch is
+unreachable. `Examples.lean` now runs it.
+
+Worth noting the numerators are `1, 2, 9, 74, …` with no closed form, unlike
+`contin_goldenPath`'s Fibonacci. That is a feature for an example: nothing can
+be checked by recognising a known sequence, so each value is the recurrence
+actually running.

@@ -707,4 +707,75 @@ quotients, so its value is *not* badly approximable — the mirror image of
 theorem slowPath_not_badlyApproximable : ¬ BadlyApproximable (toReal₀ slowPath) :=
   (badlyApproximable_iff_boundedPartialQuot irrational_slowPath).not.2 slowPath_unbounded
 
+/-! ### The convergents of `slowPath`, and the left branch actually exercised
+
+`contin_goldenPath` computes the convergents of `φ` and so genuinely exercises
+the convergent recurrence — but only on a **right**-starting path, where the
+list begins at index `2`. The section above added a left-starting path but
+computed no convergents for it, and an earlier docstring wrongly claimed that
+counted as covering the left branch. This closes that.
+
+`slowPath`'s convergents have no closed form — the partial quotients are `2^k`,
+so the numerators go `1, 2, 9, 74, …` — which is itself the point: unlike the
+Fibonacci case, nothing here can be checked by recognising a known sequence, so
+each value is the recurrence actually running. -/
+
+theorem runBit_slowPath_zero : runBit slowPath 0 = false := by
+  show bitAt slowPath 0 = false
+  simp [bitAt, mem_slowPath_iff]
+
+theorem contin_slowPath_zero : contin slowPath 0 = (1, 0) := by
+  simp [contin_zero, runBit_slowPath_zero]
+
+/-- **The genuine `p₀/q₀`, at index 1.** On a right-starting path this index
+holds the `1/0` seed; here it is the convergent `0/1`. -/
+theorem contin_slowPath_one : contin slowPath 1 = (0, 1) := by
+  simp [contin_one, runBit_slowPath_zero]
+
+theorem contin_slowPath_two : contin slowPath 2 = (1, 1) := by
+  have h := contin_add_two slowPath 0
+  rw [contin_slowPath_zero, contin_slowPath_one, partialQuot_slowPath] at h
+  simpa using h
+
+theorem contin_slowPath_three : contin slowPath 3 = (2, 3) := by
+  have h := contin_add_two slowPath 1
+  rw [contin_slowPath_one, contin_slowPath_two, partialQuot_slowPath] at h
+  norm_num at h
+  exact h
+
+theorem contin_slowPath_four : contin slowPath 4 = (9, 13) := by
+  have h := contin_add_two slowPath 2
+  rw [contin_slowPath_two, contin_slowPath_three, partialQuot_slowPath] at h
+  norm_num at h
+  exact h
+
+/-! #### The general lemmas, checked on the branch they had never been run on -/
+
+/-- `contin_den_startIdx` said the denominator at `startIdx` is `1` on **both**
+branches. Here is the left branch, cross-checked against the directly computed
+`contin slowPath 1 = (0, 1)`. -/
+example : (contin slowPath (startIdx slowPath)).2 = 1 := contin_den_startIdx slowPath
+
+example : (contin slowPath 1).2 = 1 := by rw [contin_slowPath_one]
+
+/-- `contin_den_le_succ_of_startIdx` at `j = 0`. That case exists **only** for
+left-starting paths — on a right-starting path `startIdx = 2`, so `j = 0` never
+satisfies the hypothesis and the seed branch of that lemma is unreachable. This
+is the first place it runs. -/
+example : (contin slowPath 0).2 ≤ (contin slowPath 1).2 :=
+  contin_den_le_succ_of_startIdx infFlips_slowPath (by rw [startIdx_slowPath])
+
+/-- Unimodularity, on concrete left-branch numbers: `1·3 − 2·1 = 1`. -/
+example : |(contin slowPath 2).1 * (contin slowPath 3).2
+    - (contin slowPath 3).1 * (contin slowPath 2).2| = 1 :=
+  abs_contin_det infFlips_slowPath 0
+
+example : |(1 : ℤ) * 3 - 2 * 1| = 1 := by norm_num
+
+/-- The convergent estimate at `slowPath`'s first genuine convergent pair. -/
+example : |toReal₀ slowPath - (1 : ℝ) / (1 : ℝ)| < 1 / ((1 : ℝ) * (3 : ℝ)) := by
+  have h := abs_sub_contin_lt irrational_slowPath 0
+  rw [contin_slowPath_two, contin_slowPath_three] at h
+  simpa using h
+
 end SternBrocot

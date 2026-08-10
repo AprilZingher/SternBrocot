@@ -406,9 +406,10 @@ The future `GenContFract` bridge belongs in `CF/`, as a leaf nothing imports.
 - `slowPath` (`Examples.lean`) — a path with `partialQuot slowPath k = 2 ^ k`,
   the counterweight to `goldenPath`, and the witness that makes
   `¬ BadlyApproximable` inhabited. It is **left**-starting
-  (`startIdx_slowPath`), which is the first proved instance of `startIdx x = 1`
-  — but nothing computes `contin slowPath k`, so the convergent-indexing branch
-  is still not covered by any example.
+  (`startIdx_slowPath`), and `contin_slowPath_{two,three,four}` compute its
+  convergents `(1,1), (2,3), (9,13)` — which is what puts
+  `contin_den_le_succ_of_startIdx`'s `j = 0` seed case, unreachable on a
+  right-starting path, under test for the first time.
 - `badlyApproximable_iff_boundedPartialQuot` — an irrational is badly
   approximable **iff** its partial quotients are bounded. The `←` direction runs
   on `contin_err_sum`, `qₖ₊₁|qₖα − pₖ| + qₖ|qₖ₊₁α − pₖ₊₁| = 1` — unimodularity
